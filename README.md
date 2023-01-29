@@ -15,7 +15,7 @@ On a decentralized social platform like Moments Swap, each Moment posted generat
 
 ## ${\color{black}{5 \ Smart \ Contract \ Functionalities}}$
 * Name resolution system to achieve mutual conversion of user address and user name
-* uploading text, video and pictures to the filecoin storage network
+* Uploading text, video and pictures to the filecoin storage network
 * Upgrade governance process
 
 ## ${\color{black}{7 \ Roadmap}}$
