@@ -1,24 +1,18 @@
-import hre from 'hardhat';
+import hre from "hardhat";
 
-import type { MomentSwapFRC721 } from '../typechain-types/contracts/MomentSwapFRC721';
-import type { MomentSwapFRC721__factory } from '../typechain-types/factories/contracts/MomentSwapFRC721__factory';
+import type { MomentSwapFRC721, MomentSwapFRC721__factory } from "../typechain-types";
 
 async function main() {
-  console.log('MomentSwap721 deploying....');
+  console.log("MomentSwap721 deploying....");
 
-  const owner = new hre.ethers.Wallet(
-    process.env.WALLET_PRIVATE_KEY || 'undefined',
-    hre.ethers.provider
+  const owner = new hre.ethers.Wallet(process.env.WALLET_PRIVATE_KEY || "undefined", hre.ethers.provider);
+  const momentSwapFRC721Factory: MomentSwapFRC721__factory = <MomentSwapFRC721__factory>(
+    await hre.ethers.getContractFactory("MomentSwapFRC721", owner)
   );
-  const momentSwapFRC721Factory: MomentSwapFRC721__factory = <
-    MomentSwapFRC721__factory
-  >await hre.ethers.getContractFactory('MomentSwapFRC721', owner);
 
-  const momentSwapFRC721: MomentSwapFRC721 = <MomentSwapFRC721>(
-    await momentSwapFRC721Factory.deploy()
-  );
+  const momentSwapFRC721: MomentSwapFRC721 = <MomentSwapFRC721>await momentSwapFRC721Factory.deploy();
   await momentSwapFRC721.deployed();
-  console.log('momentSwapFRC721 deployed to ', momentSwapFRC721.address);
+  console.log("momentSwapFRC721 deployed to ", momentSwapFRC721.address);
 }
 
 main().catch((error) => {
