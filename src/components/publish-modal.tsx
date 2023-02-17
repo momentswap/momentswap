@@ -25,7 +25,7 @@ export const PublishModal = () => {
         const { mediaCID, mediaType } = await storeMediaToIPFS(file);
         setMedia({ url: `https://${mediaCID}.ipfs.dweb.link`, type: mediaType, cid: mediaCID });
       } catch (err) {
-        console.error("Failed to store media.");
+        console.error("Failed to store media, error:", err);
         alert("Failed to store media, please try again.");
       }
     }

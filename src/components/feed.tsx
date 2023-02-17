@@ -15,7 +15,6 @@ export const Feed = () => {
   useEffect(() => {
     (async () => {
       const collection = await getNFTCollection();
-      console.log("collection", collection);
 
       const cacheMoments = collection?.map<MomentMetadata>((item) => ({
         address: item[0],

@@ -1,4 +1,5 @@
 import detectEthereumProvider from "@metamask/detect-provider";
+import { addAndSwitchFilecoinChain, isMetaMaskInstalled } from "@utils/helpers";
 import { BigNumber, ethers } from "ethers";
 import React, { ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
@@ -32,33 +33,13 @@ export const WalletProviderProvider = ({ children }: { children: ReactNode }) =>
   const [address, setAddress] = useState<string | undefined>(undefined);
   const [providerError, setProviderError] = useState<string | null>(null);
 
-  const addAndSwitchFilecoinChain = useCallback(async () => {
-    if (window) {
-      await window.ethereum.request({
-        method: "wallet_addEthereumChain",
-        params: [
-          {
-            chainId: "0xc45",
-            chainName: "Filecoin - Hyperspace testnet",
-            nativeCurrency: {
-              name: "testnet filecoin",
-              symbol: "tFIL",
-              decimals: 18,
-            },
-            rpcUrls: [
-              "https://api.hyperspace.node.glif.io/rpc/v1",
-              "https://filecoin-hyperspace.chainstacklabs.com/rpc/v1",
-            ],
-            blockExplorerUrls: ["https://hyperspace.filfox.info/en"],
-          },
-        ],
-      });
-    }
-  }, []);
-
   useEffect(() => {
     (async () => {
-      addAndSwitchFilecoinChain();
+      if (!isMetaMaskInstalled()) {
+        alert("Please install MetaMask!");
+        throw new Error("MetaMask not installed.");
+      }
+      await addAndSwitchFilecoinChain();
       const detectedProvider = (await detectEthereumProvider()) || window.ethereum;
       const provider = new ethers.providers.Web3Provider(detectedProvider, "any");
       provider.send("eth_requestAccounts", []).then(() => {
@@ -89,9 +70,14 @@ export const WalletProviderProvider = ({ children }: { children: ReactNode }) =>
           });
       }
     })();
-  }, [addAndSwitchFilecoinChain]);
+  }, []);
 
   const connect = useCallback(() => {
+    if (!isMetaMaskInstalled()) {
+      setProviderError("MetaMask not installed.");
+      alert("Please install MetaMask!");
+      throw new Error("MetaMask not installed.");
+    }
     setProviderError(null);
     addAndSwitchFilecoinChain().then(() => {
       detectEthereumProvider()
@@ -169,7 +155,7 @@ export const WalletProviderProvider = ({ children }: { children: ReactNode }) =>
           setProviderError("Please install MetaMask");
         });
     });
-  }, [addAndSwitchFilecoinChain]);
+  }, []);
 
   const disconnect = useCallback(() => {
     localStorage.removeItem("wallet-logged");

@@ -57,11 +57,12 @@ export const getCommentsByMomentId = (id: string): Array<CommentData> => {
 
 export const postComment = (momentID: string, comment: CommentData) => {
   const commentsMap: Map<string, Array<CommentData>> = JSON.parse(localStorage.getItem("comments") || "{}");
+  // @ts-ignore
   const comments = commentsMap[momentID] || [];
   comment.id = comments.length.toString();
   comment.timestamp = new Date().toLocaleString();
   comments.push(comment);
-
+  // @ts-ignore
   commentsMap[momentID] = comments;
   // console.log(commentsMap);
   localStorage.setItem("comments", JSON.stringify(commentsMap));
@@ -73,12 +74,14 @@ export const getLikesByMomentId = (id: string): Array<string> => {
 
 export const storeLikes = (momentID: string, username: string) => {
   const likesMap: Map<string, Array<string>> = JSON.parse(localStorage.getItem("likes") || "{}");
+  // @ts-ignore
   let likes: Array<string> = likesMap[momentID] || [];
   if (likes?.includes(username)) {
     likes = likes.filter((l) => l != username);
   } else {
     likes.push(username);
   }
+  // @ts-ignore
   likesMap[momentID] = likes;
   localStorage.setItem("likes", JSON.stringify(likesMap));
 };

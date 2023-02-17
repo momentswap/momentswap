@@ -1,8 +1,8 @@
-import { Avatar, Layout, ThemeToggle } from "@components";
-
 import { ArrowLeftIcon } from "@heroicons/react/outline";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
+
+import { Avatar, Layout, ThemeToggle } from "@components";
 import { useWalletProvider } from "src/hooks/use-wallet-provider";
 
 export default function UserPage() {
@@ -31,8 +31,9 @@ export default function UserPage() {
           </div>
           {/* Head  */}
           <div className="w-full h-[160px] bg-gradient-to-r from-secondary to-neutral mb-16">
-            <div></div>
-            <Avatar seed={address} image={userImg} diameter={100} className="rounded-full relative top-28 left-8" />
+            <div className="rounded-full relative top-28 left-8 w-[100px] h-[100px] bg-base-100 flex">
+              <Avatar seed={pageAddress} diameter={90} className="m-auto" />
+            </div>
           </div>
           {/* Body */}
 
@@ -61,7 +62,7 @@ export default function UserPage() {
           </label>
           <div className="mx-6">
             <p className="text-2xl font-semibold">{username || "---"}.fil</p>
-            <p className="text-sm">{address}</p>
+            <p className="text-sm">{pageAddress}</p>
           </div>
           <div className="mt-5">
             <div className="tabs">

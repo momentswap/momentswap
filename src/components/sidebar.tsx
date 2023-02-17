@@ -50,7 +50,7 @@ export const Sidebar = () => {
             htmlFor="publish-modal"
             className="flex text-center bg-primary rounded-full w-12 xl:w-56 h-12 font-bold shadow-md hover:bg-primary-focus text-lg mx-auto"
           >
-            <p className="hidden xl:inline m-auto">Submit</p>
+            <p className="hidden xl:inline m-auto">Publish</p>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
