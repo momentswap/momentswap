@@ -4,7 +4,11 @@ import MomentSwapFRC721 from "@Contracts/MomentSwapFRC721.sol/MomentSwapFRC721.j
 import { MomentSwapFRC721NFT } from "@utils/definitions/interfaces";
 import { useWalletProvider } from "src/hooks";
 
-const contractAddress = process.env.NEXT_PUBLIC_MOMENTSWAP_CONTRACT_ADDRESS || "";
+const contractAddress = process.env.NEXT_PUBLIC_MOMENTSWAP_CONTRACT_ADDRESS;
+if (!contractAddress) {
+  throw new Error("Please set NEXT_PUBLIC_MOMENTSWAP_CONTRACT_ADDRESS in a .env file");
+}
+
 export const getContract = () => new Contract(contractAddress, MomentSwapFRC721.abi);
 
 export const useMomentSwap = () => {

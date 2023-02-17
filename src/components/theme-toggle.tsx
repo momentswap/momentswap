@@ -1,11 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { themeChange } from "theme-change";
 
 import { DEFAULT_THEME } from "@utils/definitions/consts";
 
 export const ThemeToggle = () => {
   // Init theme switcher
-  React.useEffect(() => {
+  useEffect(() => {
     themeChange(false);
   }, []);
 
@@ -27,7 +27,7 @@ export const ThemeToggle = () => {
 
   return (
     <label className="swap swap-rotate p-4">
-      <input type="checkbox" data-toggle-theme="pastel,dracula" />
+      <input type="checkbox" data-toggle-theme="dracula,pastel" />
       <svg
         className={`${theme === DEFAULT_THEME ? "swap-off" : "swap-on"} fill-current w-5 h-5`}
         xmlns="http://www.w3.org/2000/svg"
