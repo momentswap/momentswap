@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract SpaceFNS {
+
     event DomainRegistered(string indexed label, uint256 indexed token_id,address indexed owner);
 
     event ChildDomainRegistered(string indexed label,uint256 indexed token_id,address indexed owner);
@@ -11,7 +12,7 @@ contract SpaceFNS {
     using Counters for Counters.Counter;
     Counters.Counter private _registeredCount;
 
-   //FNS info
+   //FNS information
    struct FNSInfo{
        string  name;
        uint256 parent;
@@ -23,45 +24,51 @@ contract SpaceFNS {
        uint256  earning;
    }
 
+    ///The life cycle of second-level domain names
     uint256 constant DEFAULT_EXPIRE_TIME =  48 weeks;
+
+    ///Up to MAXIMUM_NODES second-level domains under a first-level domain
     uint256 constant MAXIMUM_NODES = 10;
     
-
     //FNS name ==>tokenID
     mapping(string=>uint256) private allNames;
 
-    //tokenID ==>Fns informationg
+    //tokenID ==>domain information
     mapping(uint256=>FNSInfo) private allFNS;
 
-    
     mapping(address => uint256) private balances;
 
-    //owner
+    //first-level domain Corresponding to owner address
     mapping(string => address) private mainNames;
 
-    mapping(address=>string)private resMainNames;
+    //domain under owner
+    mapping(address=>string)public resMainNames;
 
+    //second-level  domain name‘s hash ==> owner address
     mapping(bytes32=>address) private childOwner;
 
+    //owner  address own second-level domain
     mapping(address=>string[])private childNames;
 
 
     constructor(){
+
         _registeredCount.increment();
     }
 
-
-
+    ///Register main domain name
+    ///Limit an address to one first-level domain name
      function register(string calldata label,address owner) external {
-        //bytes32 hashedLabel = keccak256(abi.encodePacked(label));
-        
-        //check lable 
         require(
            mainNames[label]==address(0),
             "Name is already exist "
         );
+        
+         require(
+           bytes(resMainNames[msg.sender]).length==0,
+            "an address only own one first-level domain "
+        );
 
-        //expiryTimes[hashedLabel] = block.timestamp + DEFAULT_EXPIRE_TIME;
         uint256 index=_registeredCount.current();
       
         allFNS[index]= FNSInfo(label,0,index,owner,0,0,new uint256[](0),0);
@@ -76,7 +83,8 @@ contract SpaceFNS {
         resMainNames[owner]=label;
 
     }
-    //checkNodeIsExire(_node) 
+
+    /// mint second-level domains
      function createSubnode(
        string calldata _node,
        string calldata label,
@@ -98,7 +106,7 @@ contract SpaceFNS {
       
         
         bytes32  newChildName = keccak256(abi.encodePacked(_node, ".",label ));
-        string memory node_string=node_append(_node,'.',label);
+        string memory node_string=dealwithString(_node,'.',label);
         
         require(
                 childOwner[newChildName]==address(0), 
@@ -124,11 +132,13 @@ contract SpaceFNS {
 
     }
 
+    //The owner of a first-level domain can setting  mint price
     function settingEarnFunds( string calldata _node,uint256 earnMoney)public  onlyOwner(_node){
         uint256 parent_id=allNames[_node];
         allFNS[parent_id].earning=earnMoney;
     }
 
+    ///The owner of a first-level domain can withdraw the earned funds
     function withdraw()external {
         require(
             balances[msg.sender]>0,
@@ -136,11 +146,11 @@ contract SpaceFNS {
         );
         uint256 amount=balances[msg.sender];
         balances[msg.sender]=0;
-        payable(msg.sender).transfer(amount);
-        
+        payable(msg.sender).transfer(amount); 
     }
 
-      modifier onlyOwner(string calldata _node) {
+    ///Permission control for the owner of _node
+    modifier onlyOwner(string calldata _node) {
         require(
             mainNames[_node] == msg.sender ,
             "Not the owner"
@@ -148,18 +158,19 @@ contract SpaceFNS {
         _;
     }
 
-
-
-
+    ///Get Owner address by  first-level domains
     function getAddress(string calldata name) external view returns (address) {
-        uint256  id=allNames[name];
-        return allFNS[id].owner;
+        uint256  tokenid=allNames[name];
+        return allFNS[tokenid].owner;
     }
 
-    function getName(address owner)external view returns (string memory){
+    ///Get first-level domains by owner address
+    ///Limit an address to one first-level domain name
+    function getFirstName(address owner)external view returns (string memory){
         return  resMainNames[owner];
     }
 
+    ///Get a list of second-level domains by first-level domains
     function getNameChildNames(string calldata name)external view returns (string[] memory){
         uint256 token_id=allNames[name];
         uint256[] memory arr=allFNS[token_id].child;
@@ -171,13 +182,13 @@ contract SpaceFNS {
         return names;
     }
 
-
+    ///Get a collection of second-level domains owned by owner
     function getAddressChildNames(address owner)external view returns(string[] memory){
         return childNames[owner];
     }
 
 
-    function node_append(string calldata a, string memory b, string calldata c) internal pure returns (string memory ) {
+    function dealwithString(string calldata a, string memory b, string calldata c) internal pure returns (string memory ) {
 
         return string(abi.encodePacked(a, b, c));
 
