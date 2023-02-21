@@ -8,6 +8,9 @@ contract SpaceFNS {
 
   event ChildDomainRegistered(string indexed label, uint256 indexed token_id, address indexed owner);
 
+
+  event FirstLevelDomainOwnerWithdraw(uint256 indexed amount,address indexed owner);
+
   using Counters for Counters.Counter;
   Counters.Counter private _registeredCount;
 
@@ -60,7 +63,7 @@ contract SpaceFNS {
 
   ///Register main domain name
   ///Limit an address to one first-level domain name
-  function register(string calldata label) external {
+  function register(string calldata label) external checkLabelLength(label){
     require(mainNames[label] == address(0), "Name is already exist ");
 
     require(bytes(resMainNames[msg.sender]).length == 0, "an address only own one first-level domain ");
@@ -78,9 +81,17 @@ contract SpaceFNS {
 
     resMainNames[msg.sender] = label;
   }
+  modifier checkLabelLength(string calldata lable){
+     uint256 lable_length=bytes(lable).length ;
+
+      require(lable_length>=3 && lable_length<=10,"Domain name length does not meet the specification");
+      _;
+  }
 
   /// mint second-level domains
-  function createSubnode(string calldata _node, string calldata label) external payable {
+  function createSubnode(string calldata _node, string calldata label) external payable checkLabelLength(label){
+
+    require(mainNames[_node]!=address(0),"input first-level domain name does not exist ");
     uint256 parent_id = allNames[_node];
     uint256 earnMoney = allFNS[parent_id].earning;
     uint256[] memory arr = allFNS[parent_id].child;
@@ -129,6 +140,7 @@ contract SpaceFNS {
     require(balances[msg.sender] > 0, "Insufficient funds to withdraw");
     uint256 amount = balances[msg.sender];
     balances[msg.sender] = 0;
+    emit FirstLevelDomainOwnerWithdraw(amount,msg.sender);
     payable(msg.sender).transfer(amount);
   }
 
