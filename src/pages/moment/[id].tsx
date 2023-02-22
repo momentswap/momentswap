@@ -40,18 +40,18 @@ export default function MomentPage() {
         setMoment(_moment);
       }
     })();
-  }, [momentId]);
+  }, [getNFTCollection, momentId]);
 
   return (
     <>
       <Layout>
-        <div className="xl:ml-[370px] border-l border-r border-primary xl:min-w-[576px] sm:ml-[73px] flex-grow max-w-xl">
-          <div className="flex py-2 px-3 sticky top-0 z-50 bg-base-200 border-primary">
-            <div className="hoverEffect" onClick={() => router.back()}>
-              <ArrowLeftIcon className="rounded-full h-9 w-9 hoverEffect p-2 hover:bg-primary" />
+        <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl">
+          <div className="flex p-2 sticky top-0 z-50 bg-base-200 border-primary gap-2">
+            <div onClick={() => router.back()}>
+              <ArrowLeftIcon className="rounded-full h-9 w-9 p-2 hover:bg-primary" />
             </div>
             <h2 className="text-lg sm:text-xl font-bold my-auto">Moment</h2>
-            <div className="hoverEffect flex items-center justify-center px-0 ml-auto w-9 h-9">
+            <div className="flex items-center justify-center px-0 ml-auto w-9 h-9">
               {/* <SparklesIcon className="h-5" /> */}
               <ThemeToggle />
             </div>
@@ -67,7 +67,7 @@ export default function MomentPage() {
                   exit={{ opacity: 0 }}
                   transition={{ duration: 1 }}
                 >
-                  <Comment key={comment.id} comment={comment} originalPostId={momentId} />
+                  <Comment key={comment.id} comment={comment} originalMomentId={momentId} />
                 </motion.div>
               ))}
             </AnimatePresence>

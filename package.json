@@ -23,6 +23,7 @@
     "dotenv": "^16.0.3",
     "ethers": "^5.7.2",
     "framer-motion": "^8.5.5",
+    "hover.css": "^2.3.2",
     "next": "13.1.1",
     "nft.storage": "^7.0.0",
     "react": "18.2.0",

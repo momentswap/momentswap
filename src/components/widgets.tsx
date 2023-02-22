@@ -1,21 +1,35 @@
 import { SearchIcon } from "@heroicons/react/outline";
 import { AnimatePresence, motion } from "framer-motion";
-import { Key, useState } from "react";
+import { Key, useEffect, useState } from "react";
+import { useRecoilState } from "recoil";
 
 import { News } from "@components";
+import { searchKeyState } from "src/atom";
 
 export const Widgets = ({ newsResults, randomUsersResults }: any) => {
   const [articleNum, setArticleNum] = useState(3);
+  const [_searchKey, _setSearchKey] = useState("");
   const [randomUserNum, setRandomUserNum] = useState(3);
+  const [searchKey, setSearchKey] = useRecoilState(searchKeyState);
+  useEffect(() => {
+    _setSearchKey(searchKey);
+  }, [searchKey]);
   return (
     <div className="xl:w-[600px] hidden lg:inline ml-8 space-y-5">
       <div className="w-[90%] xl:w-[75%] sticky top-0 py-1.5 z-50">
         <div className="flex items-center p-3 rounded-full relative">
           <SearchIcon className="h-5 z-50 text-gray-500" />
           <input
-            className="absolute inset-0 rounded-full pl-11 border-gray-500 text-gray-700 focus:shadow-lg focus:bg-white bg-gray-100 "
+            className="absolute inset-0 rounded-full pl-11 border-gray-500 text-gray-700 focus:shadow-lg focus:bg-white bg-gray-100"
             type="text"
             placeholder="Search Moment"
+            value={_searchKey}
+            onChange={(e) => _setSearchKey(e.target.value)}
+            onBlur={(e) => setSearchKey(e.target.value)}
+            onKeyDown={(e) => {
+              //@ts-ignore
+              if (e.key === "Enter") setSearchKey(e.target.value);
+            }}
           />
         </div>
       </div>

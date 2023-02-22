@@ -48,7 +48,7 @@ export const PublishModal = () => {
   };
 
   const cleanFileInput = () => {
-    // TODO: Reset "file-input" selected file.
+    // TODO: Reset "media-input" selected file.
     setMedia(undefined);
   };
 
@@ -90,7 +90,7 @@ export const PublishModal = () => {
           {/* Media Uploader */}
 
           <label
-            htmlFor="file-input"
+            htmlFor="media-input"
             className="inline-block p-1 hover:bg-primary rounded-full active:bg-primary-focus"
           >
             <svg
@@ -109,7 +109,7 @@ export const PublishModal = () => {
             </svg>
           </label>
           <input
-            id="file-input"
+            id="media-input"
             hidden
             type="file"
             accept=".jpeg,.jpg,.png,.gif,image/*,video/mp4,video/webm,video/ogg"

@@ -1,7 +1,8 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Avatar } from "@components";
+import { storeMediaToIPFS } from "@utils/helpers";
 import { useWalletProvider } from "src/hooks/use-wallet-provider";
 
 export const IdentityModal = () => {
@@ -9,13 +10,22 @@ export const IdentityModal = () => {
   const [text, setText] = useState<string | undefined>(undefined);
   const router = useRouter();
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
+  const avatarRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setText(localStorage.getItem("username") || undefined);
     setUserImg(localStorage.getItem("user-img") || undefined);
-    document.getElementById("file-input")?.addEventListener("input", () => {
-      //TODO: Upload avatar
-      setUserImg("");
+
+    avatarRef.current?.addEventListener("input", async () => {
+      if (!avatarRef.current?.files || avatarRef.current.files.length === 0) return;
+      const file = avatarRef.current.files[0];
+      setLoading(true);
+      const { mediaCID } = await storeMediaToIPFS(file);
+      const avatarURL = `https://${mediaCID}.ipfs.dweb.link`;
+      setUserImg(avatarURL);
+      localStorage.setItem("user-img", avatarURL);
+      setLoading(false);
     });
   }, []);
 
@@ -34,9 +44,10 @@ export const IdentityModal = () => {
           <label htmlFor="identity-modal" className="btn btn-primary btn-sm btn-circle absolute right-2 top-2">
             ✕
           </label>
+
           <h3 className="font-bold text-lg">Edit Identity</h3>
-          <div className="min-w-[300px] mt-5">
-            <label htmlFor="file-input" className="inline-block">
+          <div className="flex min-w-[300px] mt-5 items-center gap-5">
+            <label htmlFor="avatar-input" className="inline-block">
               <div className="flex border-2 border-base-300 w-20 h-20 rounded-full overflow-hidden bg-opacity-20 bg-black hover:bg-opacity-25">
                 <Avatar seed={address} image={userImg} diameter={77} className="rounded-full absolute -z-10" />
                 <svg
@@ -60,19 +71,23 @@ export const IdentityModal = () => {
                 </svg>
               </div>
             </label>
-            <input id="file-input" hidden type="file" accept=".jpeg,.jpg,.png,.gif,image/*" />
+            <input ref={avatarRef} id="avatar-input" hidden type="file" accept=".jpeg,.jpg,.png,.gif,image/*" />
             <input
               type="text"
               placeholder="Name"
               value={text}
               onChange={(e) => setText(e.target.value)}
-              className="input input-bordered w-1/2 mx-5"
-            />{" "}
+              className="input input-bordered w-1/2"
+            />
             <span className="font-semibold">.fil</span>
           </div>
           <div className="divider" />
           <div className="modal-action">
-            <label htmlFor="identity-modal" className="btn btn-primary" onClick={saveIdentity}>
+            <label
+              htmlFor="identity-modal"
+              className={`btn btn-primary ${loading && "pointer-events-none saturate-0"}`}
+              onClick={saveIdentity}
+            >
               Save
             </label>
           </div>

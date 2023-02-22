@@ -10,15 +10,15 @@ import { useWalletProvider } from "src/hooks/use-wallet-provider";
 
 type Props = {
   comment: CommentData;
-  originalPostId: string;
+  originalMomentId: string;
 };
 
-export const Comment = ({ comment, originalPostId }: Props) => {
+export const Comment = ({ comment, originalMomentId }: Props) => {
   const { connect, address } = useWalletProvider();
   const [likes, setLikes] = useState<Array<{ id: string }>>([]);
   const [hasLiked, setHasLiked] = useState(false);
 
-  const [postId, setPostId] = useRecoilState(momentIdState);
+  const [momentId, setMomentId] = useRecoilState(momentIdState);
   const router = useRouter();
 
   // async function likeComment() {
@@ -30,7 +30,7 @@ export const Comment = ({ comment, originalPostId }: Props) => {
 
   // async function deleteComment() {
   //   if (window.confirm("Are you sure you want to delete this comment?")) {
-  //     // deleteDoc(doc(db, "posts", originalPostId, "comments", commentId));
+  //     // deleteDoc(doc(db, "moments", originalMomentId, "comments", commentId));
   //   }
   // }
 
@@ -43,7 +43,7 @@ export const Comment = ({ comment, originalPostId }: Props) => {
         {/* Header */}
 
         <div className="flex items-center justify-between">
-          {/* post user info */}
+          {/* moment user info */}
           <div className="flex items-center space-x-1 whitespace-nowrap">
             <h4 className="font-bold text-[15px] sm:text-[16px] hover:underline">{comment?.username}</h4>
             <span className="text-sm sm:text-[15px]">{sortAddress(comment?.address)} - </span>
@@ -55,7 +55,7 @@ export const Comment = ({ comment, originalPostId }: Props) => {
           {/* dot icon */}
         </div>
 
-        {/* post text */}
+        {/* moment text */}
 
         <p className="text-gray-800 text-[15px sm:text-[16px] mb-2">{comment?.comment}</p>
 
@@ -67,7 +67,7 @@ export const Comment = ({ comment, originalPostId }: Props) => {
               <ChatIcon
                 onClick={() => {
                   if (address) {
-                    setPostId(originalPostId);
+                    setMomentId(originalMomentId);
                   } else {
                     connect();
                   }
