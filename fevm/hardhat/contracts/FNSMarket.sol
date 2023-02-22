@@ -1,9 +1,18 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-    //err code
+import "./ISpaceFNS.sol";
+
+
+
+contract RentMarket is ReentrancyGuard{
+    
+    event ItemListed(address indexed owner, address indexed nftAddress,uint256 indexed tokenId,uint256 price,uint64 expire);
+    event ItemLend(address indexed user, address indexed nftAddress,uint256 indexed tokenId,uint256 price,uint64 expire);
+    event ItemCanceled(address indexed owner, address indexed nftAddress,uint256 indexed tokenId);
+
+
     error PriceMustBeAboveZero();
     error NotApprovedForMarketplace();
     error PriceNotMet(address nftAddress, uint256 tokenId, uint256 price);
@@ -13,28 +22,22 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
     error NotOwner();
     error NoProceeds();
 
- 
-contract FNSMarket is ReentrancyGuard{
-    
-    event ItemBought(address indexed owner, address indexed nftAddress,uint256 indexed tokenId,uint256 price);
-    event ItemListed(address indexed owner, address indexed nftAddress,uint256 indexed tokenId,uint256 price);
-    event ItemCanceled(address indexed owner, address indexed nftAddress,uint256 indexed tokenId);
+
+
 
     struct Listing{
+        uint256 tokenId;
         uint256 price;
+        uint64 expire;
         address owner;
     }
+
+
+    //contract address ==>{tokenId==>Listing}
     mapping(address=>mapping(uint256=>Listing)) allListItem;
 
+
     mapping(address=>uint256) proceeds;
-
-    modifier isOwner(address nftAddress, uint256 tokenId, address owner){
-
-        if(IERC721(nftAddress).ownerOf(tokenId)!=owner){
-            revert NotOwner();
-        }
-        _;
-    }
 
     modifier  notListed(address nftAddress, uint256 tokenId, address owner){
         if(allListItem[nftAddress][tokenId].price>0){
@@ -43,7 +46,15 @@ contract FNSMarket is ReentrancyGuard{
         _;
     }
 
-    modifier isListed(address nftAddress, uint256 tokenId) {
+    modifier isOwner(address nftAddress, uint256 tokenId, address owner){
+
+        if(ISpaceFNS(nftAddress).ownerOf(tokenId)!=owner){
+            revert NotOwner();
+        }
+        _;
+    }
+
+     modifier isListed(address nftAddress, uint256 tokenId) {
         Listing memory listing = allListItem[nftAddress][tokenId];
         if (listing.price <= 0) {
             revert NotListed(nftAddress, tokenId);
@@ -53,72 +64,70 @@ contract FNSMarket is ReentrancyGuard{
 
 
 
-  function listItem(address nftAddress, uint256 tokenId, uint256 price) 
-  external  
-  notListed(nftAddress, tokenId, msg.sender) 
-  isOwner(nftAddress, tokenId, msg.sender){
+    function listItem(address nftAddress, uint256 tokenId, uint256 price,uint64 expire) external 
+     notListed(nftAddress,tokenId,msg.sender) 
+     isOwner(nftAddress, tokenId, msg.sender)
+     {
+
         if (price <= 0) {
             revert PriceMustBeAboveZero();
         }
-        IERC721 nft = IERC721(nftAddress);
+        ISpaceFNS nft = ISpaceFNS(nftAddress);
+
         if (nft.getApproved(tokenId) != address(this)) {
             revert NotApprovedForMarketplace();
         }
-        allListItem[nftAddress][tokenId] = Listing(price, msg.sender);
-        emit ItemListed(msg.sender, nftAddress, tokenId, price);
-  }
+        allListItem[nftAddress][tokenId] = Listing(tokenId,price,expire,msg.sender);
+        emit ItemListed(msg.sender, nftAddress, tokenId, price,expire);
+     }
 
-  function cancelListing(address nftAddress, uint256 tokenId) external   
-  isOwner(nftAddress, tokenId, msg.sender)
-  isListed(nftAddress, tokenId){
-       delete (allListItem[nftAddress][tokenId]);
-      emit ItemCanceled(msg.sender, nftAddress, tokenId);
-
-  }
-
-
-  function buyItem(address nftAddress, uint256 tokenId) external payable  
-        isListed(nftAddress, tokenId)
-        nonReentrant{
-
-       Listing memory listedItem = allListItem[nftAddress][tokenId];
+     function lendItem(address nftAddress, uint256 tokenId)external  payable
+     isListed(nftAddress, tokenId)
+     nonReentrant{
+        Listing memory listedItem = allListItem[nftAddress][tokenId];
         if (msg.value < listedItem.price) {
             revert PriceNotMet(nftAddress, tokenId, listedItem.price);
         }
-
         proceeds[listedItem.owner] += msg.value;
         delete (allListItem[nftAddress][tokenId]);
-        IERC721(nftAddress).safeTransferFrom(listedItem.owner, msg.sender, tokenId);
-        emit ItemBought(msg.sender, nftAddress, tokenId, listedItem.price);
+        ISpaceFNS(nftAddress).setUser(tokenId, msg.sender, listedItem.expire);
+        emit ItemLend(msg.sender, nftAddress, tokenId, listedItem.price,listedItem.expire);
+     }
 
-  }
+    function cancelListing(address nftAddress, uint256 tokenId) external   
+    isOwner(nftAddress, tokenId, msg.sender)
+    isListed(nftAddress, tokenId){
+        delete (allListItem[nftAddress][tokenId]);
+        emit ItemCanceled(msg.sender, nftAddress, tokenId);
+    }
 
-  function updateListing(address nftAddress, uint256 tokenId, uint256 newPrice) external 
-       isListed(nftAddress, tokenId)
+    function updateListing(address nftAddress, uint256 tokenId, uint256 newPrice,uint64 newExpire) external 
+        isListed(nftAddress, tokenId)
         nonReentrant
         isOwner(nftAddress, tokenId, msg.sender){
-
-       if (newPrice == 0) {
+        if (newPrice == 0) {
             revert PriceMustBeAboveZero();
         }
-
         allListItem[nftAddress][tokenId].price = newPrice;
-        emit ItemListed(msg.sender, nftAddress, tokenId, newPrice);
-  }
+        allListItem[nftAddress][tokenId].expire=newExpire;
+        emit ItemListed(msg.sender, nftAddress, tokenId, newPrice,newExpire);
+    }
 
-  function withdrawProceeds() external {
-        uint256 proceed = proceeds[msg.sender];
-        if (proceed <= 0) {
-            revert NoProceeds();
-        }
-        proceeds[msg.sender] = 0;
+    function withdrawProceeds() external {
+            uint256 proceed = proceeds[msg.sender];
+            if (proceed <= 0) {
+                revert NoProceeds();
+            }
+            proceeds[msg.sender] = 0;
 
-        (bool success, ) = payable(msg.sender).call{value: proceed}("");
-        require(success, "Transfer failed");
-  }
+            (bool success, ) = payable(msg.sender).call{value: proceed}("");
+            require(success, "Transfer failed");
+    }
+
+    function getListing(address nftAddress, uint256 tokenId) external  view returns(Listing memory) {
+        return allListItem[nftAddress][tokenId];
+    }
 
 
-  function getListing(address nftAddress, uint256 tokenId) external  view returns(Listing memory) {
-      return allListItem[nftAddress][tokenId];
-  }
+
 }

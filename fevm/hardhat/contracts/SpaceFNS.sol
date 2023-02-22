@@ -1,382 +1,286 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+//import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-
 
 contract SpaceFNS {
-    using Address for address;
+  ///Up to MAXIMUM_NODES second-level domains under a first-level domain
+  uint256 constant MAXIMUM_NODES = 5;
 
-
-    /**
-     * @dev Emitted when `First-Domain` token is  Registered.
-     */
-    event DomainRegistered(string indexed label, uint256 indexed tokenId, address indexed owner);
-
-    /**
-     * @dev Emitted when `Second-Domain` token is  Registered.
-     */
-    event ChildDomainRegistered(string indexed label, uint256 indexed token_id, address indexed owner);
-
-     /**
-     * @dev Emitted when the owner of  First-Domain  withdraw  funds.
-     */
-    event FirstLevelDomainOwnerWithdraw(uint256 indexed amount,address indexed owner);
-
-    /**
-     * @dev Emitted when `tokenId` token is transferred from `from` to `to`.
-     */
-    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
-
-    /**
-     * @dev Emitted when `owner` enables `approved` to manage the `tokenId` token.
-     */
-    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
-
-    /**
-     * @dev Emitted when `owner` enables or disables (`approved`) `operator` to manage all of its assets.
-     */
-    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
-
-    using Counters for Counters.Counter;
-    Counters.Counter private _registeredCount;
-
-    //SpaceFNS information
-    struct FNSInfo {
-        string name;
-        uint256 parent;
-        uint256 tokenId;
-        address owner;
-        uint256 start_time;
-        uint256 end_time;
-        uint256[] child;
-        uint256 earning;
-    }
-
-    ///The life cycle of second-level domain names
-    uint256 constant DEFAULT_EXPIRE_TIME = 48 weeks;
-
-    ///Up to MAXIMUM_NODES second-level domains under a first-level domain
-    uint256 constant MAXIMUM_NODES = 10;
-
-    //FNS name ==>tokenID
-    mapping(string => uint256) private allNames;
-
-    //tokenID ==>domain information
-    mapping(uint256 => FNSInfo) public allFNS;
-
-    //the owner of first-level domain earning how much money
-    mapping(address => uint256) private balances;
-
-    //first-level domain Corresponding to owner address
-    mapping(string => address) private mainNames;
-
-    //domain under owner
-    mapping(address => string) public resMainNames;
-
-    //second-level  domain name‘s hash ==> owner address
-    mapping(bytes32 => address) private childOwner;
-
-    mapping(uint256 => address) private _tokenApprovals;
-
-    mapping(address => mapping(address => bool)) private _operatorApprovals;
-
-
-    function modifierOwner(uint256 tokenId,address owner) private{
-        allFNS[tokenId].owner=owner;
-        if (allFNS[tokenId].parent!=uint256(0)){
-             //allNames[allFNS[tokenId].name]=owner;
-             string memory _node=allFNS[allFNS[tokenId].parent].name;
-             string memory label=allFNS[tokenId].name;
-             bytes32 newChildName = keccak256(abi.encodePacked(_node, ".", label));
-             childOwner[newChildName]=owner;
-             delete _tokenApprovals[tokenId];
-            
-        }else{
-            mainNames[allFNS[tokenId].name]=owner;
-            resMainNames[owner]=allFNS[tokenId].name;
-            delete _tokenApprovals[tokenId];
-        }
-    } 
-
-    constructor() {
-        //In order to mark the parent_id of the first level domain as 0, the FNS with token_id of 0 cannot appear in the smart contract 
-        //Prevent the contract from generating domains with ID 0
-        //so you can set the parent_id  of the main domain to 0
-        _registeredCount.increment();
-    }
-
-
-    function ownerOf(uint256 tokenId) public view returns (address owner){
-         require(allFNS[tokenId].owner != address(0), "SpaceFNS address zero is not a valid owner");
-         return allFNS[tokenId].owner;
-    }
-
-    function approve(address to, uint256 tokenId) public  {
-        address owner = SpaceFNS.ownerOf(tokenId);
-        require(to != owner, "SpaceFNS: approval to current owner");
-
-        require(
-            msg.sender == owner || isApprovedForAll(owner, msg.sender),
-            "SpaceFNS approve caller is not token owner or approved for all"
-        );
-
-        _approve(to, tokenId);
-    }
-
-    function setApprovalForAll(address operator, bool approved) external{
-        _setApprovalForAll(msg.sender,operator,approved);
-    }
-
-
-    function _approve(address to, uint256 tokenId) internal virtual {
-        _tokenApprovals[tokenId] = to;
-        emit Approval(SpaceFNS.ownerOf(tokenId), to, tokenId);
-    }
-    function isApprovedForAll(address owner, address operator) public view returns (bool){
-        return _operatorApprovals[owner][operator];
-    }
-
-
-    function getApproved(uint256 tokenId) public view  returns (address) {
-        require(SpaceFNS.ownerOf(tokenId)!=address(0),"tokenId No Minted");
-        return _tokenApprovals[tokenId];
-    }
-
+  using Counters for Counters.Counter;
+  Counters.Counter private _registeredCount;
+  Counters.Counter private _registeredChildCount;
   
-    function transferFrom(address from, address to, uint256 tokenId) public  {
-        //solhint-disable-next-line max-line-length
-        require(_isApprovedOrOwner(msg.sender, tokenId), "SpaceFNS caller is not token owner or approved");
+  // Logged when the user of an NFT is changed or expires is changed
+  /// @notice Emitted when the `user` of an NFT or the `expires` of the `user` is changed
+  /// The zero address for user indicates that there is no user address
+  event UpdateUser(uint256 indexed tokenId, address indexed user, uint64 expires);
 
-        _transfer(from, to, tokenId);
+  ///@dev Emitted when `First-Domain` token is  Registered.
+  event DomainRegistered(string indexed label, uint256 indexed tokenId, address indexed owner);
+
+  ///@dev Emitted when `Second-Domain` token is  Registered.
+  event ChildDomainRegistered(string indexed label, uint256 indexed tokenId, address indexed owner);
+
+  ///@dev Emitted when `Second-Domain` token is  Update.
+  event ChildDomainUpdate(string indexed label, uint256 indexed tokenId, address indexed owner);
+
+  //@dev Emitted when `owner` enables `approved` to setting  the `tokenId` token expires time.
+  event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+
+  constructor() {
+    //The tokenID of both the main domain and the child-domain is incremented from 1
+    _registeredCount.increment();
+    _registeredChildCount.increment();
+  }
+
+  //tokenID mapped to main domain information
+  mapping(uint256 => FNSToken) public allMainFNSDomain;
+
+  //tokenID mapped to child domain information
+  mapping(uint256 => childFNSToken) public allChildFNSDomain;
+
+  //Main domain name mapped to  address
+  mapping(string => address) public mainNames;
+
+  //Main domain name mapped to  tokenId
+  mapping(string => uint256) public mainNameId;
+
+  //Address mapped to Main domain name
+  mapping(address => string) public resMainNames;
+
+  //second-domain name mapped to user address
+  mapping(string => address) public childNames;
+
+  //second-domain name mapped to second-domain tokenId
+  mapping(string => uint256) public childNameId;
+
+  ///second-domain tokenId mapped to approval controller address
+  mapping(uint256 => address) private childApprovals;
+
+  ///@dev main-domain name infromation
+  struct FNSToken {
+    uint256 tokenId;
+    string name;
+    address owner;
+    uint256[] child;
+  }
+
+  ///@dev child-domain name infromation
+  struct childFNSToken {
+    uint256 tokenId;
+    string allName;
+    string childName;
+    uint256 parent;
+    address owner;
+    address user;
+    uint64 expires;
+  }
+
+  /// @dev Returns the account approved for `tokenId` token.
+  function getApproved(uint256 tokenId) public view returns (address) {
+    require(allChildFNSDomain[tokenId].owner != address(0), "tokenId No Minted");
+    return childApprovals[tokenId];
+  }
+
+  /// @dev Gives permission to `to` to setting `tokenId` token expire time
+  function approve(address to, uint256 tokenId) public {
+    address owner = allChildFNSDomain[tokenId].owner;
+    address user = allChildFNSDomain[tokenId].user;
+    require(to != owner, "SpaceFNS: approval to current owner");
+    require(to != user, "SpaceFNS: approval to current user");
+
+    require(msg.sender == owner, "SpaceFNS: approve caller is not token owner ");
+    _approve(to, tokenId);
+  }
+
+  function _approve(address to, uint256 tokenId) internal {
+    childApprovals[tokenId] = to;
+    emit Approval(SpaceFNS.ownerOf(tokenId), to, tokenId);
+  }
+
+  modifier checkLabelLength(string calldata lable) {
+    uint256 lable_length = bytes(lable).length;
+    require(lable_length >= 3 && lable_length <= 10, "Domain name length does not meet the specification");
+    _;
+  }
+
+  modifier checkChildDomain(string calldata parent, string[] calldata childLabel) {
+    for (uint i = 0; i < childLabel.length; i++) {
+      uint256 lable_length = bytes(childLabel[i]).length;
+      require(lable_length >= 3 && lable_length <= 10, "Domain name length does not meet the specification");
+      require(childNames[childLabel[i]] == address(0), "Name is already exist");
     }
+    _;
+  }
 
-    
+  ///@dev Register main domain name
+  ///@dev Limit an address to one first-level domain name
+  function register(string calldata label) external checkLabelLength(label) returns (string memory) {
+    require(mainNames[label] == address(0), "Name is already exist ");
 
-    function _isApprovedOrOwner(address spender, uint256 tokenId) internal view  returns (bool) {
-        address owner = SpaceFNS.ownerOf(tokenId);
-        return (spender == owner || isApprovedForAll(owner, spender) || getApproved(tokenId) == spender);
+    require(bytes(resMainNames[msg.sender]).length == 0, "an address only own one first-level domain ");
+
+    uint256 index = _registeredCount.current();
+
+    allMainFNSDomain[index] = FNSToken(index, label, msg.sender, new uint256[](0));
+
+    emit DomainRegistered(label, index, msg.sender);
+
+    _registeredCount.increment();
+
+    mainNames[label] = msg.sender;
+
+    mainNameId[label] = index;
+
+    resMainNames[msg.sender] = label;
+
+    return label;
+  }
+
+  modifier onlyOwner(string calldata _node) {
+    require(mainNames[_node] == msg.sender, "Not the owner");
+    _;
+  }
+
+  ///@dev mint second-level domains
+  function mintChildDomain(
+    string calldata parentNode,
+    string calldata childNode
+  ) public checkLabelLength(childNode) onlyOwner(parentNode) returns (string memory) {
+    string memory allname = dealwithString(childNode, ".", parentNode);
+    uint256 parentId = mainNameId[parentNode];
+
+    require(childNames[allname] == address(0), "ChildName is already exist");
+    require(childNameId[allname] == uint256(0), "ChildName is already exist");
+    require(allMainFNSDomain[parentId].child.length < MAXIMUM_NODES, "Mint second domain number too many");
+    uint256 childIndex = _registeredChildCount.current();
+    allChildFNSDomain[childIndex] = childFNSToken(childIndex, allname, childNode, parentId, msg.sender, msg.sender, 0);
+    allMainFNSDomain[parentId].child.push(childIndex);
+    emit ChildDomainRegistered(allname, childIndex, msg.sender);
+    _registeredChildCount.increment();
+    childNames[allname] = msg.sender;
+    childNameId[allname] = childIndex;
+    return allname;
+  }
+
+  ///@dev update child-domain
+  function updateChildDomain(
+    string calldata parentNode,
+    string calldata oldChildNode,
+    string calldata newChildNode
+  ) public checkLabelLength(newChildNode) {
+    string memory allname = dealwithString(oldChildNode, ".", parentNode);
+    require(childNames[allname] != address(0), "ChildName is no exist");
+    uint256 index = childNameId[allname];
+    require(allChildFNSDomain[index].user == msg.sender, "Not the owner");
+    delete childNames[allname];
+    delete childNameId[allname];
+    string memory newAllName = dealwithString(newChildNode, ".", parentNode);
+    emit ChildDomainUpdate(newAllName, index, msg.sender);
+    allChildFNSDomain[index].allName = newAllName;
+    allChildFNSDomain[index].childName = newChildNode;
+    childNames[newAllName] = msg.sender;
+    childNameId[newAllName] = index;
+  }
+
+  /// @notice set the user and expires of an NFT
+  /// @dev The zero address indicates there is no user
+  /// Throws if `tokenId` is not valid NFT
+  /// @param user  The new user of the NFT
+  /// @param expires  UNIX timestamp, The new user could use the NFT before expires
+  function setUser(uint256 tokenId, address user, uint64 expires) external {
+    require(getApproved(tokenId) == msg.sender, "Not  approval account");
+    allChildFNSDomain[tokenId].user = user;
+    allChildFNSDomain[tokenId].expires = expires;
+    delete childApprovals[tokenId];
+    emit UpdateUser(tokenId, user, expires);
+    childNames[allChildFNSDomain[tokenId].allName] = msg.sender;
+  }
+
+  /// @notice Get the user address of an NFT
+  /// @dev The zero address indicates that there is no user or the user is expired
+  /// @param tokenId The NFT to get the user address for
+  /// @return The user address for this NFT
+  function userOf(uint256 tokenId) external view returns (address) {
+    return allChildFNSDomain[tokenId].user;
+  }
+
+  /// @notice Get the user expires of an NFT
+  /// @dev The zero value indicates that there is no user
+  /// @param tokenId The NFT to get the user expires for
+  /// @return The user expires for this NFT
+  function userExpires(uint256 tokenId) public view returns (uint256) {
+    return allChildFNSDomain[tokenId].expires;
+  }
+
+  function dealwithString(string calldata a, string memory b, string calldata c) internal pure returns (string memory) {
+    return string(abi.encodePacked(a, b, c));
+  }
+
+  ///@dev Get the tokenId of child-domain name by childAllname
+  ///for example A.B
+  ///B: mainDomain name
+  ///A: childDomain name
+  function getChildDomainId(string calldata childAllName) public view returns (uint256) {
+    require(childNameId[childAllName] != uint256(0), "ChildName is not exist");
+    return childNameId[childAllName];
+  }
+
+  ///@dev Get the user of child-domain name by childAllname
+  ///for example A.B
+  ///B: mainDomain name
+  ///A: childDomain name
+  function getChildDomainUser(string calldata childAllName) external view returns (address) {
+    require(childNames[childAllName] != address(0), "ChildName is not exist");
+    return childNames[childAllName];
+  }
+
+  ///@dev Get the owner of the main domain by the main domain
+  function getMainDomainOwner(string calldata nodeName) external view returns (address) {
+    require(mainNames[nodeName] != address(0), "mainName is not exist");
+    return mainNames[nodeName];
+  }
+
+  ///@dev get child-domains  collection by the main domain
+  function getMainDomainChild(string calldata nodeName) external view returns (address[] memory) {
+    require(mainNames[nodeName] != address(0), "mainName is not exist");
+    uint256 doMainId = mainNameId[nodeName];
+    uint256[] memory childArrayIds = allMainFNSDomain[doMainId].child;
+    address[] memory childArray = new address[](childArrayIds.length);
+    for (uint i = 0; i < childArrayIds.length; i = i + 1) {
+      address childAddress = allChildFNSDomain[childArrayIds[i]].user;
+      childArray[i] = childAddress;
     }
-    /**
-     * @dev See {IERC721-safeTransferFrom}.
-     */
-    function safeTransferFrom(address from, address to, uint256 tokenId) public  {
-        safeTransferFrom(from, to, tokenId, "");
+    return childArray;
+  }
+
+  ///@dev Get the owner of the main domain and child-domains and child-domains by the owner of the main domain
+  function getMainDomainAndChild(
+    address owner
+  ) external view returns (string memory, string[] memory, address[] memory) {
+    require(bytes(resMainNames[owner]).length != uint256(0), "mainName is not exist");
+    string memory mainNodeName = resMainNames[owner];
+    uint256 doMainId = mainNameId[mainNodeName];
+    uint256[] memory childArrayIds = allMainFNSDomain[doMainId].child;
+    address[] memory childAddressArray = new address[](childArrayIds.length);
+    string[] memory childNameArray = new string[](childArrayIds.length);
+
+    for (uint i = 0; i < childArrayIds.length; i = i + 1) {
+      address childAddress = allChildFNSDomain[childArrayIds[i]].user;
+      string memory tmpChildName = allChildFNSDomain[childArrayIds[i]].childName;
+      childAddressArray[i] = childAddress;
+      childNameArray[i] = tmpChildName;
     }
+    return (mainNodeName, childNameArray, childAddressArray);
+  }
 
-    /**
-     * @dev See {IERC721-safeTransferFrom}.
-     */
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory data) public  {
-        require(_isApprovedOrOwner(msg.sender, tokenId), "SpaceFNS caller is not token owner or approved");
-        _safeTransfer(from, to, tokenId, data);
-    }
-
-    /**
-     * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
-     * are aware of the ERC721 protocol to prevent tokens from being forever locked.
-     *
-     * `data` is additional data, it has no specified format and it is sent in call to `to`.
-     *
-     * This internal function is equivalent to {safeTransferFrom}, and can be used to e.g.
-     * implement alternative mechanisms to perform token transfer, such as signature-based.
-     *
-     * Requirements:
-     *
-     * - `from` cannot be the zero address.
-     * - `to` cannot be the zero address.
-     * - `tokenId` token must exist and be owned by `from`.
-     * - If `to` refers to a smart contract, it must implement {IERC721Receiver-onERC721Received}, which is called upon a safe transfer.
-     *
-     * Emits a {Transfer} event.
-     */
-    function _safeTransfer(address from, address to, uint256 tokenId, bytes memory data) internal  {
-        _transfer(from, to, tokenId);
-        require(_checkOnERC721Received(from, to, tokenId, data), "SpaceFNS transfer to non ERC721Receiver implementer");
-    }
-
-
-    function _transfer(address from, address to, uint256 tokenId) internal  {
-        require(SpaceFNS.ownerOf(tokenId) == from, "SpaceFNS transfer from incorrect owner");
-        require(to != address(0), "SpaceFNS transfer to the zero address");
-
-        //_beforeTokenTransfer(from, to, tokenId, 1);
-
-        // Check that tokenId was not transferred by `_beforeTokenTransfer` hook
-        require(SpaceFNS.ownerOf(tokenId) == from, "SpaceFNS transfer from incorrect owner");
-
-        // Clear approvals from the previous owner
-        delete _tokenApprovals[tokenId];
-
-        modifierOwner(tokenId,to);
-
-       
-
-        emit Transfer(from, to, tokenId);
-    }
-
-
-    function _checkOnERC721Received(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes memory data
-    ) private returns (bool) {
-        if (to.isContract()) {
-            try IERC721Receiver(to).onERC721Received(msg.sender, from, tokenId, data) returns (bytes4 retval) {
-                return retval == IERC721Receiver.onERC721Received.selector;
-            } catch (bytes memory reason) {
-                if (reason.length == 0) {
-                    revert("SpaceFNS transfer to non ERC721Receiver implementer");
-                } else {
-                    /// @solidity memory-safe-assembly
-                    assembly {
-                        revert(add(32, reason), mload(reason))
-                    }
-                }
-            }
-        } else {
-            return true;
-        }
-    }
-
-    //---
-
-
-
-    //  function _isApprovedOrOwner(address spender, uint256 tokenId) internal view virtual returns (bool) {
-    //     address owner = SpaceFNS.ownerOf(tokenId);
-    //     return (spender == owner || isApprovedForAll(owner, spender) || getApproved(tokenId) == spender);
-    // }
-
-    
-    // function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external{
-
-    // }
-    function _setApprovalForAll(address owner, address operator, bool approved) internal  {
-        require(owner != operator, "SpaceFNS approve to caller");
-        _operatorApprovals[owner][operator] = approved;
-        emit ApprovalForAll(owner, operator, approved);
-    }
-
-    ///Register main domain name
-    ///Limit an address to one first-level domain name
-    function register(string calldata label) external checkLabelLength(label){
-        require(mainNames[label] == address(0), "Name is already exist ");
-
-        require(bytes(resMainNames[msg.sender]).length == 0, "an address only own one first-level domain ");
-
-        uint256 index = _registeredCount.current();
-
-        allFNS[index] = FNSInfo(label, 0, index, msg.sender, 0, 0, new uint256[](0), 0);
-        emit DomainRegistered(label, index, msg.sender);
-
-        _registeredCount.increment();
-
-        mainNames[label] = msg.sender;
-
-        allNames[label] = index;
-
-        resMainNames[msg.sender] = label;
-    }
-    modifier checkLabelLength(string calldata lable){
-        uint256 lable_length=bytes(lable).length ;
-
-        require(lable_length>=3 && lable_length<=10,"Domain name length does not meet the specification");
-        _;
-    }
-
-    /// mint second-level domains
-    function createSubnode(string calldata _node, string calldata label) external payable checkLabelLength(label){
-
-        require(mainNames[_node]!=address(0),"input first-level domain name does not exist ");
-        uint256 parent_id = allNames[_node];
-        uint256 earnMoney = allFNS[parent_id].earning;
-        uint256[] memory arr = allFNS[parent_id].child;
-        require(arr.length < MAXIMUM_NODES, "Maximum domain limit reached");
-
-        require(msg.value >= earnMoney, "Insufficient funds to mint");
-
-        bytes32 newChildName = keccak256(abi.encodePacked(_node, ".", label));
-        string memory node_string = dealwithString(_node, ".", label);
-
-        require(childOwner[newChildName] == address(0), "ChildName is already exist ");
-
-        balances[allFNS[parent_id].owner] += msg.value;
-
-        uint256 index = _registeredCount.current();
-        allFNS[parent_id].child.push(index);
-
-        allFNS[index] = FNSInfo(
-        label,
-        parent_id,
-        index,
-        msg.sender,
-        block.timestamp,
-        block.timestamp + DEFAULT_EXPIRE_TIME,
-        new uint256[](0),
-        0
-        );
-
-        emit ChildDomainRegistered(label, index, msg.sender);
-
-        _registeredCount.increment();
-
-        allNames[node_string] = index;
-        childOwner[newChildName]=msg.sender;
-    }
-
-    //The owner of a first-level domain can setting  mint price
-    function settingEarnFunds(string calldata _node, uint256 earnMoney) public onlyOwner(_node) {
-        uint256 parent_id = allNames[_node];
-        allFNS[parent_id].earning = earnMoney;
-    }
-
-    ///The owner of a first-level domain can withdraw the earned funds
-    function withdraw() external {
-        require(balances[msg.sender] > 0, "Insufficient funds to withdraw");
-        uint256 amount = balances[msg.sender];
-        balances[msg.sender] = 0;
-        emit FirstLevelDomainOwnerWithdraw(amount,msg.sender);
-        payable(msg.sender).transfer(amount);
-    }
-
-    ///Permission control for the owner of _node
-    modifier onlyOwner(string calldata _node) {
-        require(mainNames[_node] == msg.sender, "Not the owner");
-        _;
-    }
-
-    ///Get Owner address by  first-level domains
-    function getAddress(string calldata name) external view returns (address) {
-        uint256 tokenid = allNames[name];
-        return allFNS[tokenid].owner;
-    }
-
-    ///Get first-level domains by owner address
-    ///Limit an address to one first-level domain name
-    function getFirstName(address owner) external view returns (string memory) {
-        return resMainNames[owner];
-    }
-
-     ///Get a list of second-level domains by first-level domains
-    function getNameChildNames(string calldata name) external view returns (string[] memory) {
-        uint256 token_id = allNames[name];
-        uint256[] memory arr = allFNS[token_id].child;
-        string[] memory names = new string[](arr.length);
-        for (uint i = 0; i < arr.length; i = i + 1) {
-        names[i] = allFNS[token_id].name;
-        }
-        return names;
-    }
-
-
-
-    function dealwithString(string calldata a, string memory b, string calldata c) internal pure returns (string memory) {
-        return string(abi.encodePacked(a, b, c));
-    }
-
-
+  ///@dev child-domain expires and is reset
+  function resetChildDomain(string calldata allName) external {
+    uint256 childTokenId = getChildDomainId(allName);
+    require(block.timestamp >= userExpires(childTokenId), "child domain have not expired ");
+    //require(allChildFNSDomain[childTokenId].owner==msg.sender,"Not Owner");
+    allChildFNSDomain[childTokenId].user = allChildFNSDomain[childTokenId].owner;
+  }
 }
