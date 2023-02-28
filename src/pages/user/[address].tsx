@@ -8,8 +8,8 @@ import { Avatar, Layout, Moment, PriceButton, Tab, ThemeToggle } from "@componen
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { collectionToMoments } from "@utils/helpers/collection-to-moments";
 import Link from "next/link";
-import { useMomentSwap } from "src/hooks";
-import { useWalletProvider } from "src/hooks/use-wallet-provider";
+import { useMomentSwap } from "@hooks";
+import { useWalletProvider } from "@hooks";
 
 export default function UserPage() {
   const router = useRouter();

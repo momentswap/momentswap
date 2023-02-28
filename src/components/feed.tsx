@@ -3,10 +3,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useRecoilState } from "recoil";
 
+import { useMomentSwap } from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { collectionToMoments } from "@utils/helpers/collection-to-moments";
 import { searchKeyState } from "src/atom";
-import { useMomentSwap } from "src/hooks";
 
 export const Feed = () => {
   const [moments, setMoments] = useState<Array<MomentMetadata>>();

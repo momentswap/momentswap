@@ -2,8 +2,8 @@ import { useRouter } from "next/router";
 import { useState } from "react";
 import { useRecoilState } from "recoil";
 
+import { useWalletProvider } from "@hooks";
 import { momentIdState } from "src/atom";
-import { useWalletProvider } from "src/hooks/use-wallet-provider";
 import { postComment } from "src/mock/data";
 
 export const CommentModal = () => {

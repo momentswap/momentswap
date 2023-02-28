@@ -3,8 +3,8 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { Avatar, SidebarMenuItem } from "@components";
+import { useWalletProvider } from "@hooks";
 import { sortAddress } from "@utils/helpers";
-import { useWalletProvider } from "src/hooks/use-wallet-provider";
 
 export const Sidebar = () => {
   const router = useRouter();

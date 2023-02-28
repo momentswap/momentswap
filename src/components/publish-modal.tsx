@@ -2,10 +2,9 @@ import { XIcon } from "@heroicons/react/outline";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 
+import { useMomentSwap, useWalletProvider } from "@hooks";
 import { Media } from "@utils/definitions/interfaces";
 import { createMomentSwapMetadata, storeMediaToIPFS, storeMetadataToIPFS } from "@utils/helpers";
-import { useMomentSwap } from "src/hooks";
-import { useWalletProvider } from "src/hooks/use-wallet-provider";
 
 export const PublishModal = () => {
   const router = useRouter();
@@ -38,7 +37,7 @@ export const PublishModal = () => {
 
     try {
       const metadataIPFS = await storeMetadataToIPFS(metadata);
-      await mintMomentSwapNFT(address, metadataIPFS || "");
+      await mintMomentSwapNFT(metadataIPFS || "");
       alert("Successfully published moment!");
       router.reload();
     } catch (err) {

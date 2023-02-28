@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 import RMoment from "react-moment";
 import { useRecoilState } from "recoil";
 
+import { useWalletProvider } from "@hooks";
 import { CommentData, MomentMetadata } from "@utils/definitions/interfaces";
 import { sortAddress } from "@utils/helpers";
 import { momentIdState } from "src/atom";
-import { useWalletProvider } from "src/hooks/use-wallet-provider";
 import { getCommentsByMomentId, getLikesByMomentId, storeLikes } from "src/mock/data";
 import { Avatar } from "./avatar";
 

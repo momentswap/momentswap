@@ -4,8 +4,8 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { Comment, Layout, Moment, ThemeToggle } from "@components";
+import { useMomentSwap } from "@hooks";
 import { CommentData, MomentMetadata } from "@utils/definitions/interfaces";
-import { useMomentSwap } from "src/hooks";
 import { getCommentsByMomentId } from "src/mock/data";
 
 export default function MomentPage() {

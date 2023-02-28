@@ -2,8 +2,8 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 
 import { Avatar } from "@components";
+import { useWalletProvider } from "@hooks";
 import { storeMediaToIPFS } from "@utils/helpers";
-import { useWalletProvider } from "src/hooks/use-wallet-provider";
 
 export const IdentityModal = () => {
   const { address, signer } = useWalletProvider();

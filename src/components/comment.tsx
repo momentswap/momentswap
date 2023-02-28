@@ -3,10 +3,10 @@ import { useState } from "react";
 import Moment from "react-moment";
 import { useRecoilState } from "recoil";
 
+import { useWalletProvider } from "@hooks";
 import { CommentData } from "@utils/definitions/interfaces";
 import { sortAddress } from "@utils/helpers/sort-address";
 import { momentIdState } from "src/atom";
-import { useWalletProvider } from "src/hooks/use-wallet-provider";
 
 type Props = {
   comment: CommentData;
