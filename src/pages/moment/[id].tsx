@@ -4,13 +4,13 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { Comment, Layout, Moment, ThemeToggle } from "@components";
-import { useMomentSwap } from "@hooks";
+import { useMomentSwapContract } from "@hooks";
 import { CommentData, MomentMetadata } from "@utils/definitions/interfaces";
 import { getCommentsByMomentId } from "src/mock/data";
 
 export default function MomentPage() {
   const router = useRouter();
-  const { getNFTCollection } = useMomentSwap();
+  const { getNFTCollection } = useMomentSwapContract();
   const [moment, setMoment] = useState<MomentMetadata | undefined>(undefined);
   const [comments, setComments] = useState<Array<CommentData>>([]);
   const momentId = router.query.id as string;

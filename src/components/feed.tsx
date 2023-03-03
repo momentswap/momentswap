@@ -3,14 +3,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useRecoilState } from "recoil";
 
-import { useMomentSwap } from "@hooks";
+import { useMomentSwapContract } from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { collectionToMoments } from "@utils/helpers/collection-to-moments";
 import { searchKeyState } from "src/atom";
 
 export const Feed = () => {
   const [moments, setMoments] = useState<Array<MomentMetadata>>();
-  const { getNFTCollection } = useMomentSwap();
+  const { getNFTCollection } = useMomentSwapContract();
   const [searchKey, setSearchKey] = useRecoilState(searchKeyState);
 
   useEffect(() => {

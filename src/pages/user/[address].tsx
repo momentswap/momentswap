@@ -5,17 +5,16 @@ import { useRouter } from "next/router";
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 
 import { Avatar, Layout, Moment, PriceButton, Tab, ThemeToggle } from "@components";
+import { useMomentSwapContract, useWalletProvider } from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { collectionToMoments } from "@utils/helpers/collection-to-moments";
 import Link from "next/link";
-import { useMomentSwap } from "@hooks";
-import { useWalletProvider } from "@hooks";
 
 export default function UserPage() {
   const router = useRouter();
   const queryAddress = router.query.address as string;
   const { address } = useWalletProvider();
-  const { getNFTCollectionByOwner } = useMomentSwap();
+  const { getNFTCollectionByOwner } = useMomentSwapContract();
   const [username, setUsername] = useState<string | undefined>(undefined);
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
   const [currentTab, setCurrentTab] = useState("Moments");
