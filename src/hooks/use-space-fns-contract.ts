@@ -19,7 +19,7 @@ export const useSpaceFNSContract = () => {
   const getAllDomainByWallet = useCallback(
     (
       wallet: string,
-    ): Promise<[primaryDomain: string, subDomains: string[], subDomainTenants: string[], leasedDomains: string[]]> => {
+    ): Promise<[mainDomain: string, subDomains: string[], subDomainTenants: string[], leasedDomains: string[]]> => {
       return contractWithProvider.getMainDomainAndChild(wallet);
     },
     [contractWithProvider],
@@ -46,9 +46,9 @@ export const useSpaceFNSContract = () => {
     [contractWithProvider],
   );
 
-  const getOwnerByPrimaryDomain = useCallback(
-    (primaryDomain: string): Promise<string> => {
-      return contractWithProvider.getMainDomainOwner(primaryDomain);
+  const getOwnerByMainDomain = useCallback(
+    (mainDomain: string): Promise<string> => {
+      return contractWithProvider.getMainDomainOwner(mainDomain);
     },
     [contractWithProvider],
   );
@@ -63,29 +63,29 @@ export const useSpaceFNSContract = () => {
   );
 
   const mintSubDomain = useCallback(
-    (primaryDomain: string, subDomain: string): Promise<any> => {
-      return contractWithSigner.mintChildDomain(primaryDomain, subDomain);
+    (mainDomain: string, subDomain: string): Promise<any> => {
+      return contractWithSigner.mintChildDomain(mainDomain, subDomain);
     },
     [contractWithSigner],
   );
 
-  const registerPrimaryDomain = useCallback(
-    (primaryDomain: string, subDomain: string): Promise<any> => {
-      return contractWithSigner.register(primaryDomain, subDomain);
+  const registerMainDomain = useCallback(
+    (mainDomain: string): Promise<any> => {
+      return contractWithSigner.register(mainDomain);
     },
     [contractWithSigner],
   );
 
   const resetSubDomain = useCallback(
-    (primaryDomain: string, subDomain: string): Promise<any> => {
-      return contractWithSigner.resetChildDomain(primaryDomain, subDomain);
+    (fullDomain: string): Promise<any> => {
+      return contractWithSigner.resetChildDomain(fullDomain);
     },
     [contractWithSigner],
   );
 
   const updateSubDomain = useCallback(
-    (primaryDomain: string, oldSubDomain: string, newSubDomain: string): Promise<any> => {
-      return contractWithSigner.updateChildDomain(primaryDomain, oldSubDomain, newSubDomain);
+    (mainDomain: string, oldSubDomain: string, newSubDomain: string): Promise<any> => {
+      return contractWithSigner.updateChildDomain(mainDomain, oldSubDomain, newSubDomain);
     },
     [contractWithSigner],
   );
@@ -95,10 +95,10 @@ export const useSpaceFNSContract = () => {
     getApprovedMarketByDomainID,
     getDomainIDByFullDomain,
     getDomainUserByFullDomain,
-    getOwnerByPrimaryDomain,
+    getOwnerByMainDomain,
     approve,
     mintSubDomain,
-    registerPrimaryDomain,
+    registerMainDomain,
     resetSubDomain,
     updateSubDomain,
   };

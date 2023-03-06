@@ -1,21 +1,22 @@
-import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 
 import { Avatar } from "@components";
-import { useWalletProvider } from "@hooks";
+import { useSpaceFNSContract, useSpaceStateProvider, useWalletProvider } from "@hooks";
 import { storeMediaToIPFS } from "@utils/helpers";
+import { useRouter } from "next/router";
 
 export const IdentityModal = () => {
-  const { address, signer } = useWalletProvider();
-  const [text, setText] = useState<string | undefined>(undefined);
-  const router = useRouter();
+  const { address } = useWalletProvider();
+  const { registerMainDomain } = useSpaceFNSContract();
+  const [text, setText] = useState("");
+  const { mainDomain } = useSpaceStateProvider();
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
   const avatarRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    setText(localStorage.getItem("username") || undefined);
-    setUserImg(localStorage.getItem("user-img") || undefined);
+    setUserImg(localStorage.getItem("user-img") || "");
 
     avatarRef.current?.addEventListener("input", async () => {
       if (!avatarRef.current?.files || avatarRef.current.files.length === 0) return;
@@ -29,10 +30,15 @@ export const IdentityModal = () => {
     });
   }, []);
 
+  useEffect(() => {
+    setText(mainDomain);
+  }, [mainDomain]);
+
   const saveIdentity = async () => {
-    await signer?.signMessage("this is test");
-    localStorage.setItem("username", text || "");
     localStorage.setItem("user-img", userImg || "");
+    if (!mainDomain) {
+      await registerMainDomain(text);
+    }
     router.reload();
   };
 
@@ -76,6 +82,7 @@ export const IdentityModal = () => {
               type="text"
               placeholder="Name"
               value={text}
+              disabled={!!mainDomain}
               onChange={(e) => setText(e.target.value)}
               className="input input-bordered w-1/2"
             />
@@ -83,13 +90,9 @@ export const IdentityModal = () => {
           </div>
           <div className="divider" />
           <div className="modal-action">
-            <label
-              htmlFor="identity-modal"
-              className={`btn btn-primary ${loading && "pointer-events-none saturate-0"}`}
-              onClick={saveIdentity}
-            >
+            <div className={`btn btn-primary ${loading && "pointer-events-none saturate-0"}`} onClick={saveIdentity}>
               Save
-            </label>
+            </div>
           </div>
         </label>
       </label>

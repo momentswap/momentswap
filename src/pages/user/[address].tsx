@@ -5,7 +5,7 @@ import { useRouter } from "next/router";
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 
 import { Avatar, Layout, Moment, PriceButton, Tab, ThemeToggle } from "@components";
-import { useMomentSwapContract, useWalletProvider } from "@hooks";
+import { useMomentSwapContract, useSpaceFNSContract, useSpaceStateProvider, useWalletProvider } from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { collectionToMoments } from "@utils/helpers/collection-to-moments";
 import Link from "next/link";
@@ -15,7 +15,8 @@ export default function UserPage() {
   const queryAddress = router.query.address as string;
   const { address } = useWalletProvider();
   const { getNFTCollectionByOwner } = useMomentSwapContract();
-  const [username, setUsername] = useState<string | undefined>(undefined);
+  const { getAllDomainByWallet } = useSpaceFNSContract();
+  const { mainDomain } = useSpaceStateProvider();
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
   const [currentTab, setCurrentTab] = useState("Moments");
   const [tabPage, setTabPage] = useState(<></>);
@@ -165,7 +166,7 @@ export default function UserPage() {
                   className="input input-bordered"
                   onChange={leaseNameOnChange}
                 />
-                <span>.{username || "---"}.fil</span>
+                <span>.{mainDomain || "---"}.fil</span>
               </div>
             </div>
             <div className="divider" />
@@ -194,7 +195,7 @@ export default function UserPage() {
                   <div className="divider divider-horizontal my-4"></div>
                   {/* Content area */}
                   <div className="flex-col w-full">
-                    <span className="font-medium ">{`${slot.name || "space" + (index + 1)}.${username}.fil`}</span>
+                    <span className="font-medium ">{`${slot.name || "space" + (index + 1)}.${mainDomain}.fil`}</span>
                     <div className="flex-col text-xs">
                       <div className="flex items-center gap-1">
                         <ClockIcon className="h-4 w-4" />
@@ -290,7 +291,9 @@ export default function UserPage() {
                       <div className="divider divider-horizontal my-4"></div>
                       {/* Content area */}
                       <div className="flex-col w-full">
-                        <span className="font-medium ">{`${slot.name || "space" + (index + 1)}.${username}.fil`}</span>
+                        <span className="font-medium ">{`${
+                          slot.name || "space" + (index + 1)
+                        }.${mainDomain}.fil`}</span>
                         <div className="flex-col text-xs">
                           <div className="flex items-center gap-1">
                             <ClockIcon className="h-4 w-4" />
@@ -341,7 +344,7 @@ export default function UserPage() {
     priceOnChange,
     queryAddress,
     spaceSlots,
-    username,
+    mainDomain,
   ]);
 
   // Get collection from the contract when provider is updated.
@@ -354,9 +357,8 @@ export default function UserPage() {
 
   //TODO: Wait for user to configure interface
   useEffect(() => {
-    setUsername(localStorage.getItem("username") || undefined);
     setUserImg(localStorage.getItem("user-img") || undefined);
-  }, []);
+  }, [queryAddress]);
 
   useEffect(() => {
     if ("Moments" === currentTab) {
@@ -387,7 +389,7 @@ export default function UserPage() {
             <div onClick={() => router.back()}>
               <ArrowLeftIcon className="rounded-full h-9 w-9 p-2 hover:bg-primary" />
             </div>
-            <h2 className="text-lg sm:text-xl font-bold my-auto">{username || "Profile"}</h2>
+            <h2 className="text-lg sm:text-xl font-bold my-auto">{mainDomain || "Profile"}</h2>
             <div className="flex items-center justify-center px-0 ml-auto w-9 h-9">
               {/* <SparklesIcon className="h-5" /> */}
               <ThemeToggle />
@@ -396,7 +398,7 @@ export default function UserPage() {
           {/* Head  */}
           <div className="w-full h-[160px] bg-gradient-to-r from-secondary to-neutral mb-16">
             <div className="rounded-full relative top-28 left-8 w-[100px] h-[100px] bg-base-100 flex">
-              <Avatar seed={queryAddress} diameter={90} className="m-auto" />
+              <Avatar image={userImg} seed={queryAddress} diameter={90} className="m-auto" />
             </div>
           </div>
 
@@ -425,7 +427,7 @@ export default function UserPage() {
             Edit Identity
           </label>
           <div className="mx-6">
-            <p className="text-2xl font-semibold">{username || "---"}.fil</p>
+            <p className="text-2xl font-semibold">{mainDomain || "---"}.fil</p>
             <p className="text-sm">{queryAddress}</p>
           </div>
           <div className="mt-5">

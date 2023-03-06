@@ -3,20 +3,19 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { Avatar, SidebarMenuItem } from "@components";
-import { useWalletProvider } from "@hooks";
+import { useSpaceStateProvider, useWalletProvider } from "@hooks";
 import { sortAddress } from "@utils/helpers";
 
 export const Sidebar = () => {
   const router = useRouter();
-  const { connect, disconnect, address, signer } = useWalletProvider();
-  const [username, setUsername] = useState<string | undefined>(undefined);
+  const { connect, disconnect, address } = useWalletProvider();
+  const { mainDomain } = useSpaceStateProvider();
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
   useEffect(() => {
-    setUsername(localStorage.getItem("username") || undefined);
     setUserImg(localStorage.getItem("user-img") || undefined);
   }, []);
   return (
-    <div className="flex justify-end sm:w-1/3 sm:min-w-[80px]">
+    <div className="flex justify-end xl:w-1/3 sm:min-w-[80px]">
       <div className="hidden sm:flex flex-col p-2 xl:items-start h-screen ml-auto mr-0 xl:mr-4 fixed">
         {/* Logo */}
 
@@ -80,7 +79,7 @@ export const Sidebar = () => {
             >
               <Avatar seed={address} image={userImg} diameter={38} className="items-center" />
               <div className="leading-5 hidden xl:inline xl:ml-2 xl:w-[120px]">
-                <h4 className="font-bold text-sm truncate">{username || "---"}.fil</h4>
+                <h4 className="font-bold text-sm truncate">{mainDomain || "---"}.fil</h4>
                 <p className="font-light text-sm">{sortAddress(address)}</p>
               </div>
               <svg
@@ -102,7 +101,7 @@ export const Sidebar = () => {
         ) : (
           <label
             //TODO: Open comments after FNS development is completed
-            // htmlFor={username || "identity-modal"}
+            // htmlFor={mainDomain || "identity-modal"}
             onClick={connect}
             className="flex cursor-pointer bg-accent text-accent-content rounded-full w-12 xl:w-56 h-12 font-bold shadow-md hover:brightness-95 text-lg"
           >
