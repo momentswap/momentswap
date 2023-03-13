@@ -3,13 +3,13 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { Avatar, SidebarMenuItem } from "@components";
-import { useSpaceStateProvider, useWalletProvider } from "@hooks";
+import { useSpaceDomain, useWalletProvider } from "@hooks";
 import { sortAddress } from "@utils/helpers";
 
 export const Sidebar = () => {
   const router = useRouter();
   const { connect, disconnect, address } = useWalletProvider();
-  const { mainDomain } = useSpaceStateProvider();
+  const { mainDomain } = useSpaceDomain();
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
   useEffect(() => {
     setUserImg(localStorage.getItem("user-img") || undefined);

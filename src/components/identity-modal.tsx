@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Avatar } from "@components";
-import { useSpaceFNSContract, useSpaceStateProvider, useWalletProvider } from "@hooks";
+import { useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { storeMediaToIPFS } from "@utils/helpers";
 import { useRouter } from "next/router";
 
@@ -9,7 +9,7 @@ export const IdentityModal = () => {
   const { address } = useWalletProvider();
   const { registerMainDomain } = useSpaceFNSContract();
   const [text, setText] = useState("");
-  const { mainDomain } = useSpaceStateProvider();
+  const { mainDomain } = useSpaceDomain();
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
   const avatarRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
@@ -51,7 +51,7 @@ export const IdentityModal = () => {
             ✕
           </label>
 
-          <h3 className="font-bold text-lg">Edit Identity</h3>
+          <h3 className="font-bold text-lg">Register Profile</h3>
           <div className="flex min-w-[300px] mt-5 items-center gap-5">
             <label htmlFor="avatar-input" className="inline-block">
               <div className="flex border-2 border-base-300 w-20 h-20 rounded-full overflow-hidden bg-opacity-20 bg-black hover:bg-opacity-25">

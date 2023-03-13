@@ -5,7 +5,7 @@ interface ISpaceFNS {
   /// Logged when the user of an NFT is changed or expires is changed
   /// @notice Emitted when the `user` of an NFT or the `expires` of the `user` is changed
   /// The zero address for user indicates that there is no user address
-  event UpdateUser(uint256 indexed tokenId, address indexed user, uint64 expires);
+  event UpdateUser(uint256 indexed tokenId, address indexed user, uint64 start, uint64 expires);
 
   ///@dev Emitted when `owner` enables `approved` to manage the `tokenId` token.
   event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
@@ -18,6 +18,7 @@ interface ISpaceFNS {
   function setUser(
     uint256 tokenId,
     address user,
+    uint64 start,
     uint64 expires
   ) external;
 

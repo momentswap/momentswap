@@ -17,6 +17,7 @@ contract RentMarket is ReentrancyGuard {
     address indexed nftAddress,
     uint256 indexed tokenId,
     uint256 price,
+    uint64 start,
     uint64 expire
   );
   event ItemCanceled(address indexed owner, address indexed nftAddress, uint256 indexed tokenId);
@@ -97,8 +98,8 @@ contract RentMarket is ReentrancyGuard {
     }
     proceeds[listedItem.owner] += msg.value;
     delete (allListItem[nftAddress][tokenId]);
-    ISpaceFNS(nftAddress).setUser(tokenId, msg.sender, uint64(block.timestamp + listedItem.expire));
-    emit ItemLend(msg.sender, nftAddress, tokenId, listedItem.price, uint64(block.timestamp + listedItem.expire));
+    ISpaceFNS(nftAddress).setUser(tokenId, msg.sender, uint64(block.timestamp), uint64(listedItem.expire));
+    emit ItemLend(msg.sender, nftAddress, tokenId, listedItem.price, uint64(block.timestamp), uint64(listedItem.expire));
   }
 
   function cancelListing(address nftAddress, uint256 tokenId)
