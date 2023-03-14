@@ -5,7 +5,7 @@ import { useRecoilState } from "recoil";
 
 import { useWalletProvider } from "@hooks";
 import { CommentData } from "@utils/definitions/interfaces";
-import { sortAddress } from "@utils/helpers/sort-address";
+import { sortAddress } from "@utils/helpers/address";
 import { momentIdState } from "src/atom";
 
 type Props = {

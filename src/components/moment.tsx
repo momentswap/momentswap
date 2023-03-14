@@ -71,15 +71,13 @@ export const Moment = ({ moment }: Props) => {
         <div className="flex items-center justify-between">
           {/* moment user info */}
           <div className="flex items-center space-x-1 whitespace-nowrap">
-            <h4
-              className="font-bold text-[15px] sm:text-[16px] hover:underline cursor-pointer"
-              onClick={() => router.push(`/user/${moment.address}`)}
-            >
-              {moment?.username || "---"}.fil
-            </h4>
-            <span className="text-sm sm:text-[15px] text-gray-500">
-              {sortAddress(moment.address)} - <RMoment fromNow>{momenttools.unix(moment.timestamp)}</RMoment>
-            </span>
+            <h4 className="font-bold text-[15px] sm:text-[16px]">{moment?.username || "---"}.fil</h4>
+            <p className="text-sm sm:text-[15px] text-gray-500">
+              <span className="hover:underline cursor-pointer" onClick={() => router.push(`/user/${moment.address}`)}>
+                {sortAddress(moment.address, 6)}{" "}
+              </span>
+              - <RMoment fromNow>{momenttools.unix(moment.timestamp)}</RMoment>
+            </p>
           </div>
 
           {/* dot icon */}

@@ -8,7 +8,7 @@ import { Avatar, Layout, Moment, PriceButton, Tab, ThemeToggle } from "@componen
 import { ClockIcon, UserIcon } from "@heroicons/react/outline";
 import { useFNSMarketContract, useMomentSwapContract, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
-import { secondsToYears, yearsToSeconds } from "@utils/helpers";
+import { isEmptyAddress, secondsToYears, yearsToSeconds } from "@utils/helpers";
 import { collectionToMoments } from "@utils/helpers/collection-to-moments";
 import { ethers } from "ethers";
 import Link from "next/link";
@@ -29,6 +29,7 @@ export default function UserPage() {
   const router = useRouter();
   const queryAddress = router.query.address as string;
   const { address: loginAddress } = useWalletProvider();
+  const isOwn = queryAddress == loginAddress;
   const { getNFTCollectionByOwner } = useMomentSwapContract();
   //   const { mainDomain, subDomainIDs, subDomainNames, subDomainUsers } = useSpaceDomain(queryAddress);
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
@@ -89,7 +90,21 @@ export default function UserPage() {
 
       // Get all domain lease terms rented by user
       const [_domainIDs, _fullDomainNames, _userLeaseTerms] = await getDomainLeaseTermsByUser(queryAddress);
-      console.log(">>>", [_domainIDs, _fullDomainNames, _userLeaseTerms]);
+
+      _domainIDs.forEach((id, i) => {
+        _userSlots.push({
+          id: _domainIDs[i].toString(),
+          name: _subDomainNames[i],
+          used: true,
+          listed: false,
+          start: _userLeaseTerms[i][0].toNumber(),
+          end: _userLeaseTerms[i][0].toNumber() + _creatorLeaseTerms[i][1].toNumber(),
+          expire: undefined,
+          price: undefined,
+          user: queryAddress,
+        });
+      });
+      setUserSlots(_userSlots);
     })();
   }, [queryAddress, getAllDomainByCreator, getDomainLeaseTermsByCreator, getListedDomainsByDomainID]);
 
@@ -144,7 +159,7 @@ export default function UserPage() {
     setLoading(true);
     try {
       const _marketAddress = await getApprovedByDomainID(selectedSlot.id);
-      if (_marketAddress === "0x0000000000000000000000000000000000000000") {
+      if (isEmptyAddress(_marketAddress)) {
         await (await approve(selectedSlot.id)).wait();
       }
       await (
@@ -377,6 +392,7 @@ export default function UserPage() {
               </div>
             </div>
             <div className="divider" />
+            <p>Price: {price} FIL</p>
             <div className="modal-action">
               <label htmlFor="lease-modal" className="btn btn-primary" onClick={handleConfirmLease}>
                 Register
@@ -387,13 +403,15 @@ export default function UserPage() {
 
         {/* Tab Content Page */}
         <div className="flex">
-          <h3 className="text-lg font-semibold m-2">Space Slots</h3>
-          <div
-            onClick={handleMint}
-            className="link font-mono font-medium text-primary active:text-primary-focus ml-auto my-auto mr-5"
-          >
-            Mint
-          </div>
+          <h3 className="text-lg font-semibold m-2">Created</h3>
+          {isOwn ? (
+            <div
+              onClick={handleMint}
+              className="cursor-pointer select-none font-mono font-medium text-primary hover:text-white active:bg-primary-focus hover:bg-primary ml-auto my-auto mr-4 border border-primary active:border-primary-focus w-16 h-6 text-center leading-6"
+            >
+              MINT
+            </div>
+          ) : null}
         </div>
         <div className="border-t-[1px] border-base-content/25">
           <AnimatePresence>
@@ -453,30 +471,30 @@ export default function UserPage() {
                     {slot == undefined ? ( // subdomain is not mint
                       <></>
                     ) : !slot.listed && !slot.used ? ( // subdomain is minted
-                      <label
-                        htmlFor="sell-modal"
-                        onClick={() => {
-                          setSelectedSlot(slot);
-                        }}
-                        className="border-2 rounded-full hover:text-white hover:border-neutral active:border-neutral-focus hover:bg-neutral active:bg-neutral-focus w-32 h-8 overflow-hidden hvr-shadow text-sm text-center leading-7 font-bold"
-                      >
-                        Sell
-                      </label>
+                      isOwn ? (
+                        <label
+                          htmlFor="sell-modal"
+                          onClick={() => {
+                            setSelectedSlot(slot);
+                          }}
+                          className="border-2 rounded-full hover:text-white hover:border-neutral active:border-neutral-focus hover:bg-neutral active:bg-neutral-focus w-32 h-8 overflow-hidden hvr-shadow text-sm text-center leading-7 font-bold"
+                        >
+                          Sell
+                        </label>
+                      ) : null
                     ) : slot.listed ? ( // subdomain is listed
                       <PriceButton
                         onClick={() => {
                           setSelectedSlot(slot);
                           setPrice(slot?.price || "0");
-
                           const expireYears = secondsToYears(slot.expire || 1);
-
                           setLeaseTermYears(expireYears);
                         }}
                         iconSrc="https://s2.coinmarketcap.com/static/img/coins/64x64/2280.png"
                         price={slot.price || "0.0"}
-                        htmlFor="update-modal"
+                        htmlFor={isOwn ? "update-modal" : "lease-modal"}
                       >
-                        Edit
+                        {isOwn ? "Edit" : "Buy"}
                       </PriceButton>
                     ) : (
                       <svg
@@ -501,7 +519,7 @@ export default function UserPage() {
 
         <div>
           <div className="mb-5">
-            <h2 className="text-lg font-semibold m-2">Your Rented</h2>
+            <h2 className="text-lg font-semibold m-2">Rented</h2>
             <div className="border-t-[1px] border-base-content/25">
               {userSlots.length == 0 ? (
                 <div className="flex justify-center gap-2 mt-8">
@@ -561,6 +579,21 @@ export default function UserPage() {
                             </div>
                           </div>
                         </div>
+
+                        <div className="mr-4">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="w-6 h-6 text-info"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -578,7 +611,12 @@ export default function UserPage() {
   useEffect(() => {
     (async () => {
       const collection = await getNFTCollectionByOwner(queryAddress);
-      setMoments(await collectionToMoments(collection));
+      const _moments = await collectionToMoments(collection);
+      for (let m of _moments) {
+        const [_mainDomain] = await getAllDomainByCreator(m.address);
+        m.username = _mainDomain;
+      }
+      setMoments(_moments);
     })();
   }, [getNFTCollectionByOwner, queryAddress]);
 
@@ -632,9 +670,7 @@ export default function UserPage() {
           {/* Body */}
           <label
             htmlFor="identity-modal"
-            className={`btn btn-primary btn-sm btn-outline gap-2 float-right mr-6 ${
-              loginAddress !== queryAddress && "hidden"
-            }`}
+            className={`btn btn-primary btn-sm btn-outline gap-2 float-right mr-6 ${isOwn && "hidden"}`}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

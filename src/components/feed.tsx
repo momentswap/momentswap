@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useRecoilState } from "recoil";
 
-import { useMomentSwapContract } from "@hooks";
+import { useMomentSwapContract, useSpaceFNSContract } from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { collectionToMoments } from "@utils/helpers/collection-to-moments";
 import { searchKeyState } from "src/atom";
@@ -12,11 +12,16 @@ export const Feed = () => {
   const [moments, setMoments] = useState<Array<MomentMetadata>>();
   const { getNFTCollection } = useMomentSwapContract();
   const [searchKey, setSearchKey] = useRecoilState(searchKeyState);
-
+  const { getAllDomainByCreator } = useSpaceFNSContract();
   useEffect(() => {
     (async () => {
       const collection = await getNFTCollection();
-      setMoments(await collectionToMoments(collection));
+      const _moments = await collectionToMoments(collection);
+      for (let m of _moments) {
+        const [_mainDomain] = await getAllDomainByCreator(m.address);
+        m.username = _mainDomain;
+      }
+      setMoments(_moments);
     })();
   }, [getNFTCollection]);
 
