@@ -65,6 +65,13 @@ export const useSpaceFNSContract = () => {
     [contractWithProvider],
   );
 
+  const getOwnerByDomainID = useCallback(
+    (domainID: string): Promise<string> => {
+      return contractWithProvider.ownerOf(domainID);
+    },
+    [contractWithProvider],
+  );
+
   const getUserByFullDomain = useCallback(
     (fullDomain: string): Promise<string> => {
       return contractWithProvider.getChildDomainUser(fullDomain);
@@ -149,6 +156,7 @@ export const useSpaceFNSContract = () => {
     getDomainLeaseTermsByCreator,
     getDomainLeaseTermsByUser,
     getOwnerByMainDomain,
+    getOwnerByDomainID,
     getSubDomainDetailsByDomainID,
     getApprovedByDomainID,
     approve,

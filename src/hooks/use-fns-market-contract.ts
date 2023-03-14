@@ -38,8 +38,8 @@ export const useFNSMarketContract = () => {
   );
 
   const lendDomain = useCallback(
-    (domainID: string): Promise<any> => {
-      return contractWithSigner.lendItem(fnsContractAddress, domainID);
+    (domainID: string, price: string): Promise<any> => {
+      return contractWithSigner.lendItem(fnsContractAddress, domainID, { value: price });
     },
     [contractWithSigner],
   );

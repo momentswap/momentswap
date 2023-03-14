@@ -15,7 +15,9 @@ import Link from "next/link";
 
 interface SpaceSlot {
   id: string;
-  name: string;
+  fullDomain: string;
+  mainDomain: string;
+  subDomain: string;
   used: boolean;
   listed: boolean;
   start?: number;
@@ -23,6 +25,7 @@ interface SpaceSlot {
   expire?: number;
   price?: string;
   user?: string;
+  creator?: string;
 }
 
 export default function UserPage() {
@@ -31,7 +34,6 @@ export default function UserPage() {
   const { address: loginAddress } = useWalletProvider();
   const isOwn = queryAddress == loginAddress;
   const { getNFTCollectionByOwner } = useMomentSwapContract();
-  //   const { mainDomain, subDomainIDs, subDomainNames, subDomainUsers } = useSpaceDomain(queryAddress);
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
   const [currentTab, setCurrentTab] = useState("Moments");
   const [tabPage, setTabPage] = useState(<></>);
@@ -47,16 +49,21 @@ export default function UserPage() {
   const {
     approve,
     mintSubDomain,
+    updateSubDomain,
     getAllDomainByCreator,
+    getSubDomainDetailsByDomainID,
     getApprovedByDomainID,
     getDomainLeaseTermsByCreator,
     getDomainLeaseTermsByUser,
+    getOwnerByDomainID,
   } = useSpaceFNSContract();
-  const { getListedDomainsByDomainID, listDomain, lendDomain, updateListDomain, cancelListDomain } =
+  const { getListedDomainsByDomainID, listDomain, lendDomain, updateListDomain, cancelListDomain, withdrawProceeds } =
     useFNSMarketContract();
 
   useEffect(() => {
     (async () => {
+      setCreatorSlots([]);
+      setUserSlots([]);
       const _creatorSlots: Array<SpaceSlot | undefined> = [];
       const _userSlots: Array<SpaceSlot> = [];
       const [_mainDomain, _subDomainIDs, _subDomainNames, _subDomainUsers] = await getAllDomainByCreator(queryAddress);
@@ -68,12 +75,14 @@ export default function UserPage() {
         if (_subDomainIDs[i]) {
           const [_domainID, _price, _expire] = await getListedDomainsByDomainID(_subDomainIDs[i].toString());
 
-          const _used = _subDomainUsers[i] !== queryAddress;
+          const _used = _subDomainUsers[i] != queryAddress;
           const _listed = !_domainID.isZero();
 
           _creatorSlots.push({
             id: _subDomainIDs[i].toString(),
-            name: _subDomainNames[i],
+            fullDomain: `${_subDomainNames[i]}.${_mainDomain}.fil`,
+            mainDomain: _mainDomain,
+            subDomain: _subDomainNames[i],
             used: _used,
             listed: _listed,
             start: _used ? _creatorLeaseTerms[i][0].toNumber() : undefined,
@@ -81,6 +90,7 @@ export default function UserPage() {
             expire: _listed ? _expire.toNumber() : undefined,
             price: ethers.utils.formatUnits(_price || "0", 18),
             user: _subDomainUsers[i],
+            creator: queryAddress,
           });
         } else {
           _creatorSlots.push(undefined);
@@ -91,10 +101,15 @@ export default function UserPage() {
       // Get all domain lease terms rented by user
       const [_domainIDs, _fullDomainNames, _userLeaseTerms] = await getDomainLeaseTermsByUser(queryAddress);
 
-      _domainIDs.forEach((id, i) => {
+      for (let i in _domainIDs) {
+        const _creator = await getOwnerByDomainID(_domainIDs[i].toString());
+        const [_mainDomainName] = await getAllDomainByCreator(_creator);
+        const [, , _subDomainName] = await getSubDomainDetailsByDomainID(_domainIDs[i].toString());
         _userSlots.push({
           id: _domainIDs[i].toString(),
-          name: _subDomainNames[i],
+          fullDomain: `${_fullDomainNames[i]}.fil`,
+          mainDomain: _mainDomainName,
+          subDomain: _subDomainName,
           used: true,
           listed: false,
           start: _userLeaseTerms[i][0].toNumber(),
@@ -102,11 +117,19 @@ export default function UserPage() {
           expire: undefined,
           price: undefined,
           user: queryAddress,
+          creator: _creator,
         });
-      });
+      }
+
       setUserSlots(_userSlots);
     })();
-  }, [queryAddress, getAllDomainByCreator, getDomainLeaseTermsByCreator, getListedDomainsByDomainID]);
+  }, [
+    queryAddress,
+    getAllDomainByCreator,
+    getDomainLeaseTermsByCreator,
+    getDomainLeaseTermsByUser,
+    getListedDomainsByDomainID,
+  ]);
 
   const priceOnChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
@@ -215,7 +238,23 @@ export default function UserPage() {
     router.reload();
   };
 
-  const handleConfirmLease = async () => {
+  const handleBuy = async () => {
+    if (!selectedSlot) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await (await lendDomain(selectedSlot.id, ethers.utils.parseEther(price).toString())).wait();
+      alert("Buy success !");
+    } catch {
+      alert("Failed to buy");
+    }
+    setLoading(false);
+    router.reload();
+  };
+
+  const handleUpdateRentedDomain = async () => {
     if (!validateLeaseName(leaseName)) {
       alert("The name is between 3 and 10 characters");
       return;
@@ -225,12 +264,12 @@ export default function UserPage() {
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-      await (await lendDomain(selectedSlot.id)).wait();
-      alert("Buy success !");
+      await (await updateSubDomain(selectedSlot.mainDomain, selectedSlot.subDomain, leaseName)).wait();
+      alert("Rename success !");
     } catch {
-      alert("Failed to buy");
+      alert("Failed to rename");
     }
     setLoading(false);
     router.reload();
@@ -260,6 +299,7 @@ export default function UserPage() {
     setTabPage(_tabPage);
   }, []);
 
+  // TODO: This method is too large and needs to be encapsulated in some components
   const renderSpaceDNPage = useCallback(() => {
     const _tabPage = (
       <>
@@ -315,11 +355,11 @@ export default function UserPage() {
           </label>
         </label>
 
-        {/* Update Modal */}
-        <input type="checkbox" id="update-modal" className="modal-toggle" />
-        <label htmlFor="update-modal" className="modal cursor-pointer select-none">
+        {/* Update Listed Modal */}
+        <input type="checkbox" id="update-listed-modal" className="modal-toggle" />
+        <label htmlFor="update-listed-modal" className="modal cursor-pointer select-none">
           <label htmlFor="" className="modal-box px-14">
-            <label htmlFor="update-modal" className="btn btn-primary btn-sm btn-circle absolute right-2 top-2">
+            <label htmlFor="update-listed-modal" className="btn btn-primary btn-sm btn-circle absolute right-2 top-2">
               ✕
             </label>
             <h3 className="font-bold text-lg">Edit Space Domain</h3>
@@ -370,15 +410,15 @@ export default function UserPage() {
           </label>
         </label>
 
-        {/* Buy Modal */}
-        <input type="checkbox" id="lease-modal" className="modal-toggle" />
-        <label htmlFor="lease-modal" className="modal cursor-pointer select-none">
+        {/* Update Rented Modal */}
+        <input type="checkbox" id="update-rented-modal" className="modal-toggle" />
+        <label htmlFor="update-rented-modal" className="modal cursor-pointer select-none">
           <label htmlFor="" className="modal-box px-14">
-            <label htmlFor="lease-modal" className="btn btn-primary btn-sm btn-circle absolute right-2 top-2">
+            <label htmlFor="update-rented-modal" className="btn btn-primary btn-sm btn-circle absolute right-2 top-2">
               ✕
             </label>
 
-            <h3 className="font-bold text-lg">Sapce Domain Name Lease</h3>
+            <h3 className="font-bold text-lg">Update Domain Name</h3>
             <div className="mt-5">
               <div className="flex items-center gap-2">
                 <input
@@ -392,10 +432,9 @@ export default function UserPage() {
               </div>
             </div>
             <div className="divider" />
-            <p>Price: {price} FIL</p>
             <div className="modal-action">
-              <label htmlFor="lease-modal" className="btn btn-primary" onClick={handleConfirmLease}>
-                Register
+              <label htmlFor="update-rented-modal" className="btn btn-primary" onClick={handleUpdateRentedDomain}>
+                Save
               </label>
             </div>
           </label>
@@ -405,11 +444,19 @@ export default function UserPage() {
         <div className="flex">
           <h3 className="text-lg font-semibold m-2">Created</h3>
           {isOwn ? (
-            <div
-              onClick={handleMint}
-              className="cursor-pointer select-none font-mono font-medium text-primary hover:text-white active:bg-primary-focus hover:bg-primary ml-auto my-auto mr-4 border border-primary active:border-primary-focus w-16 h-6 text-center leading-6"
-            >
-              MINT
+            <div className="flex m-auto mr-4 gap-2">
+              <div
+                onClick={() => withdrawProceeds()}
+                className="cursor-pointer select-none font-mono font-medium text-primary hover:text-white active:bg-primary-focus hover:bg-primary border border-primary active:border-primary-focus px-1 text-center leading-6"
+              >
+                WITHDRAW
+              </div>
+              <div
+                onClick={handleMint}
+                className="cursor-pointer select-none font-mono font-medium text-primary hover:text-white active:bg-primary-focus hover:bg-primary border border-primary active:border-primary-focus px-1 text-center leading-6"
+              >
+                MINT
+              </div>
             </div>
           ) : null}
         </div>
@@ -429,7 +476,7 @@ export default function UserPage() {
                   <div className="divider divider-horizontal my-4"></div>
                   {/* Content area */}
                   <div className="flex-col w-full">
-                    <span className="font-medium ">{`${slot?.name || "space" + (index + 1)}.${mainDomain}.fil`}</span>
+                    <span className="font-medium">{`${slot?.fullDomain || "---"}`}</span>
                     <div className="flex-col text-xs">
                       <div className="flex items-center gap-1">
                         <ClockIcon className="h-4 w-4" />
@@ -456,7 +503,7 @@ export default function UserPage() {
                           <UserIcon className="h-4 w-4" />
                         </div>
                         {slot?.used ? (
-                          <Link className="font-mono underline" href={`/user/${slot.user}`}>
+                          <Link className="font-mono hover:underline" href={`/user/${slot.user}`}>
                             {slot.user}
                           </Link>
                         ) : (
@@ -489,10 +536,13 @@ export default function UserPage() {
                           setPrice(slot?.price || "0");
                           const expireYears = secondsToYears(slot.expire || 1);
                           setLeaseTermYears(expireYears);
+                          if (!isOwn) {
+                            handleBuy();
+                          }
                         }}
                         iconSrc="https://s2.coinmarketcap.com/static/img/coins/64x64/2280.png"
                         price={slot.price || "0.0"}
-                        htmlFor={isOwn ? "update-modal" : "lease-modal"}
+                        htmlFor={isOwn ? "update-listed-modal" : ""}
                       >
                         {isOwn ? "Edit" : "Buy"}
                       </PriceButton>
@@ -555,7 +605,9 @@ export default function UserPage() {
                         <div className="divider divider-horizontal my-4"></div>
                         {/* Content area */}
                         <div className="flex-col w-full">
-                          <span className="font-medium ">{`${slot.name}.${mainDomain}.fil`}</span>
+                          <Link className="font-medium cursor-pointer hover:underline" href={`/user/${slot.creator}`}>
+                            {slot.fullDomain}
+                          </Link>
                           <div className="flex-col text-xs">
                             <div className="flex items-center gap-1">
                               <ClockIcon className="h-4 w-4" />
@@ -573,14 +625,24 @@ export default function UserPage() {
                               <div className="h-4 w-4">
                                 <UserIcon className="h-4 w-4" />
                               </div>
-                              <Link className="font-mono underline" href={`/user/${slot.user}`}>
+                              <Link className="font-mono hover:underline" href={`/user/${slot.user}`}>
                                 {slot.user}
                               </Link>
                             </div>
                           </div>
                         </div>
 
-                        <div className="mr-4">
+                        <div className="flex mr-4 gap-2 items-center">
+                          <label
+                            htmlFor="update-rented-modal"
+                            onClick={() => {
+                              setLeaseName(slot.subDomain);
+                              setSelectedSlot(slot);
+                            }}
+                            className="border-2 rounded-full hover:text-white hover:border-neutral active:border-neutral-focus hover:bg-neutral active:bg-neutral-focus w-24 h-8 overflow-hidden hvr-shadow text-sm text-center leading-7 font-bold"
+                          >
+                            Rename
+                          </label>
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
@@ -605,7 +667,7 @@ export default function UserPage() {
       </>
     );
     setTabPage(_tabPage);
-  }, [loading, loginAddress, leaseTermYears, leaseName, price, queryAddress, creatorSlots, mainDomain]);
+  }, [loading, loginAddress, leaseTermYears, leaseName, price, queryAddress, creatorSlots, userSlots, mainDomain]);
 
   // Get collection from the contract when provider is updated.
   useEffect(() => {
@@ -670,7 +732,7 @@ export default function UserPage() {
           {/* Body */}
           <label
             htmlFor="identity-modal"
-            className={`btn btn-primary btn-sm btn-outline gap-2 float-right mr-6 ${isOwn && "hidden"}`}
+            className={`btn btn-primary btn-sm btn-outline gap-2 float-right mr-6 ${isOwn ? "" : "hidden"}`}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

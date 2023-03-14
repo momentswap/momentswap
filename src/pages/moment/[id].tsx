@@ -4,13 +4,14 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { Comment, Layout, Moment, ThemeToggle } from "@components";
-import { useMomentSwapContract } from "@hooks";
+import { useMomentSwapContract, useSpaceFNSContract } from "@hooks";
 import { CommentData, MomentMetadata } from "@utils/definitions/interfaces";
 import { getCommentsByMomentId } from "src/mock/data";
 
 export default function MomentPage() {
   const router = useRouter();
   const { getNFTCollection } = useMomentSwapContract();
+  const { getAllDomainByCreator } = useSpaceFNSContract();
   const [moment, setMoment] = useState<MomentMetadata | undefined>(undefined);
   const [comments, setComments] = useState<Array<CommentData>>([]);
   const momentId = router.query.id as string;
@@ -23,22 +24,24 @@ export default function MomentPage() {
     (async () => {
       const collection = await getNFTCollection();
 
-      if (collection) {
-        const itemId = collection.findIndex((item) => item[2].toString() === momentId);
-        const item = collection[itemId];
-
-        const _moment: MomentMetadata = {
-          address: item[0],
-          id: item[2].toString(),
-          timestamp: item[3].toNumber(),
-          metadataURL: `https://${item[1].split("/")[2]}.ipfs.dweb.link/metadata.json`,
-        };
-        const metadata = await fetch(_moment.metadataURL).then((res) => res.json());
-        _moment.contentText = metadata.properties.content["text/markdown"];
-        _moment.media = `https://${metadata.properties.media.cid}.ipfs.dweb.link`;
-        _moment.mediaType = metadata.properties.media.type;
-        setMoment(_moment);
+      if (!collection) {
+        return;
       }
+      const itemIndex = collection.findIndex((item) => item[2].toString() === momentId);
+      const item = collection[itemIndex];
+      const [mainDomain] = await getAllDomainByCreator(item[0]);
+      const _moment: MomentMetadata = {
+        address: item[0],
+        id: item[2].toString(),
+        timestamp: item[3].toNumber(),
+        username: mainDomain,
+        metadataURL: `https://${item[1].split("/")[2]}.ipfs.dweb.link/metadata.json`,
+      };
+      const metadata = await fetch(_moment.metadataURL).then((res) => res.json());
+      _moment.contentText = metadata.properties.content["text/markdown"];
+      _moment.media = `https://${metadata.properties.media.cid}.ipfs.dweb.link`;
+      _moment.mediaType = metadata.properties.media.type;
+      setMoment(_moment);
     })();
   }, [getNFTCollection, momentId]);
 

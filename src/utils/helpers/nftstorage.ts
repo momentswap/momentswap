@@ -2,7 +2,7 @@ import { NFTStorage } from "nft.storage";
 
 import { Media } from "@utils/definitions/interfaces";
 
-const key = process.env.NFT_STORAGE_API_KEY;
+const key = process.env.NEXT_PUBLIC_NFT_STORAGE_API_KEY;
 const NFTStorageClient = new NFTStorage({
   token: key || "undefined",
 });

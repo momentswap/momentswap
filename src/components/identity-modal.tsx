@@ -37,7 +37,11 @@ export const IdentityModal = () => {
   const saveIdentity = async () => {
     localStorage.setItem("user-img", userImg || "");
     if (!mainDomain) {
-      await registerMainDomain(text);
+      setLoading(true);
+      try {
+        await (await registerMainDomain(text)).wait();
+      } catch {}
+      setLoading(false);
     }
     router.reload();
   };
@@ -90,7 +94,7 @@ export const IdentityModal = () => {
           </div>
           <div className="divider" />
           <div className="modal-action">
-            <div className={`btn btn-primary ${loading && "pointer-events-none saturate-0"}`} onClick={saveIdentity}>
+            <div className={`btn btn-primary ${loading ? "loading" : ""}`} onClick={saveIdentity}>
               Save
             </div>
           </div>
