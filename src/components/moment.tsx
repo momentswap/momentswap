@@ -1,14 +1,15 @@
 import { ChatIcon, HeartIcon, ShareIcon } from "@heroicons/react/outline";
 import { HeartIcon as HeartIconFilled } from "@heroicons/react/solid";
-import momenttool from "moment";
+import momenttools from "moment";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import RMoment from "react-moment";
 import { useRecoilState } from "recoil";
 
+import { useWalletProvider } from "@hooks";
 import { CommentData, MomentMetadata } from "@utils/definitions/interfaces";
+import { sortAddress } from "@utils/helpers";
 import { momentIdState } from "src/atom";
-import { useWalletProvider } from "src/hooks/use-wallet-provider";
 import { getCommentsByMomentId, getLikesByMomentId, storeLikes } from "src/mock/data";
 import { Avatar } from "./avatar";
 
@@ -70,16 +71,13 @@ export const Moment = ({ moment }: Props) => {
         <div className="flex items-center justify-between">
           {/* moment user info */}
           <div className="flex items-center space-x-1 whitespace-nowrap">
-            <h4
-              className=" font-bold text-[15px] sm:text-[16px] hover:underline cur"
-              onClick={() => router.push(`/user/${moment.address}`)}
-            >
-              {moment?.username || "---"}.fil
-            </h4>
-            <span className="text-sm sm:text-[15px] text-gray-500">
-              {`${moment.address?.slice(0, 5)}...${moment.address?.slice(-3)}`} -{" "}
-              <RMoment fromNow>{momenttool.unix(moment.timestamp)}</RMoment>
-            </span>
+            <h4 className="font-bold text-[15px] sm:text-[16px]">{moment?.username || "---"}.fil</h4>
+            <p className="text-sm sm:text-[15px] text-gray-500">
+              <span className="hover:underline cursor-pointer" onClick={() => router.push(`/user/${moment.address}`)}>
+                {sortAddress(moment.address, 6)}{" "}
+              </span>
+              - <RMoment fromNow>{momenttools.unix(moment.timestamp)}</RMoment>
+            </p>
           </div>
 
           {/* dot icon */}

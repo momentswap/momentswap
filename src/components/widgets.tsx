@@ -1,26 +1,40 @@
 import { SearchIcon } from "@heroicons/react/outline";
 import { AnimatePresence, motion } from "framer-motion";
-import { Key, useState } from "react";
+import { Key, useEffect, useState } from "react";
+import { useRecoilState } from "recoil";
 
 import { News } from "@components";
+import { searchKeyState } from "src/atom";
 
 export const Widgets = ({ newsResults, randomUsersResults }: any) => {
   const [articleNum, setArticleNum] = useState(3);
+  const [_searchKey, _setSearchKey] = useState("");
   const [randomUserNum, setRandomUserNum] = useState(3);
+  const [searchKey, setSearchKey] = useRecoilState(searchKeyState);
+  useEffect(() => {
+    _setSearchKey(searchKey);
+  }, [searchKey]);
   return (
-    <div className="xl:w-[600px] hidden lg:inline ml-8 space-y-5">
-      <div className="w-[90%] xl:w-[75%] sticky top-0 py-1.5 z-50">
+    <div className="sm:w-[300px] xl:w-[450px] hidden lg:inline ml-8 space-y-5">
+      <div className="w-[90%] sticky top-0 py-1.5 z-50">
         <div className="flex items-center p-3 rounded-full relative">
           <SearchIcon className="h-5 z-50 text-gray-500" />
           <input
-            className="absolute inset-0 rounded-full pl-11 border-gray-500 text-gray-700 focus:shadow-lg focus:bg-white bg-gray-100 "
+            className="absolute inset-0 rounded-full pl-11 border-gray-500 text-gray-700 focus:shadow-lg focus:bg-white bg-gray-100"
             type="text"
             placeholder="Search Moment"
+            value={_searchKey}
+            onChange={(e) => _setSearchKey(e.target.value)}
+            onBlur={(e) => setSearchKey(e.target.value)}
+            onKeyDown={(e) => {
+              //@ts-ignore
+              if (e.key === "Enter") setSearchKey(e.target.value);
+            }}
           />
         </div>
       </div>
 
-      <div className="text-gray-700 space-y-3 bg-gray-100 rounded-xl pt-2 w-[90%] xl:w-[75%]">
+      <div className="text-gray-700 space-y-3 bg-gray-100 rounded-xl pt-2 w-[90%]">
         <h4 className="font-bold text-xl px-4">Whats happening</h4>
         <AnimatePresence>
           {newsResults?.slice(0, articleNum).map((article: { title: Key | null | undefined }) => (
@@ -39,7 +53,7 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
           Show more
         </button>
       </div>
-      <div className="sticky top-16 text-gray-700 space-y-3 bg-gray-100 pt-2 rounded-xl w-[90%] xl:w-[75%]">
+      <div className="sticky top-16 text-gray-700 space-y-3 bg-gray-100 pt-2 rounded-xl w-[90%]">
         <h4 className="font-bold text-xl px-4">Who to follow</h4>
         <AnimatePresence>
           {randomUsersResults?.slice(0, randomUserNum).map((randomUser: any) => (

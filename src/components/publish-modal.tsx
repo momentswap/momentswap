@@ -2,15 +2,14 @@ import { XIcon } from "@heroicons/react/outline";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 
+import { useMomentSwapContract, useWalletProvider } from "@hooks";
 import { Media } from "@utils/definitions/interfaces";
 import { createMomentSwapMetadata, storeMediaToIPFS, storeMetadataToIPFS } from "@utils/helpers";
-import { useMomentSwap } from "src/hooks";
-import { useWalletProvider } from "src/hooks/use-wallet-provider";
 
 export const PublishModal = () => {
   const router = useRouter();
   const { address } = useWalletProvider();
-  const { mintMomentSwapNFT } = useMomentSwap();
+  const { mintMomentSwapNFT } = useMomentSwapContract();
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState("");
   const [media, setMedia] = useState<Media | undefined>(undefined);
@@ -38,7 +37,7 @@ export const PublishModal = () => {
 
     try {
       const metadataIPFS = await storeMetadataToIPFS(metadata);
-      await mintMomentSwapNFT(address, metadataIPFS || "");
+      await mintMomentSwapNFT(metadataIPFS || "");
       alert("Successfully published moment!");
       router.reload();
     } catch (err) {
@@ -48,7 +47,7 @@ export const PublishModal = () => {
   };
 
   const cleanFileInput = () => {
-    // TODO: Reset "file-input" selected file.
+    // TODO: Reset "media-input" selected file.
     setMedia(undefined);
   };
 
@@ -90,7 +89,7 @@ export const PublishModal = () => {
           {/* Media Uploader */}
 
           <label
-            htmlFor="file-input"
+            htmlFor="media-input"
             className="inline-block p-1 hover:bg-primary rounded-full active:bg-primary-focus"
           >
             <svg
@@ -109,7 +108,7 @@ export const PublishModal = () => {
             </svg>
           </label>
           <input
-            id="file-input"
+            id="media-input"
             hidden
             type="file"
             accept=".jpeg,.jpg,.png,.gif,image/*,video/mp4,video/webm,video/ogg"

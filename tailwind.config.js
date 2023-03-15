@@ -31,6 +31,9 @@ module.exports = {
       // "black",
       // "dracula",
     ],
+    plugins: [
+      require('@tailwindcss/typography'),
+    ],
     base: true,
     utils: true,
     logs: true,

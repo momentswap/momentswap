@@ -16,12 +16,13 @@
     "incremental": true,
     "baseUrl": ".",
     "paths": {
-      "@components": ["src/components/index.ts"],
+      "@hooks": ["src/hooks/"],
+      "@components": ["src/components/"],
       "@utils/*": ["src/utils/*"],
       "@pages/*": ["src/pages/*"],
-      "@Contracts/*": ["fevm/hardhat/artifacts/contracts/*"]
+      "@Contracts/*": ["fevm/hardhat/artifacts/contracts/*"],
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "fevm/hardhat/tasks/getMomentSwapNFT.js", "fevm/hardhat/tasks/getMomentSwapNFT.js", "fevm/hardhat/tasks/spaceFNS.usecase.js.usefevm/hardhat/tasks/spaceFNS.usecase.jsks/spaceFNS.usecase.js"],
   "exclude": ["node_modules"]
 }

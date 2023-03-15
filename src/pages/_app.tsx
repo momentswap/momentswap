@@ -1,17 +1,18 @@
+import "hover.css";
 import type { AppProps } from "next/app";
 import { RecoilRoot } from "recoil";
 
-import { WalletProviderProvider } from "src/hooks";
+import { WalletProviderProvider } from "@hooks";
 import "../styles/App.css";
 import "../styles/globals.css";
 
 function App({ Component, pageProps }: AppProps) {
   return (
-    <WalletProviderProvider>
-      <RecoilRoot>
+    <RecoilRoot>
+      <WalletProviderProvider>
         <Component {...pageProps} />
-      </RecoilRoot>
-    </WalletProviderProvider>
+      </WalletProviderProvider>
+    </RecoilRoot>
   );
 }
 

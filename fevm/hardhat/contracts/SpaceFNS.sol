@@ -11,11 +11,12 @@ contract SpaceFNS {
   using Counters for Counters.Counter;
   Counters.Counter private _registeredCount;
   Counters.Counter private _registeredChildCount;
-  
+
   // Logged when the user of an NFT is changed or expires is changed
   /// @notice Emitted when the `user` of an NFT or the `expires` of the `user` is changed
   /// The zero address for user indicates that there is no user address
-  event UpdateUser(uint256 indexed tokenId, address indexed user, uint64 expires);
+  event UpdateUser(uint256 indexed tokenId, address indexed user, uint64 start, uint64 expires);
+
 
   ///@dev Emitted when `First-Domain` token is  Registered.
   event DomainRegistered(string indexed label, uint256 indexed tokenId, address indexed owner);
@@ -56,6 +57,8 @@ contract SpaceFNS {
   //second-domain name mapped to second-domain tokenId
   mapping(string => uint256) public childNameId;
 
+  mapping(address => uint256[]) public leasedChildFNSTokens;
+
   ///second-domain tokenId mapped to approval controller address
   mapping(uint256 => address) private childApprovals;
 
@@ -75,6 +78,7 @@ contract SpaceFNS {
     uint256 parent;
     address owner;
     address user;
+    uint64 start;
     uint64 expires;
   }
 
@@ -107,7 +111,7 @@ contract SpaceFNS {
   }
 
   modifier checkChildDomain(string calldata parent, string[] calldata childLabel) {
-    for (uint i = 0; i < childLabel.length; i++) {
+    for (uint256 i = 0; i < childLabel.length; i++) {
       uint256 lable_length = bytes(childLabel[i]).length;
       require(lable_length >= 3 && lable_length <= 10, "Domain name length does not meet the specification");
       require(childNames[childLabel[i]] == address(0), "Name is already exist");
@@ -145,10 +149,12 @@ contract SpaceFNS {
   }
 
   ///@dev mint second-level domains
-  function mintChildDomain(
-    string calldata parentNode,
-    string calldata childNode
-  ) public checkLabelLength(childNode) onlyOwner(parentNode) returns (string memory) {
+  function mintChildDomain(string calldata parentNode, string calldata childNode)
+    public
+    checkLabelLength(childNode)
+    onlyOwner(parentNode)
+    returns (string memory)
+  {
     string memory allname = dealwithString(childNode, ".", parentNode);
     uint256 parentId = mainNameId[parentNode];
 
@@ -156,7 +162,7 @@ contract SpaceFNS {
     require(childNameId[allname] == uint256(0), "ChildName is already exist");
     require(allMainFNSDomain[parentId].child.length < MAXIMUM_NODES, "Mint second domain number too many");
     uint256 childIndex = _registeredChildCount.current();
-    allChildFNSDomain[childIndex] = childFNSToken(childIndex, allname, childNode, parentId, msg.sender, msg.sender, 0);
+    allChildFNSDomain[childIndex] = childFNSToken(childIndex, allname, childNode, parentId, msg.sender, msg.sender, 0, 0);
     allMainFNSDomain[parentId].child.push(childIndex);
     emit ChildDomainRegistered(allname, childIndex, msg.sender);
     _registeredChildCount.increment();
@@ -190,13 +196,21 @@ contract SpaceFNS {
   /// Throws if `tokenId` is not valid NFT
   /// @param user  The new user of the NFT
   /// @param expires  UNIX timestamp, The new user could use the NFT before expires
-  function setUser(uint256 tokenId, address user, uint64 expires) external {
+
+  function setUser(
+    uint256 tokenId,
+    address user,
+    uint64 start,
+    uint64 expires
+  ) external {
     require(getApproved(tokenId) == msg.sender, "Not  approval account");
     allChildFNSDomain[tokenId].user = user;
+    allChildFNSDomain[tokenId].start = start;
     allChildFNSDomain[tokenId].expires = expires;
     delete childApprovals[tokenId];
-    emit UpdateUser(tokenId, user, expires);
+    emit UpdateUser(tokenId, user, start, expires);
     childNames[allChildFNSDomain[tokenId].allName] = msg.sender;
+    leasedChildFNSTokens[user].push(tokenId);
   }
 
   /// @notice Get the user address of an NFT
@@ -212,10 +226,20 @@ contract SpaceFNS {
   /// @param tokenId The NFT to get the user expires for
   /// @return The user expires for this NFT
   function userExpires(uint256 tokenId) public view returns (uint256) {
-    return allChildFNSDomain[tokenId].expires;
+    return allChildFNSDomain[tokenId].start + allChildFNSDomain[tokenId].expires;
   }
 
-  function dealwithString(string calldata a, string memory b, string calldata c) internal pure returns (string memory) {
+  ///@dev Returns the owner of the `tokenId` token.
+  function ownerOf(uint256 tokenId) public view returns (address) {
+    require(allChildFNSDomain[tokenId].owner != address(0), "tokenId No Minted");
+    return allChildFNSDomain[tokenId].owner;
+  }
+
+  function dealwithString(
+    string calldata a,
+    string memory b,
+    string calldata c
+  ) internal pure returns (string memory) {
     return string(abi.encodePacked(a, b, c));
   }
 
@@ -249,7 +273,8 @@ contract SpaceFNS {
     uint256 doMainId = mainNameId[nodeName];
     uint256[] memory childArrayIds = allMainFNSDomain[doMainId].child;
     address[] memory childArray = new address[](childArrayIds.length);
-    for (uint i = 0; i < childArrayIds.length; i = i + 1) {
+
+    for (uint256 i = 0; i < childArrayIds.length; i = i + 1) {
       address childAddress = allChildFNSDomain[childArrayIds[i]].user;
       childArray[i] = childAddress;
     }
@@ -257,9 +282,16 @@ contract SpaceFNS {
   }
 
   ///@dev Get the owner of the main domain and child-domains and child-domains by the owner of the main domain
-  function getMainDomainAndChild(
-    address owner
-  ) external view returns (string memory, string[] memory, address[] memory) {
+  function getMainDomainAndChild(address owner)
+    external
+    view
+    returns (
+      string memory,
+      uint256[] memory,
+      string[] memory,
+      address[] memory
+    )
+  {
     require(bytes(resMainNames[owner]).length != uint256(0), "mainName is not exist");
     string memory mainNodeName = resMainNames[owner];
     uint256 doMainId = mainNameId[mainNodeName];
@@ -267,20 +299,85 @@ contract SpaceFNS {
     address[] memory childAddressArray = new address[](childArrayIds.length);
     string[] memory childNameArray = new string[](childArrayIds.length);
 
-    for (uint i = 0; i < childArrayIds.length; i = i + 1) {
+    for (uint256 i = 0; i < childArrayIds.length; i = i + 1) {
       address childAddress = allChildFNSDomain[childArrayIds[i]].user;
       string memory tmpChildName = allChildFNSDomain[childArrayIds[i]].childName;
       childAddressArray[i] = childAddress;
       childNameArray[i] = tmpChildName;
     }
-    return (mainNodeName, childNameArray, childAddressArray);
+
+    return (mainNodeName, childArrayIds, childNameArray, childAddressArray);
+  }
+
+  function getChildDomainLeaseTerm(address owner) external view returns(uint256[] memory, string[] memory, uint64[2][] memory) {
+    string memory mainNodeName = resMainNames[owner];
+    uint256[] memory childArrayIds = allMainFNSDomain[mainNameId[mainNodeName]].child;
+    string[] memory childArrayNames = new string[](childArrayIds.length);
+    uint64[2][] memory leaseTerms = new uint64[2][](childArrayIds.length);
+
+    for (uint256 i = 0; i < childArrayIds.length; i = i + 1) {
+      childArrayNames[i] = allChildFNSDomain[childArrayIds[i]].allName;
+      leaseTerms[i] = getLeaseTermByChildId(childArrayIds[i]);
+    }
+
+    return (childArrayIds, childArrayNames, leaseTerms);
+  }
+
+  function getLeasedDomainLeaseTerm(address owner) external view returns(uint256[] memory, string[] memory, uint64[2][] memory) {
+    uint256[] memory leasedArrayIds = getLeasedArrayIds(owner);
+    string[] memory childArrayNames = new string[](leasedArrayIds.length);
+    uint64[2][] memory leaseTerms = new uint64[2][](leasedArrayIds.length);
+
+    for (uint256 i = 0; i < leasedArrayIds.length; i = i + 1) {
+      childArrayNames[i] = allChildFNSDomain[leasedArrayIds[i]].allName;
+      leaseTerms[i] = getLeaseTermByChildId(leasedArrayIds[i]);
+    }
+
+    return (leasedArrayIds, childArrayNames, leaseTerms);
+  }
+
+  function getLeaseTermByChildId(uint256 childId) public view returns(uint64[2] memory) {
+    return [allChildFNSDomain[childId].start, allChildFNSDomain[childId].expires];
+  }
+
+  function getLeasedArrayIds(address owner) public view returns(uint256[] memory) {
+    uint256[] memory leasedArrayIds = leasedChildFNSTokens[owner];
+    uint64 realLeasedArrayLength = 0;
+
+    for (uint256 i = 0; i < leasedArrayIds.length; i = i + 1) {
+      if (leasedArrayIds[i] == 0) {
+        continue;
+      }
+      realLeasedArrayLength = realLeasedArrayLength + 1;
+    }
+
+    uint256[] memory realLeasedChildIds = new uint256[](realLeasedArrayLength);
+    uint64 leasedArrayIndex = 0;
+    for (uint256 i = 0; i < leasedArrayIds.length; i = i + 1) {
+      if (leasedArrayIds[i] == 0) {
+        continue;
+      }
+      realLeasedChildIds[leasedArrayIndex] = leasedArrayIds[i];
+      leasedArrayIndex = leasedArrayIndex + 1;
+    }
+
+    return realLeasedChildIds;
   }
 
   ///@dev child-domain expires and is reset
   function resetChildDomain(string calldata allName) external {
     uint256 childTokenId = getChildDomainId(allName);
-    require(block.timestamp >= userExpires(childTokenId), "child domain have not expired ");
+    require(block.timestamp >=  userExpires(childTokenId), "child domain have not expired ");
     //require(allChildFNSDomain[childTokenId].owner==msg.sender,"Not Owner");
+    address user = allChildFNSDomain[childTokenId].user;
     allChildFNSDomain[childTokenId].user = allChildFNSDomain[childTokenId].owner;
+
+    // TODO: Optimize array operations
+    for (uint256 i = 0; i < leasedChildFNSTokens[user].length; i = i + 1) {
+      if (leasedChildFNSTokens[user][i] != childTokenId)  {
+        continue;
+      }
+      delete leasedChildFNSTokens[user][i];
+    }
   }
 }

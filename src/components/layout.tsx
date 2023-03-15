@@ -1,14 +1,22 @@
 import { CommentModal, IdentityModal, PublishModal, Sidebar, Widgets } from "@components";
 import Head from "next/head";
 import { FC, ReactNode } from "react";
+import { useSpaceDomain, useWalletProvider } from "src/hooks";
 
 type Props = {
   children?: ReactNode;
 };
 
 export const Layout: FC<Props> = ({ children }) => {
+  const { address } = useWalletProvider();
+  const { mainDomain, loading } = useSpaceDomain();
+
   return (
     <>
+      <CommentModal />
+      <PublishModal />
+      <IdentityModal />
+
       <Head>
         <title>MomentSwap</title>
         <meta
@@ -17,12 +25,30 @@ export const Layout: FC<Props> = ({ children }) => {
         />
       </Head>
       <main className="flex min-h-screen">
-        <Sidebar />
-        {children}
-        <Widgets />
-        <CommentModal />
-        <PublishModal />
-        <IdentityModal />
+        {mainDomain || address === undefined ? (
+          <>
+            <Sidebar />
+            {children}
+            <Widgets />
+          </>
+        ) : (
+          <div className="flex flex-col h-screen w-screen justify-center items-center">
+            <p>
+              Your wallet address: <span className="font-mono">{address}</span>
+            </p>
+
+            {loading ? (
+              <div>From the chain during data loading...</div>
+            ) : (
+              <div>
+                The Space Domain needs to be registered for the first login:
+                <label htmlFor="identity-modal" className="link">
+                  Register
+                </label>
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </>
   );

@@ -12,7 +12,7 @@ export const SidebarMenuItem = ({ text, Icon, active, link }: Props) => {
   return (
     <Link
       href={link}
-      className="btn btn-ghost btn- flex items-center justify-center xl:justify-start text-lg space-x-3 my-3"
+      className="btn btn-ghost flex items-center justify-center xl:justify-start text-lg space-x-3 my-3"
     >
       <Icon className="h-7" />
       <span className={`${active && "font-medium"} hidden xl:inline`}>{text}</span>
