@@ -43,7 +43,7 @@ export const IdentityModal = () => {
       } catch {}
       setLoading(false);
     }
-    router.reload();
+    router.push("/");
   };
 
   return (

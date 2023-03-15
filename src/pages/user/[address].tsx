@@ -174,7 +174,7 @@ export default function UserPage() {
 
   const handleList = async () => {
     if (!selectedSlot) {
-      router.reload();
+      router.push("/");
       alert("Failed to list");
       return;
     }
@@ -193,12 +193,12 @@ export default function UserPage() {
       alert("Failed to list");
     }
     setLoading(false);
-    router.reload();
+    router.push("/");
   };
 
   const handleCancelList = async () => {
     if (!selectedSlot) {
-      router.reload();
+      router.push("/");
       alert("Failed to cancel list");
       return;
     }
@@ -211,12 +211,12 @@ export default function UserPage() {
       alert("Failed to cancel list");
     }
     setLoading(false);
-    router.reload();
+    router.push("/");
   };
 
   const handleUpdateList = async () => {
     if (!selectedSlot) {
-      router.reload();
+      router.push("/");
       alert("Failed to update");
       return;
     }
@@ -235,7 +235,7 @@ export default function UserPage() {
       alert("Failed to update");
     }
     setLoading(false);
-    router.reload();
+    router.push("/");
   };
 
   const handleBuy = async () => {
@@ -251,7 +251,7 @@ export default function UserPage() {
       alert("Failed to buy");
     }
     setLoading(false);
-    router.reload();
+    router.push("/");
   };
 
   const handleUpdateRentedDomain = async () => {
@@ -272,7 +272,7 @@ export default function UserPage() {
       alert("Failed to rename");
     }
     setLoading(false);
-    router.reload();
+    router.push("/");
   };
 
   const renderMomentsPage = useCallback(() => {
@@ -633,16 +633,19 @@ export default function UserPage() {
                         </div>
 
                         <div className="flex mr-4 gap-2 items-center">
-                          <label
-                            htmlFor="update-rented-modal"
-                            onClick={() => {
-                              setLeaseName(slot.subDomain);
-                              setSelectedSlot(slot);
-                            }}
-                            className="border-2 rounded-full hover:text-white hover:border-neutral active:border-neutral-focus hover:bg-neutral active:bg-neutral-focus w-24 h-8 overflow-hidden hvr-shadow text-sm text-center leading-7 font-bold"
-                          >
-                            Rename
-                          </label>
+                          {isOwn ? (
+                            <label
+                              htmlFor="update-rented-modal"
+                              onClick={() => {
+                                setLeaseName(slot.subDomain);
+                                setSelectedSlot(slot);
+                              }}
+                              className="border-2 rounded-full hover:text-white hover:border-neutral active:border-neutral-focus hover:bg-neutral active:bg-neutral-focus w-24 h-8 overflow-hidden hvr-shadow text-sm text-center leading-7 font-bold"
+                            >
+                              Rename
+                            </label>
+                          ) : null}
+
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"

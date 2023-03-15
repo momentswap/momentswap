@@ -10,8 +10,9 @@ import { resolve } from "path";
 //Import our customised tasks
 import "./fevm/hardhat/tasks";
 
-const dotenvConfigPath: string = process.env.DOTENV_CONFIG_PATH || "./.env";
-dotenvConfig({ path: resolve(__dirname, dotenvConfigPath) });
+if (!process.env.WALLET_PRIVATE_KEY) {
+  dotenvConfig({ path: resolve(__dirname, ".env"), override: true });
+}
 
 // Ensure that we have all the environment variables we need.
 const walletPrivateKey: string | undefined = process.env.WALLET_PRIVATE_KEY;
