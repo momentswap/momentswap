@@ -43,3 +43,4 @@ interface ISpaceFNS {
   /// @dev Returns the account approved for `tokenId` token.
   function getApproved(uint256 tokenId) external view returns (address);
 }
+

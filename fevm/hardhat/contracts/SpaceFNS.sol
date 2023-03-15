@@ -17,6 +17,7 @@ contract SpaceFNS {
   /// The zero address for user indicates that there is no user address
   event UpdateUser(uint256 indexed tokenId, address indexed user, uint64 start, uint64 expires);
 
+
   ///@dev Emitted when `First-Domain` token is  Registered.
   event DomainRegistered(string indexed label, uint256 indexed tokenId, address indexed owner);
 
@@ -60,7 +61,6 @@ contract SpaceFNS {
 
   ///second-domain tokenId mapped to approval controller address
   mapping(uint256 => address) private childApprovals;
-
 
   ///@dev main-domain name infromation
   struct FNSToken {
@@ -196,6 +196,7 @@ contract SpaceFNS {
   /// Throws if `tokenId` is not valid NFT
   /// @param user  The new user of the NFT
   /// @param expires  UNIX timestamp, The new user could use the NFT before expires
+
   function setUser(
     uint256 tokenId,
     address user,
@@ -272,6 +273,7 @@ contract SpaceFNS {
     uint256 doMainId = mainNameId[nodeName];
     uint256[] memory childArrayIds = allMainFNSDomain[doMainId].child;
     address[] memory childArray = new address[](childArrayIds.length);
+
     for (uint256 i = 0; i < childArrayIds.length; i = i + 1) {
       address childAddress = allChildFNSDomain[childArrayIds[i]].user;
       childArray[i] = childAddress;
