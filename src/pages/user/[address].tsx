@@ -633,16 +633,19 @@ export default function UserPage() {
                         </div>
 
                         <div className="flex mr-4 gap-2 items-center">
-                          <label
-                            htmlFor="update-rented-modal"
-                            onClick={() => {
-                              setLeaseName(slot.subDomain);
-                              setSelectedSlot(slot);
-                            }}
-                            className="border-2 rounded-full hover:text-white hover:border-neutral active:border-neutral-focus hover:bg-neutral active:bg-neutral-focus w-24 h-8 overflow-hidden hvr-shadow text-sm text-center leading-7 font-bold"
-                          >
-                            Rename
-                          </label>
+                          {isOwn ? (
+                            <label
+                              htmlFor="update-rented-modal"
+                              onClick={() => {
+                                setLeaseName(slot.subDomain);
+                                setSelectedSlot(slot);
+                              }}
+                              className="border-2 rounded-full hover:text-white hover:border-neutral active:border-neutral-focus hover:bg-neutral active:bg-neutral-focus w-24 h-8 overflow-hidden hvr-shadow text-sm text-center leading-7 font-bold"
+                            >
+                              Rename
+                            </label>
+                          ) : null}
+
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
