@@ -174,7 +174,7 @@ export default function UserPage() {
 
   const handleList = async () => {
     if (!selectedSlot) {
-      router.reload();
+      router.push("/");
       alert("Failed to list");
       return;
     }
@@ -193,12 +193,12 @@ export default function UserPage() {
       alert("Failed to list");
     }
     setLoading(false);
-    router.reload();
+    router.push("/");
   };
 
   const handleCancelList = async () => {
     if (!selectedSlot) {
-      router.reload();
+      router.push("/");
       alert("Failed to cancel list");
       return;
     }
@@ -211,12 +211,12 @@ export default function UserPage() {
       alert("Failed to cancel list");
     }
     setLoading(false);
-    router.reload();
+    router.push("/");
   };
 
   const handleUpdateList = async () => {
     if (!selectedSlot) {
-      router.reload();
+      router.push("/");
       alert("Failed to update");
       return;
     }
@@ -235,7 +235,7 @@ export default function UserPage() {
       alert("Failed to update");
     }
     setLoading(false);
-    router.reload();
+    router.push("/");
   };
 
   const handleBuy = async () => {
@@ -251,7 +251,7 @@ export default function UserPage() {
       alert("Failed to buy");
     }
     setLoading(false);
-    router.reload();
+    router.push("/");
   };
 
   const handleUpdateRentedDomain = async () => {
@@ -272,7 +272,7 @@ export default function UserPage() {
       alert("Failed to rename");
     }
     setLoading(false);
-    router.reload();
+    router.push("/");
   };
 
   const renderMomentsPage = useCallback(() => {

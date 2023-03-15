@@ -39,7 +39,7 @@ export const PublishModal = () => {
       const metadataIPFS = await storeMetadataToIPFS(metadata);
       await mintMomentSwapNFT(metadataIPFS || "");
       alert("Successfully published moment!");
-      router.reload();
+      router.push("/");
     } catch (err) {
       console.error("Failed to publish moment, error:", err);
       alert("Failed to publish moment.");

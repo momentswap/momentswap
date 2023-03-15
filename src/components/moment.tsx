@@ -49,7 +49,7 @@ export const Moment = ({ moment }: Props) => {
       await signer?.signMessage("this is test");
       localStorage.setItem("submit", "0");
       router.push("/");
-      router.reload();
+      router.push("/");
     }
   }
 

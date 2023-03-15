@@ -22,7 +22,7 @@ export const CommentModal = () => {
     });
     setText("");
     if (router.pathname.indexOf("/moment") >= 0) {
-      router.reload();
+      router.push("/");
     } else {
       router.push(`/moment/${momentId}`);
     }
