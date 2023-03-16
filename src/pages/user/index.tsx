@@ -132,10 +132,21 @@ export default function UserPage() {
   ]);
 
   const priceOnChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.target;
+    let { value } = e.target;
     if (!validatePrice(value)) {
       return;
     }
+
+    // Remove redundant leading 0
+    if (/\./.test(value)) {
+      value = value.replace(/^0+(.*\.)/, "$1");
+    } else {
+      value = value.replace(/^0+/, "");
+    }
+    if (/^\./.test(value)) {
+      value = value.replace(/^/, "0");
+    }
+
     setPrice(value || "0");
   };
 
@@ -174,7 +185,7 @@ export default function UserPage() {
 
   const handleList = async () => {
     if (!selectedSlot) {
-      router.push("/");
+      router.reload();
       alert("Failed to list");
       return;
     }
@@ -193,12 +204,12 @@ export default function UserPage() {
       alert("Failed to list");
     }
     setLoading(false);
-    router.push("/");
+    router.reload();
   };
 
   const handleCancelList = async () => {
     if (!selectedSlot) {
-      router.push("/");
+      router.reload();
       alert("Failed to cancel list");
       return;
     }
@@ -211,12 +222,12 @@ export default function UserPage() {
       alert("Failed to cancel list");
     }
     setLoading(false);
-    router.push("/");
+    router.reload();
   };
 
   const handleUpdateList = async () => {
     if (!selectedSlot) {
-      router.push("/");
+      router.reload();
       alert("Failed to update");
       return;
     }
@@ -235,7 +246,7 @@ export default function UserPage() {
       alert("Failed to update");
     }
     setLoading(false);
-    router.push("/");
+    router.reload();
   };
 
   const handleBuy = async () => {
@@ -251,7 +262,7 @@ export default function UserPage() {
       alert("Failed to buy");
     }
     setLoading(false);
-    router.push("/");
+    router.reload();
   };
 
   const handleUpdateRentedDomain = async () => {
@@ -272,7 +283,7 @@ export default function UserPage() {
       alert("Failed to rename");
     }
     setLoading(false);
-    router.push("/");
+    router.reload();
   };
 
   const renderMomentsPage = useCallback(() => {
@@ -368,7 +379,7 @@ export default function UserPage() {
               <h4 className="font-medium mt-8 mb-2">Price</h4>
               <div className="input-group">
                 <input
-                  type="text"
+                  type="number"
                   value={price}
                   placeholder="Amount"
                   className="input input-bordered"
@@ -428,7 +439,7 @@ export default function UserPage() {
                   className="input input-bordered"
                   onChange={leaseNameOnChange}
                 />
-                <span>.{mainDomain || "---"}.fil</span>
+                <span>.{selectedSlot?.mainDomain || "---"}.fil</span>
               </div>
             </div>
             <div className="divider" />
@@ -503,7 +514,7 @@ export default function UserPage() {
                           <UserIcon className="h-4 w-4" />
                         </div>
                         {slot?.used ? (
-                          <Link className="font-mono hover:underline" href={`/user/${slot.user}`}>
+                          <Link className="font-mono hover:underline" href={`/user?address=${slot.user}`}>
                             {slot.user}
                           </Link>
                         ) : (
@@ -605,7 +616,10 @@ export default function UserPage() {
                         <div className="divider divider-horizontal my-4"></div>
                         {/* Content area */}
                         <div className="flex-col w-full">
-                          <Link className="font-medium cursor-pointer hover:underline" href={`/user/${slot.creator}`}>
+                          <Link
+                            className="font-medium cursor-pointer hover:underline"
+                            href={`/user?address=${slot.creator}`}
+                          >
                             {slot.fullDomain}
                           </Link>
                           <div className="flex-col text-xs">
@@ -625,7 +639,7 @@ export default function UserPage() {
                               <div className="h-4 w-4">
                                 <UserIcon className="h-4 w-4" />
                               </div>
-                              <Link className="font-mono hover:underline" href={`/user/${slot.user}`}>
+                              <Link className="font-mono hover:underline" href={`/user?address=${slot.user}`}>
                                 {slot.user}
                               </Link>
                             </div>
@@ -701,9 +715,8 @@ export default function UserPage() {
   }, [currentTab, renderLikesPage, renderMomentsPage, renderSpaceDNPage]);
 
   const validatePrice = (value: string) => {
-    if (value.includes(" ")) return false;
     const price = Number(value);
-    return !Number.isNaN(price) && price >= 0 && price < Number.MAX_SAFE_INTEGER;
+    return price >= 0 && price < Number.MAX_SAFE_INTEGER;
   };
 
   const validateLeaseName = (value: string) => {

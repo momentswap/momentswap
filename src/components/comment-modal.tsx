@@ -24,7 +24,7 @@ export const CommentModal = () => {
     if (router.pathname.indexOf("/moment") >= 0) {
       router.push("/");
     } else {
-      router.push(`/moment/${momentId}`);
+      router.push(`/moment?id=${momentId}`);
     }
   }
 
