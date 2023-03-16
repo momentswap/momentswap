@@ -48,8 +48,7 @@ export const Moment = ({ moment }: Props) => {
     if (window.confirm("Are you sure you want to delete this moment?")) {
       await signer?.signMessage("this is test");
       localStorage.setItem("submit", "0");
-      router.push("/");
-      router.push("/");
+      router.reload();
     }
   }
 
