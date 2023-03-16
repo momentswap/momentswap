@@ -503,7 +503,7 @@ export default function UserPage() {
                           <UserIcon className="h-4 w-4" />
                         </div>
                         {slot?.used ? (
-                          <Link className="font-mono hover:underline" href={`/user/${slot.user}`}>
+                          <Link className="font-mono hover:underline" href={`/user?address=${slot.user}`}>
                             {slot.user}
                           </Link>
                         ) : (
@@ -605,7 +605,10 @@ export default function UserPage() {
                         <div className="divider divider-horizontal my-4"></div>
                         {/* Content area */}
                         <div className="flex-col w-full">
-                          <Link className="font-medium cursor-pointer hover:underline" href={`/user/${slot.creator}`}>
+                          <Link
+                            className="font-medium cursor-pointer hover:underline"
+                            href={`/user?address=${slot.creator}`}
+                          >
                             {slot.fullDomain}
                           </Link>
                           <div className="flex-col text-xs">
@@ -625,7 +628,7 @@ export default function UserPage() {
                               <div className="h-4 w-4">
                                 <UserIcon className="h-4 w-4" />
                               </div>
-                              <Link className="font-mono hover:underline" href={`/user/${slot.user}`}>
+                              <Link className="font-mono hover:underline" href={`/user?address=${slot.user}`}>
                                 {slot.user}
                               </Link>
                             </div>

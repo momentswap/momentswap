@@ -36,7 +36,7 @@ export const Sidebar = () => {
             <SidebarMenuItem text="Messages" Icon={InboxIcon} link={""} />
             <SidebarMenuItem text="Bookmarks" Icon={BookmarkIcon} link={""} />
             <SidebarMenuItem text="Lists" Icon={ClipboardIcon} link={""} /> */}
-              <SidebarMenuItem text="Profile" Icon={UserIcon} link={`/user/${address}`} />
+              <SidebarMenuItem text="Profile" Icon={UserIcon} link={`/user?address=${address}`} />
               {/* <SidebarMenuItem
               text="More"
               Icon={DotsCircleHorizontalIcon}

@@ -62,7 +62,7 @@ export const Moment = ({ moment }: Props) => {
         image={moment.userImg}
         diameter={38}
         className="items-center mr-4 cursor-pointer"
-        onClick={() => router.push(`/user/${moment.address}`)}
+        onClick={() => router.push(`/user?address=${moment.address}`)}
       />
       {/* right side */}
       <div className="flex-1">
@@ -73,7 +73,10 @@ export const Moment = ({ moment }: Props) => {
           <div className="flex items-center space-x-1 whitespace-nowrap">
             <h4 className="font-bold text-[15px] sm:text-[16px]">{moment?.username || "---"}.fil</h4>
             <p className="text-sm sm:text-[15px] text-gray-500">
-              <span className="hover:underline cursor-pointer" onClick={() => router.push(`/user/${moment.address}`)}>
+              <span
+                className="hover:underline cursor-pointer"
+                onClick={() => router.push(`/user?address=${moment.address}`)}
+              >
                 {sortAddress(moment.address, 6)}{" "}
               </span>
               - <RMoment fromNow>{momenttools.unix(moment.timestamp)}</RMoment>
@@ -83,7 +86,7 @@ export const Moment = ({ moment }: Props) => {
           {/* dot icon */}
           {/* <DotsHorizontalIcon className="h-10 hoverEffect w-10 hover:bg-primary hover:text-primary-content p-2 " /> */}
         </div>
-        <div onClick={() => router.push(`/moment/${moment.id}`)} className="cursor-pointer">
+        <div onClick={() => router.push(`/moment?id=${moment.id}`)} className="cursor-pointer">
           {/* moment text */}
 
           <p className="text-[15px sm:text-[16px] mb-2">{moment?.contentText}</p>
