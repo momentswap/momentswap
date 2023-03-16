@@ -428,7 +428,7 @@ export default function UserPage() {
                   className="input input-bordered"
                   onChange={leaseNameOnChange}
                 />
-                <span>.{mainDomain || "---"}.fil</span>
+                <span>.{selectedSlot?.mainDomain || "---"}.fil</span>
               </div>
             </div>
             <div className="divider" />
