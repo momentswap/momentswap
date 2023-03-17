@@ -18,8 +18,12 @@ export const Feed = () => {
       const collection = await getNFTCollection();
       const _moments = await collectionToMoments(collection);
       for (let m of _moments) {
-        const [_mainDomain] = await getAllDomainByCreator(m.address);
-        m.username = _mainDomain;
+        try {
+          const [_mainDomain] = await getAllDomainByCreator(m.address);
+          m.username = _mainDomain;
+        } catch {
+          m.username = "---";
+        }
       }
       setMoments(_moments);
     })();
