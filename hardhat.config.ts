@@ -25,6 +25,11 @@ const config: HardhatUserConfig = {
   defaultNetwork: "filecoinHyperspace",
   networks: {
     hardhat: {},
+    filecoinMainnet: {
+      url: "https://api.node.glif.io",
+      chainId: 314,
+      accounts: [process.env.WALLET_PRIVATE_KEY ?? "undefined"],
+    },
     filecoinWallaby: {
       url: "https://wallaby.node.glif.io/rpc/v0",
       chainId: 31415,
