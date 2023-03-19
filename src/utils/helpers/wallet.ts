@@ -1,22 +1,20 @@
+import { NetworkParams } from "@utils/definitions/consts";
+
+const network = process.env.NEXT_PUBLIC_FILECOIN_NETWORK;
 export const addAndSwitchFilecoinChain = (): Promise<any> => {
+  let params;
+  if (network == "mainnet") {
+    params = NetworkParams[0];
+  } else {
+    params = NetworkParams[1];
+  }
+  console.log(network);
+
+  console.log(params);
+
   return window.ethereum.request({
     method: "wallet_addEthereumChain",
-    params: [
-      {
-        chainId: "0xc45",
-        chainName: "Filecoin - Hyperspace testnet",
-        nativeCurrency: {
-          name: "testnet filecoin",
-          symbol: "tFIL",
-          decimals: 18,
-        },
-        rpcUrls: [
-          "https://api.hyperspace.node.glif.io/rpc/v1",
-          "https://filecoin-hyperspace.chainstacklabs.com/rpc/v1",
-        ],
-        blockExplorerUrls: ["https://hyperspace.filfox.info/en"],
-      },
-    ],
+    params: [params],
   });
 };
 
