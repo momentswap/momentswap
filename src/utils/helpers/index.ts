@@ -2,7 +2,6 @@ export { isEmptyAddress, sortAddress } from "./address";
 export {
   createMomentSwapMetadata,
   fetchNFTStoreStatus,
-  sotreFileToIPFS,
   storeMediaToIPFS,
   storeMetadataToIPFS,
 } from "./nftstorage";
