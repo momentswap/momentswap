@@ -21,7 +21,6 @@ contract RentMarket is ReentrancyGuard {
     uint64 start,
     uint64 expire
   );
-  event withdrawProceedsInfo( string statusInfo );
   event ItemCanceled(address indexed owner, address indexed nftAddress, uint256 indexed tokenId);
 
   error PriceMustBeAboveZero();
@@ -32,6 +31,8 @@ contract RentMarket is ReentrancyGuard {
   error AlreadyListed(address nftAddress, uint256 tokenId);
   error NotOwner();
   error NoProceeds();
+  error NoTransactionFee();
+  error NotBeneficiary();
 
   struct Listing {
     uint256 tokenId;
@@ -44,6 +45,8 @@ contract RentMarket is ReentrancyGuard {
   mapping(address => mapping(uint256 => Listing)) allListItem;
 
   mapping(address => uint256) proceeds;
+
+  mapping(address => uint256) totalTransactionFee;
 
   modifier notListed(
     address nftAddress,
@@ -67,12 +70,29 @@ contract RentMarket is ReentrancyGuard {
     _;
   }
 
+  modifier isBeneficiary(
+    address sender
+  ) {
+    if (sender != beneficiary) {
+      revert NotBeneficiary();
+    }
+    _;
+  }
+
   modifier isListed(address nftAddress, uint256 tokenId) {
     Listing memory listing = allListItem[nftAddress][tokenId];
     if (listing.price <= 0) {
       revert NotListed(nftAddress, tokenId);
     }
     _;
+  }
+
+  uint256 public feeRate;
+  address payable public beneficiary;
+
+  constructor() {
+    feeRate = 0;
+    beneficiary = payable(msg.sender);
   }
 
   function listItem(
@@ -95,10 +115,17 @@ contract RentMarket is ReentrancyGuard {
 
   function lendItem(address nftAddress, uint256 tokenId) external payable isListed(nftAddress, tokenId) nonReentrant {
     Listing memory listedItem = allListItem[nftAddress][tokenId];
-    if (msg.value < listedItem.price) {
+    uint256 amount = msg.value;
+    if (amount < listedItem.price) {
       revert PriceNotMet(nftAddress, tokenId, listedItem.price);
     }
-    proceeds[listedItem.owner] += msg.value;
+
+    uint256 feeAmount = (amount * feeRate) / 100;
+    uint256 netAmount = amount - feeAmount;
+
+    totalTransactionFee[beneficiary] += feeAmount;
+    proceeds[listedItem.owner] += netAmount;
+
     delete (allListItem[nftAddress][tokenId]);
     ISpaceFNS(nftAddress).setUser(tokenId, msg.sender, uint64(block.timestamp), uint64(listedItem.expire));
     emit ItemLend(msg.sender, nftAddress, tokenId, listedItem.price, uint64(block.timestamp), uint64(listedItem.expire));
@@ -136,10 +163,31 @@ contract RentMarket is ReentrancyGuard {
 
     (bool success, ) = payable(msg.sender).call{value: proceed}("");
     require(success, "Transfer failed");
-    emit withdrawProceedsInfo("success withdrawProceedsInfo");
   }
 
   function getListing(address nftAddress, uint256 tokenId) external view returns (Listing memory) {
     return allListItem[nftAddress][tokenId];
   }
+
+  function setBeneficiary(address _beneficiary) external isBeneficiary(msg.sender) {
+    beneficiary = payable(_beneficiary);
+  }
+
+  function setFeeRate(uint256 _feeRate) external isBeneficiary(msg.sender) {
+    require(_feeRate <= 100, "Fee rate can only be between 0 and 100");
+    feeRate = _feeRate;
+  }
+
+  function withdrawTransactionFee() external {
+    uint256 totalFee = totalTransactionFee[msg.sender];
+    if (totalFee <= 0) {
+      revert NoTransactionFee();
+    }
+
+    totalTransactionFee[msg.sender] = 0;
+
+    (bool success, ) = beneficiary.call{value: totalFee}("");
+    require(success, "Transfer failed");
+  }
 }
+
