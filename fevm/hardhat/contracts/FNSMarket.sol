@@ -21,6 +21,7 @@ contract RentMarket is ReentrancyGuard {
     uint64 start,
     uint64 expire
   );
+  event withdrawProceedsInfo( string statusInfo );
   event ItemCanceled(address indexed owner, address indexed nftAddress, uint256 indexed tokenId);
 
   error PriceMustBeAboveZero();
@@ -135,6 +136,7 @@ contract RentMarket is ReentrancyGuard {
 
     (bool success, ) = payable(msg.sender).call{value: proceed}("");
     require(success, "Transfer failed");
+    emit withdrawProceedsInfo("success withdrawProceedsInfo");
   }
 
   function getListing(address nftAddress, uint256 tokenId) external view returns (Listing memory) {
