@@ -6,6 +6,14 @@ import "./ISpaceFNS.sol";
 
 
 contract RentMarket is ReentrancyGuard {
+  address payable public beneficiary;
+  uint256 public feeRate;
+
+  constructor() {
+    beneficiary = payable(msg.sender);
+    feeRate = 0;
+  }
+
   event ItemListed(
     address indexed owner,
     address indexed nftAddress,
@@ -31,6 +39,7 @@ contract RentMarket is ReentrancyGuard {
   error AlreadyListed(address nftAddress, uint256 tokenId);
   error NotOwner();
   error NoProceeds();
+  error NotBeneficiary();
 
   struct Listing {
     uint256 tokenId;
@@ -66,6 +75,15 @@ contract RentMarket is ReentrancyGuard {
     _;
   }
 
+  modifier isBeneficiary(
+    address sender
+  ) {
+    if (sender != beneficiary) {
+      revert NotBeneficiary();
+    }
+    _;
+  }
+
   modifier isListed(address nftAddress, uint256 tokenId) {
     Listing memory listing = allListItem[nftAddress][tokenId];
     if (listing.price <= 0) {
@@ -94,10 +112,16 @@ contract RentMarket is ReentrancyGuard {
 
   function lendItem(address nftAddress, uint256 tokenId) external payable isListed(nftAddress, tokenId) nonReentrant {
     Listing memory listedItem = allListItem[nftAddress][tokenId];
-    if (msg.value < listedItem.price) {
+    uint256 amount = msg.value;
+    if (amount < listedItem.price) {
       revert PriceNotMet(nftAddress, tokenId, listedItem.price);
     }
-    proceeds[listedItem.owner] += msg.value;
+
+    uint256 feeAmount = (amount * feeRate) / 100;
+    uint256 netAmount = amount - feeAmount;
+    beneficiary.transfer(feeAmount);
+
+    proceeds[listedItem.owner] += netAmount;
     delete (allListItem[nftAddress][tokenId]);
     ISpaceFNS(nftAddress).setUser(tokenId, msg.sender, uint64(block.timestamp), uint64(listedItem.expire));
     emit ItemLend(msg.sender, nftAddress, tokenId, listedItem.price, uint64(block.timestamp), uint64(listedItem.expire));
@@ -139,5 +163,14 @@ contract RentMarket is ReentrancyGuard {
 
   function getListing(address nftAddress, uint256 tokenId) external view returns (Listing memory) {
     return allListItem[nftAddress][tokenId];
+  }
+
+  function setBeneficiary(address _beneficiary) external isBeneficiary(msg.sender) {
+    beneficiary = payable(_beneficiary);
+  }
+
+  function setFeeRate(uint256 _feeRate) external isBeneficiary(msg.sender) {
+    require(_feeRate <= 100, "Fee rate can only be between 0 and 100");
+    feeRate = _feeRate;
   }
 }
