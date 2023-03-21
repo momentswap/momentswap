@@ -29,6 +29,9 @@ contract SpaceFNS {
   //@dev Emitted when `owner` enables `approved` to setting  the `tokenId` token expires time.
   event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
 
+  ///@dev Emitted when `avatar` is Update.
+  event SetAvatar(address indexed user, string indexed image);
+
   constructor() {
     //The tokenID of both the main domain and the child-domain is incremented from 1
     _registeredCount.increment();
@@ -59,10 +62,10 @@ contract SpaceFNS {
   //user address mapped to second-domain tokenId
   mapping(address => uint256[]) public leasedChildFNSTokens;
 
-  ///second-domain tokenId mapped to approval controller address
+  //second-domain tokenId mapped to approval controller address
   mapping(uint256 => address) private childApprovals;
 
-  // Address mapped to IPFS URI of the avatar
+  // Address mapped to Image URL of the avatar
   mapping(address => string) public avatar;
 
   ///@dev main-domain name infromation
@@ -383,8 +386,9 @@ contract SpaceFNS {
   }
 
   ///@dev set user's avatar
-  function setAvatar(string calldata ipfsURI) public {
-    avatar[msg.sender] = ipfsURI;
+  function setAvatar(string calldata image) public {
+    emit SetAvatar(msg.sender, image);
+    avatar[msg.sender] = image;
   }
 
   ///@dev get user's avatar

@@ -3,16 +3,21 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 import { Avatar, SidebarMenuItem } from "@components";
-import { useSpaceDomain, useWalletProvider } from "@hooks";
+import { useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { sortAddress } from "@utils/helpers";
 
 export const Sidebar = () => {
   const router = useRouter();
   const { connect, disconnect, address } = useWalletProvider();
   const { mainDomain } = useSpaceDomain();
+  const { getAvatar } = useSpaceFNSContract();
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
   useEffect(() => {
-    setUserImg(localStorage.getItem("user-img") || undefined);
+    (async () => {
+      if (!address) return;
+      const _avatarUrl = await getAvatar(address);
+      setUserImg(_avatarUrl);
+    })();
   }, []);
   return (
     <div className="flex justify-end xl:w-1/3 sm:min-w-[80px]">

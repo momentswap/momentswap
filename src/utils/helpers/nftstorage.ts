@@ -51,3 +51,7 @@ export const storeMetadataToIPFS = async (metadata: any) => {
   console.info("Success! Metadata IPFS URL:", token.url);
   return token.url;
 };
+
+export const ipfsCidToHttpUrl = (ipfsCid: string) => {
+  return `https://${ipfsCid}.ipfs.dweb.link`;
+};

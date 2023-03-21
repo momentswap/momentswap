@@ -1,17 +1,16 @@
-import { ArrowLeftIcon } from "@heroicons/react/outline";
+import { ArrowLeftIcon, ClockIcon, UserIcon } from "@heroicons/react/outline";
+import { ethers } from "ethers";
 import { AnimatePresence, motion } from "framer-motion";
 import momenttools from "moment";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 
 import { Avatar, Layout, Moment, PriceButton, Tab, ThemeToggle } from "@components";
-import { ClockIcon, UserIcon } from "@heroicons/react/outline";
 import { useFNSMarketContract, useMomentSwapContract, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { isEmptyAddress, secondsToYears, yearsToSeconds } from "@utils/helpers";
 import { collectionToMoments } from "@utils/helpers/collection-to-moments";
-import { ethers } from "ethers";
-import Link from "next/link";
 
 interface SpaceSlot {
   id: string;
@@ -56,6 +55,7 @@ export default function UserPage() {
     getDomainLeaseTermsByCreator,
     getDomainLeaseTermsByUser,
     getOwnerByDomainID,
+    getAvatar,
   } = useSpaceFNSContract();
   const { getListedDomainsByDomainID, listDomain, lendDomain, updateListDomain, cancelListDomain, withdrawProceeds } =
     useFNSMarketContract();
@@ -303,7 +303,7 @@ export default function UserPage() {
       </AnimatePresence>
     );
     setTabPage(_tabPage);
-  }, [moments]);
+  }, [moments, userImg]);
 
   const renderLikesPage = useCallback(() => {
     const _tabPage = <p>coming soon...</p>;
@@ -692,17 +692,20 @@ export default function UserPage() {
       const collection = await getNFTCollectionByOwner(queryAddress);
       const _moments = await collectionToMoments(collection);
       for (let m of _moments) {
-        const [_mainDomain] = await getAllDomainByCreator(m.address);
-        m.username = _mainDomain;
+        m.username = mainDomain;
+        m.userImg = userImg;
       }
       setMoments(_moments);
     })();
-  }, [getNFTCollectionByOwner, queryAddress]);
+  }, [getNFTCollectionByOwner, queryAddress,mainDomain, userImg]);
 
   //TODO: Wait for user to configure interface
   useEffect(() => {
-    setUserImg(localStorage.getItem("user-img") || undefined);
-  }, [queryAddress]);
+    (async () => {
+      const _avatarUrl = await getAvatar(queryAddress);
+      setUserImg(_avatarUrl);
+    })();
+  }, [queryAddress, getAvatar]);
 
   useEffect(() => {
     if ("Moments" === currentTab) {
