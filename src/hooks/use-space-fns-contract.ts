@@ -111,6 +111,13 @@ export const useSpaceFNSContract = () => {
     [contractWithProvider],
   );
 
+  const getAvatar = useCallback(
+    (user: string): Promise<string> => {
+      return contractWithSigner.getAvatar(user);
+    },
+    [contractWithProvider],
+  );
+
   // Read-write contract  functions
 
   const approve = useCallback(
@@ -148,7 +155,15 @@ export const useSpaceFNSContract = () => {
     [contractWithSigner],
   );
 
+  const setAvatar = useCallback(
+    (image: string): Promise<any> => {
+      return contractWithSigner.setAvatar(image);
+    },
+    [contractWithSigner],
+  );
+
   return {
+    getAvatar,
     getAllDomainByCreator,
     getApprovedMarketByDomainID,
     getUserByFullDomain,
@@ -159,6 +174,7 @@ export const useSpaceFNSContract = () => {
     getOwnerByDomainID,
     getSubDomainDetailsByDomainID,
     getApprovedByDomainID,
+    setAvatar,
     approve,
     mintSubDomain,
     registerMainDomain,

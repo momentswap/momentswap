@@ -2,47 +2,67 @@ import { useEffect, useRef, useState } from "react";
 
 import { Avatar } from "@components";
 import { useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
-import { storeMediaToIPFS } from "@utils/helpers";
+import { ipfsCidToHttpUrl, storeMediaToIPFS } from "@utils/helpers";
 import { useRouter } from "next/router";
 
 export const IdentityModal = () => {
   const { address } = useWalletProvider();
-  const { registerMainDomain } = useSpaceFNSContract();
+  const { registerMainDomain, setAvatar, getAvatar } = useSpaceFNSContract();
   const [text, setText] = useState("");
   const { mainDomain } = useSpaceDomain();
-  const [userImg, setUserImg] = useState<string | undefined>(undefined);
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(undefined);
+  const [avatarSetting, setAvatarSetting] = useState<string | undefined>(undefined);
   const avatarRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    setUserImg(localStorage.getItem("user-img") || "");
-
     avatarRef.current?.addEventListener("input", async () => {
       if (!avatarRef.current?.files || avatarRef.current.files.length === 0) return;
       const file = avatarRef.current.files[0];
       setLoading(true);
       const { mediaCID } = await storeMediaToIPFS(file);
-      const avatarURL = `https://${mediaCID}.ipfs.dweb.link`;
-      setUserImg(avatarURL);
-      localStorage.setItem("user-img", avatarURL);
+      setAvatarSetting(ipfsCidToHttpUrl(mediaCID));
       setLoading(false);
     });
   }, []);
 
   useEffect(() => {
+    (async () => {
+      if (!address) {
+        return;
+      }
+      const _avatarUrl = await getAvatar(address);
+
+      setAvatarUrl(_avatarUrl);
+    })();
+
     setText(mainDomain);
-  }, [mainDomain]);
+  }, [mainDomain, getAvatar]);
+
+  const validateName = (value: string) => {
+    const pattern = /^[a-zA-Z0-9_-]{3,10}$/;
+    return pattern.test(value);
+  };
 
   const saveIdentity = async () => {
-    localStorage.setItem("user-img", userImg || "");
-    if (!mainDomain) {
-      setLoading(true);
-      try {
-        await (await registerMainDomain(text)).wait();
-      } catch {}
-      setLoading(false);
+    if (!validateName(text)) {
+      alert("The name is between 3 and 10 characters");
+      return;
     }
+
+    setLoading(true);
+
+    try {
+      if (avatarSetting) {
+        await setAvatar(avatarSetting);
+      }
+      if (!mainDomain) {
+        await(await registerMainDomain(text)).wait();
+      }
+    } catch {}
+
+    setLoading(false);
     router.reload();
   };
 
@@ -59,7 +79,12 @@ export const IdentityModal = () => {
           <div className="flex min-w-[300px] mt-5 items-center gap-5">
             <label htmlFor="avatar-input" className="inline-block">
               <div className="flex border-2 border-base-300 w-20 h-20 rounded-full overflow-hidden bg-opacity-20 bg-black hover:bg-opacity-25">
-                <Avatar seed={address} image={userImg} diameter={77} className="rounded-full absolute -z-10" />
+                <Avatar
+                  seed={address}
+                  image={avatarSetting || avatarUrl}
+                  diameter={77}
+                  className="rounded-full absolute -z-10"
+                />
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"

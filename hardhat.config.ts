@@ -22,7 +22,7 @@ if (!walletPrivateKey) {
 
 const config: HardhatUserConfig = {
   solidity: "0.8.17",
-  mocha:{ timeout: 600000 },
+  mocha: { timeout: 600000 },
   defaultNetwork: "filecoinHyperspace",
   networks: {
     hardhat: {},
@@ -40,8 +40,9 @@ const config: HardhatUserConfig = {
     filecoinHyperspace: {
       url: "https://api.hyperspace.node.glif.io/rpc/v1", //https://beryx.zondax.ch/ //chainstack
       chainId: 3141,
-      accounts: [process.env.WALLET_PRIVATE_KEY ?? "undefined", process.env.ACCOUNT2 ?? "undefined"],
-      gasMultiplier:3    },
+      accounts: [process.env.WALLET_PRIVATE_KEY ?? "undefined"],
+      gasMultiplier: 3,
+    },
     ethGoerli: {
       url: "https://eth-goerli.g.alchemy.com/v2/S4Rrp2eHb-xk5dxnNQygNcv-QfPmzTXX",
       chainId: 5,

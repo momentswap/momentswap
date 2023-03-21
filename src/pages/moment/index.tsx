@@ -11,7 +11,7 @@ import { getCommentsByMomentId } from "src/mock/data";
 export default function MomentPage() {
   const router = useRouter();
   const { getNFTCollection } = useMomentSwapContract();
-  const { getAllDomainByCreator } = useSpaceFNSContract();
+  const { getAllDomainByCreator, getAvatar } = useSpaceFNSContract();
   const [moment, setMoment] = useState<MomentMetadata | undefined>(undefined);
   const [comments, setComments] = useState<Array<CommentData>>([]);
   const momentId = router.query.id as string;
@@ -30,11 +30,13 @@ export default function MomentPage() {
       const itemIndex = collection.findIndex((item) => item[2].toString() === momentId);
       const item = collection[itemIndex];
       const [mainDomain] = await getAllDomainByCreator(item[0]);
+      const avatar = await getAvatar(item[0]);
       const _moment: MomentMetadata = {
         address: item[0],
         id: item[2].toString(),
         timestamp: item[3].toNumber(),
         username: mainDomain,
+        userImg: avatar,
         metadataURL: `https://${item[1].split("/")[2]}.ipfs.dweb.link/metadata.json`,
       };
       const metadata = await fetch(_moment.metadataURL).then((res) => res.json());

@@ -12,7 +12,7 @@ export const Feed = () => {
   const [moments, setMoments] = useState<Array<MomentMetadata>>();
   const { getNFTCollection } = useMomentSwapContract();
   const [searchKey, setSearchKey] = useRecoilState(searchKeyState);
-  const { getAllDomainByCreator } = useSpaceFNSContract();
+  const { getAllDomainByCreator, getAvatar } = useSpaceFNSContract();
   useEffect(() => {
     (async () => {
       const collection = await getNFTCollection();
@@ -20,14 +20,16 @@ export const Feed = () => {
       for (let m of _moments) {
         try {
           const [_mainDomain] = await getAllDomainByCreator(m.address);
+          const _avatarUrl = await getAvatar(m.address);
           m.username = _mainDomain;
+          m.userImg = _avatarUrl;
         } catch {
           m.username = "---";
         }
       }
       setMoments(_moments);
     })();
-  }, [getNFTCollection]);
+  }, [getNFTCollection, getAvatar]);
 
   return (
     <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl">
