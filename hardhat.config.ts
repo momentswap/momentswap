@@ -16,37 +16,37 @@ if (!process.env.WALLET_PRIVATE_KEY) {
 
 // Ensure that we have all the environment variables we need.
 const walletPrivateKey: string | undefined = process.env.WALLET_PRIVATE_KEY;
-if (!walletPrivateKey) {
-  throw new Error("Please set your Wallet private key in a .env file");
-}
+// if (!walletPrivateKey) {
+//   throw new Error("Please set your Wallet private key in a .env file");
+// }
 
 const config: HardhatUserConfig = {
   solidity: "0.8.17",
-  mocha: { timeout: 600000 },
+  mocha:{ timeout: 600000 },
   defaultNetwork: "filecoinHyperspace",
   networks: {
     hardhat: {},
     filecoinMainnet: {
       url: "https://api.node.glif.io",
       chainId: 314,
-      accounts: [process.env.WALLET_PRIVATE_KEY ?? "undefined"],
+      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined"],
     },
     filecoinWallaby: {
       url: "https://wallaby.node.glif.io/rpc/v0",
       chainId: 31415,
-      accounts: [process.env.WALLET_PRIVATE_KEY ?? "undefined"],
+      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined"],
       //explorer: https://wallaby.filscan.io/ and starboard
     },
     filecoinHyperspace: {
       url: "https://api.hyperspace.node.glif.io/rpc/v1", //https://beryx.zondax.ch/ //chainstack
       chainId: 3141,
-      accounts: [process.env.WALLET_PRIVATE_KEY ?? "undefined"],
-      gasMultiplier: 3,
+      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined", process.env.TEST_ACCOUNT2 ?? "undefined"],
+      gasMultiplier:3    
     },
     ethGoerli: {
       url: "https://eth-goerli.g.alchemy.com/v2/S4Rrp2eHb-xk5dxnNQygNcv-QfPmzTXX",
       chainId: 5,
-      accounts: [process.env.WALLET_PRIVATE_KEY ?? "undefined"],
+      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined"],
     },
   },
   paths: {
