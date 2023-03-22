@@ -29,24 +29,24 @@ const config: HardhatUserConfig = {
     filecoinMainnet: {
       url: "https://api.node.glif.io",
       chainId: 314,
-      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.ACCOUNT1 ?? "undefined"],
+      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined"],
     },
     filecoinWallaby: {
       url: "https://wallaby.node.glif.io/rpc/v0",
       chainId: 31415,
-      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.ACCOUNT1 ?? "undefined"],
+      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined"],
       //explorer: https://wallaby.filscan.io/ and starboard
     },
     filecoinHyperspace: {
       url: "https://api.hyperspace.node.glif.io/rpc/v1", //https://beryx.zondax.ch/ //chainstack
       chainId: 3141,
-      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.ACCOUNT1 ?? "undefined", process.env.ACCOUNT2 ?? "undefined"],
+      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined", process.env.TEST_CCOUNT2 ?? "undefined"],
       gasMultiplier:3    
     },
     ethGoerli: {
       url: "https://eth-goerli.g.alchemy.com/v2/S4Rrp2eHb-xk5dxnNQygNcv-QfPmzTXX",
       chainId: 5,
-      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.ACCOUNT1 ?? "undefined"],
+      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined"],
     },
   },
   paths: {
