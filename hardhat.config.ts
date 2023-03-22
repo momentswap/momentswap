@@ -40,7 +40,7 @@ const config: HardhatUserConfig = {
     filecoinHyperspace: {
       url: "https://api.hyperspace.node.glif.io/rpc/v1", //https://beryx.zondax.ch/ //chainstack
       chainId: 3141,
-      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined", process.env.TEST_CCOUNT2 ?? "undefined"],
+      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined", process.env.TEST_ACCOUNT2 ?? "undefined"],
       gasMultiplier:3    
     },
     ethGoerli: {
