@@ -91,7 +91,7 @@ contract RentMarket is ReentrancyGuard {
   address payable public beneficiary;
 
   constructor() {
-    feeRate = 0;
+    feeRate = 5;
     beneficiary = payable(msg.sender);
   }
 
