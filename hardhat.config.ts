@@ -16,9 +16,7 @@ if (!process.env.WALLET_PRIVATE_KEY) {
 
 // Ensure that we have all the environment variables we need.
 const walletPrivateKey: string | undefined = process.env.WALLET_PRIVATE_KEY;
-if (!walletPrivateKey) {
-  throw new Error("Please set your Wallet private key in a .env file");
-}
+
 
 const config: HardhatUserConfig = {
   solidity: "0.8.17",
