@@ -2,27 +2,29 @@
 pragma solidity 0.8.19;
 
 struct MomentData {
-    uint256 id;
-    uint256 timestamp;
-    address owner;
+    uint64 creatorId;
+    uint64 timestamp;
+    bool deleted;
     string metadataURI;
 }
 
 struct CommentData {
-    uint256 id;
-    uint256 timestamp;
-    uint256 momentId;
-    address owner;
+    uint64 creatorId;
+    uint64 timestamp;
+    uint120 momentId;
+    bool deleted;
     string text;
 }
 
 interface IMoment {
-    function getMoments(uint256[] calldata momentIds) external view returns (MomentData[] memory);
-    function getLikes(uint256[] calldata momentIds) external view returns (uint256[] memory);
-    function getComments(uint256[] calldata momentIds) external view returns (CommentData[] memory);
-    function createMoment(string calldata metadataURI) external returns (uint256);
-    function addLike(uint256 momentId) external;
-    function delLike(uint256 momentId) external;
-    function addComment(uint256 momentId, string calldata text, string calldata mediaURI) external returns (uint256);
-    function delComment(uint256 momentId, uint256 commentId) external;
+    function getAllMomentIds() external view returns (uint120);
+    function getMomentData(uint120[] calldata momentIds) external view returns (MomentData[] memory);
+    function getLikes(uint120[] calldata momentIds) external view returns (address[][] memory);
+    function getComments(uint120[] calldata momentIds) external view returns (CommentData[] memory);
+    function createMoment(uint64 accountId, string calldata metadataURI) external returns (uint120);
+    function removeMoment(uint120 momentId, uint64 accountId) external;
+    function addLike(uint120 momentId, uint64 accountId) external;
+    function removeLike(uint120 momentId, uint64 accountId) external;
+    function createComment(uint120 momentId, uint64 accountId, string calldata commentText) external returns (uint128);
+    function removeComment(uint120 momentId, uint128 commentId) external;
 }

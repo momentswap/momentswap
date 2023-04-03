@@ -12,22 +12,25 @@ struct AccountData {
 }
 
 interface IAccount {
-    function getAllAccountIds() external view returns (uint256[] memory);
-    function getAccount(address accountId) external view returns (AccountData memory);
-    function getAvatarURI(uint256 accountId) external view returns (string memory);
-    function getMomentIds(uint256 accountId) external view returns (uint256[] memory);
-    function getCommentedMomentIds(uint256 accountId) external view returns (uint256[] memory);
-    function getLikedMomentIds(uint256 accountId) external view returns (uint256[] memory);
-    function getMintedSpaceIds(uint256 accountId) external view returns (uint256[] memory);
-    function getRentedSpaceIds(uint256 accountId) external view returns (uint256[] memory);
-    function createAccount() external returns (uint256);
-    function cancellationAccount(uint256) external;
-    function updateAvatarURI() external;
-    function addLike() external;
-    function removeLike() external;
-    function addCommentedMomentId() external;
-    function removeCommentedMomentId() external;
-    function addMintedSpaceId() external;
-    function addRentedSpaceId() external;
-    function removeRentedSpaceId() external;
+    function getAccountIds(address[] calldata addresses) external view returns (uint64[] memory);
+    function getAddress(uint64[] calldata accountIds) external view returns (address[] memory);
+    function getAccountData(uint64[] calldata accountIds) external view returns (AccountData[] memory);
+    function getAvatarURI(uint64[] calldata accountIds) external view returns (string[] memory);
+    function getMomentIds(uint64 accountId) external view returns (uint64[] memory);
+    function getCommentIds(uint64 accountId) external view returns (uint128[] memory);
+    function getLikedMomentIds(uint64 accountId) external view returns (uint120[] memory);
+    function getMintedSpaceIds(uint64 accountId) external view returns (uint64[] memory);
+    function getRentedSpaceIds(uint64 accountId) external view returns (uint64[] memory);
+    function createAccount(string calldata domainName, string calldata avatarURI) external returns (uint64);
+    function cancellationAccount(uint64 accountId) external;
+    function updateAvatarURI(string calldata avatarURI) external;
+    function createMoment(string calldata metadataURI) external returns (uint120);
+    function removeMoment(uint120 momentId) external;
+    function likeMoment(uint120 momentId) external;
+    function cancelLikeMoment(uint120 momentId) external;
+    function createComment(uint120 momentId, string calldata commentText) external returns (uint128);
+    function removeComment(uint128 commentId) external;
+    function mintChaildSpaceDomain(uint64 parentSpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64);
+    function returnSpace(uint64 spaceId) external;
+    function updateRentedSpaceDomainName(uint64 spaceId, string calldata domainName) external;
 }
