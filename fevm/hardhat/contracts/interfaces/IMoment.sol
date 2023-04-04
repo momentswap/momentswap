@@ -48,8 +48,7 @@ interface IMoment {
 
     /// @notice Removes a moment with the specified ID.
     /// @param momentId The ID of the moment to be removed.
-    /// @param accountId The ID of the account removing the moment.
-    function removeMoment(uint120 momentId, uint64 accountId) external;
+    function removeMoment(uint120 momentId) external;
 
     /// @notice Adds a like to the specified moment for the specified account.
     /// @param momentId The ID of the moment to add the like to.

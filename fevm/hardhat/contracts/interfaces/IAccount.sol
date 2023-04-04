@@ -15,6 +15,7 @@ struct AccountData {
 /// @title Account Contract Interface
 /// @notice This interface defines the methods that can be called on the account contract.
 interface IAccount {
+
     /// @notice Returns the account IDs of the given addresses.
     /// @dev If an address does not have an account, it is omitted from the result.
     /// @param addresses The list of addresses for which to retrieve the account IDs.
@@ -73,7 +74,7 @@ interface IAccount {
     /// @notice Cancels the account associated with the given account ID.
     /// @dev The account must not have any associated moments, comments, or spaces in order to be cancelled.
     /// @param accountId The ID of the account to cancel.
-    function cancellationAccount(uint64 accountId) external;
+    function cancelAccount(uint64 accountId) external;
 
     /// @notice Updates the avatar URI associated with the calling account.
     /// @param avatarURI The new avatar URI to associate with the calling account.

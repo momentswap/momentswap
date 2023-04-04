@@ -6,10 +6,13 @@ import {IMoment, MomentData, CommentData} from "./interfaces/IMoment.sol";
 /// @notice This contract implements the IMoment interface and provides functionality for managing moments.
 contract Moment is IMoment {
 
+    /// @notice Error to be thrown when the caller is not authorized to perform an action.
+    error Unauthorized();
+
     /// @notice Total number of moments created.
     uint120 public totalMomentCount;
 
-    /// @notice Total number of comment created.
+    /// @notice Total number of comments created.
     uint128 public totalCommentCount;
 
     /// @notice Mapping of moment IDs to MomentData struct.
@@ -18,14 +21,36 @@ contract Moment is IMoment {
     /// @notice Mapping of comment IDs to CommentData struct.
     mapping(uint128 => CommentData) public comments;
 
-    /// @notice Mapping of moment IDs to addresses of users who liked a moment.
-    mapping(uint120 => address[]) public likes;
+    /// @notice Mapping of moment IDs to addcount ID of users who liked a moment.
+    mapping(uint120 => uint64[]) public likes;
 
     /// @notice Mapping of moment IDs to IDs of comments made on a moment.
     mapping(uint120 => uint128[]) public commentsOnMoment;
 
-    constructor() {}
+    /// @notice Address that can call functions with onlyCaller modifier.
+    address public caller;
 
+    /// @notice Address of the contract owner.
+    address public owner;
+
+    /// @notice Modifier that only allows the contract owner to call a function.
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert Unauthorized();
+        _;
+    }
+
+    /// @notice Modifier that only allows the `caller` address to call a function.
+    modifier onlyCaller() {
+        if (msg.sender != caller) revert Unauthorized();
+        _;
+    }
+
+    /// @notice Constructor that sets the `owner` address to the creator of the contract.
+    constructor() {
+        owner = msg.sender;
+    }
+
+    // TODO: Transfer All to Events
     /// @notice Returns an array of all moments that have been created.
     /// @return An array of MomentData structs representing all moments created in the contract.
     function getAllMoments() external view returns (MomentData[] memory) {
@@ -36,6 +61,7 @@ contract Moment is IMoment {
         return allMoments;
     }
 
+    // TODO: Transfer All to Events
     /// @notice Returns an array of MomentData for the specified moment IDs.
     /// @param momentIds The list of moment IDs for which to retrieve the MomentData.
     /// @return An array of MomentData corresponding to the given moment IDs.
@@ -47,6 +73,7 @@ contract Moment is IMoment {
         return momentData;
     }
 
+    // TODO: Transfer All to Events
     /// @notice Returns an array of the number of likes for each moment in the input array.
     /// @param momentIds The list of moment IDs for which to retrieve the number of likes.
     /// @return An array of the number of likes corresponding to the given moment IDs.
@@ -58,6 +85,7 @@ contract Moment is IMoment {
         return likeCounts;
     }
 
+    // TODO: Transfer All to Events
     /// @notice Returns an array of CommentData for the specified moment IDs.
     /// @param momentIds The list of moment IDs for which to retrieve the CommentData.
     /// @return An array of CommentData corresponding to the given moment IDs.
@@ -69,36 +97,91 @@ contract Moment is IMoment {
         return commentData;
     }
 
+    // TODO: Transfer All to Events
     /// @notice Creates a new moment and returns its ID.
     /// @param accountId The ID of the account creating the moment.
     /// @param metadataURI The URI of the metadata associated with the moment.
     /// @return The ID of the newly created moment.
-    function createMoment(uint64 accountId, string calldata metadataURI) external returns (uint120) {}
+    function createMoment(uint64 accountId, string calldata metadataURI) external onlyCaller returns (uint120) {
+        uint120 momentId = ++totalMomentCount;
+        moments[momentId] = MomentData({
+            creatorId: accountId,
+            timestamp: uint64(block.timestamp),
+            deleted: false,
+            metadataURI: metadataURI
+        });
+        return momentId;
+    }
 
+    // TODO: Transfer All to Events
     /// @notice Removes a moment with the specified ID.
     /// @param momentId The ID of the moment to be removed.
-    /// @param accountId The ID of the account removing the moment.
-    function removeMoment(uint120 momentId, uint64 accountId) external {}
+    function removeMoment(uint120 momentId) external onlyCaller {
+        moments[momentId].deleted = true;
+    }
 
+    // TODO: Transfer All to Events
     /// @notice Adds a like to the specified moment for the specified account.
     /// @param momentId The ID of the moment to add the like to.
     /// @param accountId The ID of the account adding the like.
-    function addLike(uint120 momentId, uint64 accountId) external {}
+    function addLike(uint120 momentId, uint64 accountId) external onlyCaller {
+        likes[momentId].push(accountId);
+    }
 
+    // TODO: Transfer All to Events
     /// @notice Removes a like from the specified moment for the specified account.
     /// @param momentId The ID of the moment to remove the like from.
     /// @param accountId The ID of the account removing the like.
-    function removeLike(uint120 momentId, uint64 accountId) external {}
+    function removeLike(uint120 momentId, uint64 accountId) external {
+        uint64[] storage likedMomentIds = likes[momentId];
+        for (uint256 i = 0; i < likedMomentIds.length; i++) {
+            if (likedMomentIds[i] == accountId) {
+                likedMomentIds[i] = likedMomentIds[likedMomentIds.length - 1];
+                likedMomentIds.pop();
+                break;
+            }
+        }
+    }
 
+    // TODO: Transfer All to Events
     /// @notice Creates a new comment for the specified moment and returns its ID.
     /// @param momentId The ID of the moment to add the comment to.
     /// @param accountId The ID of the account creating the comment.
     /// @param commentText The text of the comment.
     /// @return The ID of the newly created comment.
-    function createComment(uint120 momentId, uint64 accountId, string calldata commentText) external returns (uint128) {}
+    function createComment(uint120 momentId, uint64 accountId, string calldata commentText) external returns (uint128) {
+        uint128 commentId = ++totalCommentCount;
+        comments[commentId] = CommentData({
+            creatorId: accountId,
+            timestamp: uint64(block.timestamp),
+            momentId: momentId,
+            deleted: false,
+            text: commentText
+        });
+        commentsOnMoment[momentId].push(commentId);
+        return commentId;
+    }
 
+    // TODO: Transfer All to Events
     /// @notice Removes a comment with the specified ID for the specified moment.
     /// @param momentId The ID of the moment to remove the comment from.
     /// @param commentId The ID of the comment to be removed.
-    function removeComment(uint120 momentId, uint128 commentId) external {}
+    function removeComment(uint120 momentId, uint128 commentId) external {
+        uint128[] storage commentIds = commentsOnMoment[momentId];
+        for (uint256 i = 0; i < commentIds.length; i++) {
+            if (commentIds[i] == commentId) {
+                commentIds[i] = commentIds[commentIds.length - 1];
+                commentIds.pop();
+                break;
+            }
+        }
+        comments[commentId].deleted = true;
+    }
+
+    /// @notice Allows the contract owner to set the caller address.
+    /// @param _caller The new caller address to be set.
+    /// @dev Only the contract owner can call this function.
+    function setCaller(address _caller) external onlyOwner {
+        caller = _caller;
+    }
 }

@@ -6,7 +6,17 @@ import {IMoment} from "./interfaces/IMoment.sol";
 
 /// @notice This contract implements the IAccount interface and provides functionality for managing accounts.
 contract Account is IAccount {
-    /// @notice Total number of created accounts
+
+    /// @notice Error to be thrown when an account already exists for the given address.
+    error AccountAlreadyExists();
+
+    /// @notice Error to be thrown when an account is not found.
+    error AccountNotFound();
+
+    /// @notice Error to be thrown when an unauthorized user tries to access Account contract.
+    error Unauthorized();
+
+    /// @notice Total number of created accounts.
     uint64 public totalAccountCount;
 
     /// @notice Mapping of addresses to account IDs.
@@ -15,10 +25,19 @@ contract Account is IAccount {
     /// @notice Mapping of account IDs to account data.
     mapping(uint64 => AccountData) public accounts;
 
-    /// @notice Error to be thrown when an account already exists for the given address.
-    error AccountAlreadyExists();
+    /// @notice The `IMoment` contract that provides the current timestamp.
+    IMoment public immutable moment;
 
-    constructor() {}
+    /// @notice Modifier to check if the caller's address is registered as an account.
+    modifier checkRegistered() {
+        if (accountIds[msg.sender] == 0) revert AccountNotFound();
+        _;
+    }
+
+    /// @notice Constructor that initializes the `IMoment` contract.
+    constructor(IMoment _moment) {
+        moment = _moment;
+    }
 
     /// @notice Returns the account IDs of the given addresses.
     /// @dev If an address does not have an account, it is omitted from the result.
@@ -56,6 +75,7 @@ contract Account is IAccount {
         return accountData;
     }
 
+    // TODO: Transfer All to Events
     /// @notice Returns the avatar URIs for the given account IDs.
     /// @dev If an account ID does not exist, it is omitted from the result.
     /// @param _accountIds The list of account IDs for which to retrieve the avatar URIs.
@@ -68,6 +88,7 @@ contract Account is IAccount {
         return avatarURIs;
     }
 
+    // TODO: Transfer All to Events
     /// @notice Returns the moment IDs associated with the given account ID.
     /// @param accountId The ID of the account for which to retrieve the moment IDs.
     /// @return An array of moment IDs associated with the given account ID.
@@ -75,6 +96,7 @@ contract Account is IAccount {
         return accounts[accountId].momentIds;
     }
 
+    // TODO: Transfer All to Events
     /// @notice Returns the comment IDs associated with the given account ID.
     /// @param accountId The ID of the account for which to retrieve the comment IDs.
     /// @return An array of comment IDs associated with the given account ID.
@@ -82,6 +104,7 @@ contract Account is IAccount {
         return accounts[accountId].commentIds;
     }
 
+    // TODO: Transfer All to Events
     /// @notice Returns the moment IDs that the account has liked.
     /// @param accountId The ID of the account for which to retrieve the liked moment IDs.
     /// @return An array of moment IDs that the account has liked.
@@ -112,42 +135,91 @@ contract Account is IAccount {
     /// @notice Cancels the account associated with the given account ID.
     /// @dev The account must not have any associated moments, comments, or spaces in order to be cancelled.
     /// @param accountId The ID of the account to cancel.
-    function cancellationAccount(uint64 accountId) external {}
+    function cancelAccount(uint64 accountId) external {}
 
+    // TODO: Transfer All to Events
     /// @notice Updates the avatar URI associated with the calling account.
     /// @param avatarURI The new avatar URI to associate with the calling account.
-    function updateAvatarURI(string calldata avatarURI) external {}
+    function updateAvatarURI(string calldata avatarURI) external checkRegistered {
+        accounts[accountIds[msg.sender]].avatarURI = avatarURI;
+    }
 
+    // TODO: Transfer All to Events
     /// @notice Creates a new moment with the given metadata URI.
     /// @param metadataURI The URI of the metadata to associate with the moment.
     /// @return The ID of the newly created moment.
-    function createMoment(string calldata metadataURI) external returns (uint120) {}
+    function createMoment(string calldata metadataURI) external checkRegistered returns (uint120) {
+        uint120 momentId = moment.createMoment(accountIds[msg.sender], metadataURI);
+        accounts[accountIds[msg.sender]].momentIds.push(momentId);
+        return momentId;
+    }
 
+    // TODO: Transfer All to Events
     /// @notice Removes the moment associated with the given moment ID.
     /// @dev The calling account must be the owner of the moment in order to remove it.
     /// @param momentId The ID of the moment to remove.
-    function removeMoment(uint120 momentId) external {}
+    function removeMoment(uint120 momentId) external checkRegistered {
+        uint120[] storage momentIds = accounts[accountIds[msg.sender]].momentIds;
+        for (uint256 i = 0; i < momentIds.length; i++) {
+            if (momentIds[i] == momentId) {
+                momentIds[i] = momentIds[momentIds.length - 1];
+                momentIds.pop();
+                break;
+            }
+        }
+        moment.removeMoment(momentId);
+    }
 
+    // TODO: Transfer All to Events
     /// @notice Adds a like to the moment associated with the given moment ID from the calling account.
     /// @dev The calling account must not have already liked the moment.
     /// @param momentId The ID of the moment to like.
-    function likeMoment(uint120 momentId) external {}
+    function likeMoment(uint120 momentId) external checkRegistered {
+        accounts[accountIds[msg.sender]].likedMomentIds.push(momentId);
+        moment.addLike(momentId, accountIds[msg.sender]);
+    }
 
+    // TODO: Transfer All to Events
     /// @notice Cancels the like from the calling account to the moment associated with the given moment ID.
     /// @dev The calling account must have already liked the moment.
     /// @param momentId The ID of the moment to cancel the like for.
-    function cancelLikeMoment(uint120 momentId) external {}
+    function cancelLikeMoment(uint120 momentId) external checkRegistered {
+        uint120[] storage likedMomentIds = accounts[accountIds[msg.sender]].likedMomentIds;
+        for (uint256 i = 0; i < likedMomentIds.length; i++) {
+            if (likedMomentIds[i] == momentId) {
+                likedMomentIds[i] = likedMomentIds[likedMomentIds.length - 1];
+                likedMomentIds.pop();
+                break;
+            }
+        }
+        moment.removeLike(momentId, accountIds[msg.sender]);
+    }
 
+    // TODO: Transfer All to Events
     /// @notice Creates a new comment on the moment associated with the given moment ID with the given comment text.
     /// @param momentId The ID of the moment to create the comment on.
     /// @param commentText The text of the comment to create.
     /// @return The ID of the newly created comment.
-    function createComment(uint120 momentId, string calldata commentText) external returns (uint128) {}
+    function createComment(uint120 momentId, string calldata commentText) external checkRegistered returns (uint128) {
+        uint128 commentId =  moment.createComment(momentId, accountIds[msg.sender], commentText);
+        accounts[accountIds[msg.sender]].commentIds.push(commentId);
+        return commentId;
+    }
 
+    // TODO: Transfer All to Events
     /// @notice Removes the comment associated with the given comment ID.
     /// @dev The calling account must be the owner of the comment in order to remove it.
     /// @param commentId The ID of the comment to remove.
-    function removeComment(uint128 commentId) external {}
+    function removeComment(uint128 commentId) external {
+        uint128[] storage commentIds = accounts[accountIds[msg.sender]].commentIds;
+        for (uint256 i = 0; i < commentIds.length; i++) {
+            if (commentIds[i] == commentId) {
+                commentIds[i] = commentIds[commentIds.length - 1];
+                commentIds.pop();
+                break;
+            }
+        }
+    }
 
     /// @notice Mints a new child space domain with the given domain name and expire time.
     /// @dev The calling account must own the parent space in order to mint a child space domain.
