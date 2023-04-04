@@ -8,15 +8,43 @@ contract Moment is IMoment {
     uint128 public totalCommentCount;
     mapping(uint120 => MomentData) public moments;
     mapping(uint128 => CommentData) public comments;
-    mapping(uint128 => address[]) public likes;
+    mapping(uint120 => address[]) public likes;
     mapping(uint120 => uint128[]) public commentsOnMoment;
 
     constructor() {}
 
-    function getAllMomentIds() external view returns (uint120) {}
-    function getMomentData(uint120[] calldata momentIds) external view returns (MomentData[] memory) {}
-    function getLikes(uint120[] calldata momentIds) external view returns (address[][] memory) {}
-    function getComments(uint120[] calldata momentIds) external view returns (CommentData[] memory) {}
+    function getAllMoments() external view returns (MomentData[] memory) {
+        MomentData[] memory allMoments = new  MomentData[](totalMomentCount);
+        for (uint120 i = 0; i < totalMomentCount; i++) {
+            allMoments[i] = moments[i];
+        }
+        return allMoments;
+    }
+
+    function getMomentData(uint120[] calldata momentIds) external view returns (MomentData[] memory) {
+        MomentData[] memory momentData = new  MomentData[](momentIds.length);
+        for (uint120 i = 0; i < momentIds.length; i++) {
+            momentData[i] = moments[momentIds[i]];
+        }
+        return momentData;
+    }
+
+    function getLikes(uint120[] calldata momentIds) external view returns (uint256[] memory) {
+        uint256[] memory likeCounts = new uint256[](momentIds.length);
+        for (uint120 i = 0; i < momentIds.length; i++) {
+            likeCounts[i] = likes[momentIds[i]].length;
+        }
+        return likeCounts;
+    }
+
+    function getComments(uint120[] calldata momentIds) external view returns (CommentData[] memory) {
+        CommentData[] memory commentData = new CommentData[](momentIds.length);
+        for (uint120 i = 0; i < momentIds.length; i++) {
+            commentData[i] = comments[momentIds[i]];
+        }
+        return commentData;
+    }
+
     function createMoment(uint64 accountId, string calldata metadataURI) external returns (uint120) {}
     function removeMoment(uint120 momentId, uint64 accountId) external {}
     function addLike(uint120 momentId, uint64 accountId) external {}
