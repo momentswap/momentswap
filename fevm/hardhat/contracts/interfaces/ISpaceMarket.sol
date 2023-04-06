@@ -1,18 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-struct Item {
-        address spaceFnsContract;
-        uint64 spaceId;
-        uint64 price;
-        bool selling;
-}
-
+/// @title SpaceMarket Interface
+/// @notice This interface defines the functions and events that the SpaceMarket contract should implement.
 interface ISpaceMarket {
-    /**
-     * @dev 上架域名事件
-     * 当用户在上架域名时释放,传参为 卖家钱包地址，域名合约地址，spaceid，价格
-     */ 
+    /// @notice This event is emitted when a domain is listed for sale.
+    /// @param seller The address of the seller.
+    /// @param nftAddr The address of the domain contract.
+    /// @param spaceId The ID of the domain.
+    /// @param price The price of the domain.
     event List(
         address indexed seller,
         address indexed nftAddr,
@@ -20,10 +16,11 @@ interface ISpaceMarket {
         uint64 price
     );
 
-    /**
-     * @dev 用户租用域名事件
-     * 当用户在租用域名时释放,传参为 买家钱包地址，域名合约地址，spaceid，价格
-     */ 
+    /// @notice This event is emitted when a domain is rented.
+    /// @param buyer The address of the buyer.
+    /// @param nftAddr The address of the domain contract.
+    /// @param spaceId The ID of the domain.
+    /// @param price The price of the domain.
     event Rent(
         address indexed buyer,
         address indexed nftAddr,
@@ -31,20 +28,21 @@ interface ISpaceMarket {
         uint64 price
     );
 
-    /**
-     * @dev 撤单事件
-     * 当用户在撤单时释放,传参为 卖家钱包地址，域名合约地址，spaceid
-     */ 
+    /// @notice This event is emitted when a domain listing is cancelled.
+    /// @param seller The address of the seller.
+    /// @param nftAddr The address of the domain contract.
+    /// @param spaceId The ID of the domain
     event Revoke(
         address indexed seller,
         address indexed nftAddr,
         uint64 indexed spaceId
     );
 
-    /**
-     * @dev 修改价格事件
-     * 当用户在修改价格时释放,传参为 卖家钱包地址，域名合约地址，spaceid
-     */ 
+    /// @notice This event is emitted when the price of a domain listing is updated.
+    /// @param seller The address of the seller.
+    /// @param nftAddr The address of the domain contract.
+    /// @param spaceId The ID of the domain.
+    /// @param newPrice The new price of the domain.
     event Update(
         address indexed seller,
         address indexed nftAddr,
@@ -52,63 +50,60 @@ interface ISpaceMarket {
         uint64 newPrice
     );
 
-    /**
-     * @dev 用户赎回租金事件
-     * 当用户在回租时释放
-     */ 
+    /// @notice This event is emitted when a user withdraws their rental income.
+    /// @param to The address where the rental income is sent.
+    /// @param amount The amount of rental income being withdrawn.
     event WithdrawRent(
         address to,
         uint64 amount
     );
     
 
-    /**
-     * @dev 设置受益人
-     */
+    /// @notice Sets the beneficiary of the contract.
+    /// @param beneficiary The address of the beneficiary.
     function setBeneficiary(address beneficiary) external;
     
-    /**
-     * @dev 查看受益人
-     */
+    /// @dev Gets the beneficiary of the contract.
+    /// @return The address of the beneficiary.
     function getBeneficiary() external pure returns (address);
 
-    /**
-     * @dev 设置手续费率
-     */
-    function setFeeRate(uint64 feeRate) external;
+    /// @dev Sets the fee rate for the contract.
+    /// @param feeRate The new fee rate.
+    function setFeeRate(uint16 feeRate) external;
     
-    /**
-     * @dev 查看手续费率
-     */
-    function getFeeRate() external pure returns (uint64);
+    /// @dev Gets the fee rate for the contract.
+    /// @return The fee rate.
+    function getFeeRate() external pure returns (uint16);
 
-    /**
-     * @dev 上架 ， 释放 List 事件
-     */
+    /// @dev Lists a domain for sale.
+    /// @param nftAddr The address of the domain contract.
+    /// @param spaceId The ID of the domain.
+    /// @param price The price of the domain.
     function listSpace(address nftAddr, uint64 spaceId, uint64 price) external ;
 
-    /**
-     * @dev 租域名 成交， 释放 Rent 事件
-     */
-    function rentSpace(address nftAddr, uint64 spaceId) external ;
+    /// @dev Rents a domain.
+    /// @param nftAddr The address of the domain contract.
+    /// @param spaceId The ID of the domain.
+    function rentSpace(address nftAddr, uint64 spaceId, uint64 userId) external ;
 
-    /**
-     * @dev 取消上架，释放 Revoke 事件
-     */
+    /// @dev Cancels the listing of a domain.
+    /// @param nftAddr The address of the domain contract.
+    /// @param spaceId The ID of the domain.
     function cancelListSpace(address nftAddr, uint64 spaceId) external ;
 
-    /**
-     * @dev 更新价格，释放 Update 事件
-     */
+    /// @dev Update the price of a listed space.
+    /// @param nftAddr The address of the NFT for the listed space.
+    /// @param spaceId The ID of the listed space.
+    /// @param newPrice The new price in wei.
     function updateListedSpace(address nftAddr, uint64 spaceId, uint64 newPrice) external ;
 
-    /**
-     * @dev 管理员赎回手续费
-     */
+    /// @dev Allow the administrator to withdraw transaction fees.
+    ///
+    /// This function can only be called by the contract's administrator.
     function withdrawTransactionFee() external;
 
-    /**
-     * @dev 用户赎回域名租金, 释放 WithdrawRent 事件
-     */
+    /// @dev Allow the user to withdraw rental income for a space they own.
+    ///
+    /// Triggers a WithdrawRent event.
     function withdrawRentalIncome() external;
 }

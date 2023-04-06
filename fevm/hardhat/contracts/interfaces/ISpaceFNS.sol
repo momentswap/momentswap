@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-interface ISpaceFNS {
-    /**
-     * @dev Mint domain name event
-     * Released when the user is in the mint domain name, the passed parameters are the address of the caller, the parent domain name spaceid (the parent id of the parent domain name is 0), the domain name, and the expiration time
-     */ 
+/// @title ISpaceFNS
+/// @dev Interface for the SpaceFNS contract.
+interface ISpaceFNS {   
+    /// @dev Emitted when a new Space Domain is minted.
+    /// @param account The account that minted the domain.
+    /// @param parentSpaceId The ID of the parent space.
+    /// @param domainName The name of the domain.
+    /// @param expireSeconds The number of seconds until the domain expires.
     event MintSpaceDomain(
         address indexed account,  
         uint64 indexed parentSpaceId,
@@ -13,101 +16,106 @@ interface ISpaceFNS {
         uint64 expireSeconds
     );
 
-    /**
-     * @dev Update domain name expiration time event
-     * Released when `account` updates the expiration time of `spaceId` to `expireSeconds`
-     */
+    /// @dev Emitted when the expiration time of a space is updated.
+    /// @param account The account that updated the expiration time.
+    /// @param spaceId The ID of the space.
+    /// @param expireSeconds The new expiration time of the space.
     event UpdataExpriceTime(
         address indexed account,
         uint64 indexed spaceId,
         uint64 expireSeconds
     );
 
-    /**
-     * @dev Authorized event
-     * Released when `account` authorizes `spaceId` to `operator`
-     */
+    /// @dev Emitted when `account` authorizes `spaceId` to `operator`
+    /// @param account The owner of the space.
+    /// @param operator The address that is approved.
+    /// @param spaceId The ID of the space.
     event Approved(
         address indexed account,
         address indexed operator,
         uint64 indexed spaceId
     );
 
-    /**
-     * @dev Change subdomain name event
-     * Released when the domain name of `spaceId` is updated to a new `domain name`
-     */ 
+    /// @dev Emitted when the name of a domain is updated.
+    /// @param spaceId The ID of the space.
+    /// @param newName The new name of the domain.
     event UpdataDomainName(
         uint64 indexed spaceId,
         string newName
     );
 
 
-
-    /**
-     * @dev Expiration query, returns whether `spaceId` has expired
-     */
+    /// @notice Checks if a space is expired.
+    /// @param spaceId The ID of the space.
+    /// @return A boolean indicating whether the space is expired.
     function isExpired(uint64 spaceId) external view returns (bool);
 
-    /**
-     * @dev Batch expiration query, return whether `spaceId` has expired
-     */
+    /// @notice Checks if an array of spaces is expired.
+    /// @param spaceIds An array of space IDs.
+    /// @return An array of booleans indicating whether each space is expired.
     function isExpireds(uint64[] calldata spaceIds) external view returns (bool[] memory);
 
-    /**
-     * @dev Query authorized address by spaceId
-     */
+    /// @notice Gets the address approved to act on behalf of a space.
+    /// @param spaceId The ID of the space.
+    /// @return The address approved to act on behalf of the space.
     function getApproved(uint64 spaceId) external view returns (address);
 
-    /**
-     * @dev mint domain, release `MintSpaceDomain` event
-     * Require:
-     * - domainName cannot be less than 3 and greater than 10 characters
-     * - Domain name cannot already exist
-     */
+    /// @notice Mints a new Space Domain.
+    /// @param creatorId The ID of the creator.
+    /// @param parentSpaceId The ID of the parent space.
+    /// @param domainName The name of the domain.
+    /// @param expireSeconds The number of seconds until the domain expires.
+    /// @return The ID of the new Space Domain.
+    /// Requirements: 
+    /// - DomainName cannot be less than 3 and greater than 10 characters 
+    /// - Domain name cannot already exist
     function mintSpaceDomain(uint64 creatorId, uint64 parentSpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64);
 
-    /**
-     * @dev Change subdomain name , release `UpdataDomainName` event
-     * Require:
-     * - The caller is the authorized address
-     * - not parent domain
-     * - domainName cannot be less than 3 and greater than 10 characters
-     * - Domain name cannot already exist
-     * - Delete the original domain name mapping
-     */
-    function updateChildDomainName(uint64 spaceId, string calldata domainName) external ;
+    /// @notice Updates the name of a child domain.
+    /// @param spaceId The ID of the space.
+    /// @param oldDomainName The current name of the domain.
+    /// @param newDomainName The new name of the domain.
+    /// Requirements: 
+    /// - The caller is the authorized address
+    /// - Not parent domain
+    /// - DomainName cannot be less than 3 and greater than 10 characters
+    /// - Domain name cannot already exist
+    /// - Delete the original domain name mapping
+    function updateChildDomainName(uint64 spaceId, string calldata oldDomainName, string calldata newDomainName) external ;
 
-    /**
-     * @dev Update domain name expiration time, release `UpdataExpriceTime` event
-     * Require:
-     * - The caller is the authorized address
-     */
+    /// @notice Update the expiration time of a space with the given space ID
+    /// @param spaceId The ID of the space to update
+    /// @param newExpireSeconds The new expiration time, in seconds, for the space
+    /// Requirements:
+    /// - The caller must be authorized to update the space
     function updateExpireSeconds(uint64 spaceId, uint64 newExpireSeconds) external ;
 
-    /**
-     * @dev Authorization, will release the `Approved` event, which is called when the user authorizes the market and the user purchases a domain name for lease or sale
-     * - The caller is the authorized address
-     */
+
+    /// @notice Authorized to the operator
+    /// @param operator The address of the operator to approve
+    /// @param spaceId The ID of the space to approve the operator for
+    /// Requirements:
+    /// - The caller must be authorized to approve an operator for the space
     function approve(address operator, uint64 spaceId) external ;
 
-    /**
-     * @dev Renting a domain name, called when the market contract is completed
-     * Require:
-     * - The caller is the authorized address
-     * - Change the `userid` of `SpaceDomain` to the renter,
-     * - Change the authorized address of `SpaceDomain` to the address of the renter
-     */
+    /// @notice Rent a space with the given space ID to the user with the given user ID and address
+    /// @param spaceId The ID of the space to rent
+    /// @param userId The ID of the user renting the space
+    /// @param userAddr The address of the user renting the space
+    /// Requirements:
+    /// - The caller is the authorized address
+    /// - Change the `userid` of `SpaceDomain` to the renter,
+    /// - Change the authorized address of `SpaceDomain` to the address of the renter
     function rentSpace(uint64 spaceId, uint64 userId, address userAddr) external ;
 
-    /**
-     * @dev return domain name 
-     * Require:
-     * - domain name has expired
-     * - The caller is the creator of the domain name
-     * - After returning, the authorization address is changed to the creator
-     * - userId changed to creator
-     */
+    /// @notice Return a space with the given space ID to the creator
+    /// @param userId The ID of the creator of the space
+    /// @param spaceId The ID of the space to return
+    /// Requirements:
+    /// - Domain name has expired
+    /// - The caller is the creator of the domain name
+    /// - After returning, the authorization address is changed to the creator
+    /// - UserId changed to creator
     function returnSpace(uint64 userId, uint64 spaceId) external ;
 }
 
