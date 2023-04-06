@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import {IMoment, MomentData, CommentData} from "./interfaces/IMoment.sol";
 
 /// @notice This contract implements the IMoment interface and provides functionality for managing moments.
-contract Moment is IMoment {
+contract Moment is IMoment, Ownable {
 
     /// @notice Error to be thrown when the caller is not authorized to perform an action.
     error Unauthorized();
@@ -30,15 +31,6 @@ contract Moment is IMoment {
     /// @notice Address that can call functions with onlyCaller modifier.
     address public caller;
 
-    /// @notice Address of the contract owner.
-    address public owner;
-
-    /// @notice Modifier that only allows the contract owner to call a function.
-    modifier onlyOwner() {
-        if (msg.sender != owner) revert Unauthorized();
-        _;
-    }
-
     /// @notice Modifier that only allows the `caller` address to call a function.
     modifier onlyCaller() {
         if (msg.sender != caller) revert Unauthorized();
@@ -46,9 +38,7 @@ contract Moment is IMoment {
     }
 
     /// @notice Constructor that sets the `owner` address to the creator of the contract.
-    constructor() {
-        owner = msg.sender;
-    }
+    constructor() {}
 
     // TODO: Transfer All to Events
     /// @notice Returns an array of all moments that have been created.
