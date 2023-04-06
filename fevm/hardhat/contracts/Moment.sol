@@ -149,7 +149,7 @@ contract Moment is IMoment {
     /// @param accountId The ID of the account creating the comment.
     /// @param commentText The text of the comment.
     /// @return The ID of the newly created comment.
-    function createComment(uint120 momentId, uint64 accountId, string calldata commentText) external returns (uint128) {
+    function createComment(uint120 momentId, uint64 accountId, string calldata commentText) external onlyCaller returns (uint128) {
         uint128 commentId = ++totalCommentCount;
         comments[commentId] = CommentData({
             creatorId: accountId,
@@ -163,19 +163,18 @@ contract Moment is IMoment {
     }
 
     // TODO: Transfer All to Events
-    /// @notice Removes a comment with the specified ID for the specified moment.
-    /// @param momentId The ID of the moment to remove the comment from.
+    /// @notice Removes a comment with the specified ID.
     /// @param commentId The ID of the comment to be removed.
-    function removeComment(uint120 momentId, uint128 commentId) external {
-        uint128[] storage commentIds = commentsOnMoment[momentId];
+    function removeComment(uint128 commentId) external onlyCaller {
+        uint128[] storage commentIds = commentsOnMoment[comments[commentId].momentId];
         for (uint256 i = 0; i < commentIds.length; i++) {
             if (commentIds[i] == commentId) {
                 commentIds[i] = commentIds[commentIds.length - 1];
                 commentIds.pop();
+                comments[commentId].deleted = true;
                 break;
             }
         }
-        comments[commentId].deleted = true;
     }
 
     /// @notice Allows the contract owner to set the caller address.

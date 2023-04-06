@@ -164,10 +164,10 @@ contract Account is IAccount {
             if (momentIds[i] == momentId) {
                 momentIds[i] = momentIds[momentIds.length - 1];
                 momentIds.pop();
+                moment.removeMoment(momentId);
                 break;
             }
         }
-        moment.removeMoment(momentId);
     }
 
     // TODO: Transfer All to Events
@@ -189,10 +189,10 @@ contract Account is IAccount {
             if (likedMomentIds[i] == momentId) {
                 likedMomentIds[i] = likedMomentIds[likedMomentIds.length - 1];
                 likedMomentIds.pop();
+                moment.removeLike(momentId, accountIds[msg.sender]);
                 break;
             }
         }
-        moment.removeLike(momentId, accountIds[msg.sender]);
     }
 
     // TODO: Transfer All to Events
@@ -216,6 +216,7 @@ contract Account is IAccount {
             if (commentIds[i] == commentId) {
                 commentIds[i] = commentIds[commentIds.length - 1];
                 commentIds.pop();
+                moment.removeComment(commentId);
                 break;
             }
         }

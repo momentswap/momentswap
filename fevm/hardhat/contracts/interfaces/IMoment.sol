@@ -67,8 +67,7 @@ interface IMoment {
     /// @return The ID of the newly created comment.
     function createComment(uint120 momentId, uint64 accountId, string calldata commentText) external returns (uint128);
 
-    /// @notice Removes a comment with the specified ID for the specified moment.
-    /// @param momentId The ID of the moment to remove the comment from.
+    /// @notice Removes a comment with the specified ID.
     /// @param commentId The ID of the comment to be removed.
-    function removeComment(uint120 momentId, uint128 commentId) external;
+    function removeComment(uint128 commentId) external;
 }
