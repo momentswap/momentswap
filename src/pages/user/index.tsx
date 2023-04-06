@@ -100,7 +100,6 @@ export default function UserPage() {
 
       // Get all domain lease terms rented by user
       const [_domainIDs, _fullDomainNames, _userLeaseTerms] = await getDomainLeaseTermsByUser(queryAddress);
-
       for (let i in _domainIDs) {
         const _creator = await getOwnerByDomainID(_domainIDs[i].toString());
         const [_mainDomainName] = await getAllDomainByCreator(_creator);
@@ -113,7 +112,7 @@ export default function UserPage() {
           used: true,
           listed: false,
           start: _userLeaseTerms[i][0].toNumber(),
-          end: _userLeaseTerms[i][0].toNumber() + _creatorLeaseTerms[i][1].toNumber(),
+          end: _userLeaseTerms[i][0].toNumber() + _userLeaseTerms[i][1].toNumber(),
           expire: undefined,
           price: undefined,
           user: queryAddress,
@@ -311,7 +310,7 @@ export default function UserPage() {
   }, []);
 
   // TODO: This method is too large and needs to be encapsulated in some components
-  const renderSpaceDNPage = useCallback(() => {
+  const renderSpacesPage = useCallback(() => {
     const _tabPage = (
       <>
         {/* Sell Modal */}
@@ -697,7 +696,7 @@ export default function UserPage() {
       }
       setMoments(_moments);
     })();
-  }, [getNFTCollectionByOwner, queryAddress,mainDomain, userImg]);
+  }, [getNFTCollectionByOwner, queryAddress, mainDomain, userImg]);
 
   //TODO: Wait for user to configure interface
   useEffect(() => {
@@ -712,10 +711,10 @@ export default function UserPage() {
       renderMomentsPage();
     } else if ("Likes" === currentTab) {
       renderLikesPage();
-    } else if ("Space DN" === currentTab) {
-      renderSpaceDNPage();
+    } else if ("Spaces" === currentTab) {
+      renderSpacesPage();
     }
-  }, [currentTab, renderLikesPage, renderMomentsPage, renderSpaceDNPage]);
+  }, [currentTab, renderLikesPage, renderMomentsPage, renderSpacesPage]);
 
   const validatePrice = (value: string) => {
     const price = Number(value);
@@ -775,7 +774,7 @@ export default function UserPage() {
             <p className="text-sm">{queryAddress}</p>
           </div>
           <div className="mt-5">
-            <Tab tabs={["Moments", "Likes", "Space DN"]} activeTab={currentTab} setActiveTab={setCurrentTab} />
+            <Tab tabs={["Moments", "Likes", "Spaces"]} activeTab={currentTab} setActiveTab={setCurrentTab} />
             {tabPage}
           </div>
         </div>

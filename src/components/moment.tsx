@@ -33,6 +33,8 @@ export const Moment = ({ moment }: Props) => {
   }, [moment]);
 
   async function likeMoment() {
+    alert("coming soon!");
+    return;
     if (address) {
       await signer?.signMessage("this is test");
       storeLikes(moment.id, moment.username || "");
@@ -103,7 +105,9 @@ export const Moment = ({ moment }: Props) => {
 
         <div className="flex justify-between p-2">
           <div className="flex items-center select-none">
-            <label htmlFor={address && "comment-modal"}>
+            {/* TODO: Waiting for contract implementation */}
+            {/* <label htmlFor={address && "comment-modal"}> */}
+            <label onClick={() => alert("coming soon!")}>
               <ChatIcon
                 onClick={() => {
                   if (address) {
@@ -139,7 +143,10 @@ export const Moment = ({ moment }: Props) => {
               className="rounded-full h-9 w-9 hoverEffect p-2 hover:text-red-600 hover:bg-red-100"
             />
           )} */}
-          <ShareIcon className="rounded-full h-9 w-9 hoverEffect p-2 hover:text-sky-500 hover:bg-sky-100" />
+          <ShareIcon
+            onClick={() => alert("coming soon!")}
+            className="rounded-full h-9 w-9 hoverEffect p-2 hover:text-sky-500 hover:bg-sky-100"
+          />
         </div>
       </div>
     </div>

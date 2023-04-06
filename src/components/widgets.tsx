@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Key, useEffect, useState } from "react";
 import { useRecoilState } from "recoil";
 
-import { News } from "@components";
+import { Footer, News } from "@components";
 import { searchKeyState } from "src/atom";
 
 export const Widgets = ({ newsResults, randomUsersResults }: any) => {
@@ -89,6 +89,7 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
           Show more
         </button>
       </div>
+      <Footer />
     </div>
   );
 };
