@@ -60,7 +60,11 @@ export const IdentityModal = () => {
       if (!mainDomain) {
         await(await registerMainDomain(text)).wait();
       }
-    } catch {}
+    } catch (err: any) {
+      if (err.code === -32603) {
+        alert("Insufficient gas.");
+      }
+    }
 
     setLoading(false);
     router.reload();
