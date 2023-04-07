@@ -1,4 +1,4 @@
-import { Contract } from "ethers";
+import { BigNumber, Contract } from "ethers";
 import { useCallback, useMemo } from "react";
 
 import MomentSwapFRC721 from "@Contracts/MomentSwapFRC721.sol/MomentSwapFRC721.json";
@@ -27,23 +27,30 @@ export const useMomentSwapContract = () => {
     [contractWithProvider],
   );
 
+  const getMintFee = useCallback((): Promise<BigNumber> => {
+    return contractWithProvider.mintFee();
+  }, [contractWithProvider]);
+
   // Read-write contract functions
 
   const mintMomentSwapNFT = useCallback(
-    (ipfsURL: string): Promise<any> => {
-      return contractWithSigner.mintMomentSwapNFT(ipfsURL);
+    async (ipfsURL: string): Promise<any> => {
+      const mintFee = await getMintFee();
+      return await contractWithSigner.mintMomentSwapNFT(ipfsURL, { value: mintFee });
     },
-    [contractWithSigner],
+    [getMintFee, contractWithSigner],
   );
 
   const mintMultipleMomentSwapNFTs = useCallback(
-    (ipfsURLs: Array<string>): Promise<any> | undefined => {
-      return contractWithSigner.mintMultipleMomentSwapNFTs(ipfsURLs);
+    async (ipfsURLs: Array<string>): Promise<any> => {
+      const mintFee = await getMintFee();
+      return await contractWithSigner.mintMultipleMomentSwapNFTs(ipfsURLs, { value: mintFee.mul(ipfsURLs.length) });
     },
-    [contractWithSigner],
+    [getMintFee, contractWithSigner],
   );
 
   return {
+    getMintFee,
     getNFTCollection,
     getNFTCollectionByOwner,
     mintMomentSwapNFT,
