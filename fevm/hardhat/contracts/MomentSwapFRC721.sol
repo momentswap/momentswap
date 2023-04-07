@@ -4,9 +4,10 @@ pragma solidity ^0.8.4;
 // https://docs.openzeppelin.com/contracts/4.x/erc721
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "hardhat/console.sol";
 
-contract MomentSwapFRC721 is ERC721URIStorage {
+contract MomentSwapFRC721 is ERC721URIStorage, Ownable {
   using Counters for Counters.Counter;
   Counters.Counter private _tokenIds;
 
@@ -17,6 +18,8 @@ contract MomentSwapFRC721 is ERC721URIStorage {
     uint256 timestamp;
   }
 
+  uint256 public mintFee;
+  address payable public beneficiary;
   momentSwapFRC721NFT[] public nftCollection;
   mapping(address => momentSwapFRC721NFT[]) public nftCollectionByOwner;
 
@@ -28,12 +31,16 @@ contract MomentSwapFRC721 is ERC721URIStorage {
   );
 
   constructor() ERC721("MomentSwap NFTs", "BAC") {
+    mintFee = 0.0003 ether;
+    beneficiary = payable(owner());
     console.log("Hello Fil-ders! Now creating MomentSwap FRC721 NFT contract!");
   }
 
-  function mintMomentSwapNFT(string memory ipfsURI) public returns (uint256) {
-    uint256 newItemId = _tokenIds.current();
+  function mintMomentSwapNFT(string memory ipfsURI) public payable returns (uint256) {
+    require(msg.value >= mintFee, "Fee not paid.");
+    beneficiary.transfer(msg.value);
 
+    uint256 newItemId = _tokenIds.current();
     momentSwapFRC721NFT memory newNFT = momentSwapFRC721NFT({
       owner: msg.sender,
       tokenURI: ipfsURI,
@@ -85,5 +92,13 @@ contract MomentSwapFRC721 is ERC721URIStorage {
     }
 
     return tokenIdArray;
+  }
+
+  function setMintFee(uint256 _mintFee) public onlyOwner {
+    mintFee = _mintFee;
+  }
+
+  function setBeneficiary(address _beneficiary) public onlyOwner {
+    beneficiary = payable(_beneficiary);
   }
 }

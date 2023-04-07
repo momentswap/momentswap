@@ -1,6 +1,6 @@
 export const Footer = () => {
   return (
-    <footer className="footer footer-center text-base-content text-opacity-50">
+    <footer className="footer footer-center text-base-content text-opacity-50 sticky top-40">
       <div>
         <div className="grid grid-flow-col gap-2">
           <a className="link link-hover" href="https://twitter.com/MomentSwap">
