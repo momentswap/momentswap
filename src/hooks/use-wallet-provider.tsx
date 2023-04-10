@@ -1,4 +1,5 @@
 import detectEthereumProvider from "@metamask/detect-provider";
+import { NETWORK_PARAM } from "@utils/definitions/consts";
 import { addAndSwitchFilecoinChain, isMetaMaskInstalled } from "@utils/helpers";
 import { BigNumber, ethers } from "ethers";
 import React, { ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
@@ -37,7 +38,7 @@ export const WalletProviderProvider = ({ children }: { children: ReactNode }) =>
     (async () => {
       await addAndSwitchFilecoinChain();
 
-      let provider = new ethers.providers.JsonRpcProvider("https://api.hyperspace.node.glif.io/rpc/v1");
+      let provider = new ethers.providers.JsonRpcProvider(NETWORK_PARAM.rpcUrls[0]);
 
       try {
         const detectedProvider = await detectEthereumProvider();
