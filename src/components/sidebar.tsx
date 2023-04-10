@@ -6,6 +6,9 @@ import { Avatar, SidebarMenuItem } from "@components";
 import { useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { sortAddress } from "@utils/helpers";
 import { PublishSvg } from "./svgIcon/PublishSvg";
+import { Loading } from "./loading/loading";
+import { useLoadingStore } from "src/ZusStore/useLoadingStore";
+import { AlertComponent } from "./alert";
 
 export const Sidebar = () => {
   const router = useRouter();
@@ -20,6 +23,10 @@ export const Sidebar = () => {
       setUserImg(_avatarUrl);
     })();
   }, []);
+
+  const loading = useLoadingStore((state) => state.loading);
+  const increasePopulation2 = useLoadingStore((state) => state.setLoadingNotify);
+
   return (
     <div className="flex justify-end xl:w-1/3 sm:min-w-[80px]">
       <div className="hidden sm:flex flex-col p-2 xl:items-start h-screen ml-auto mr-0 xl:mr-4 fixed">
@@ -54,35 +61,37 @@ export const Sidebar = () => {
 
         {address ? (
           <>
-            <PublishSvg/>
+            <PublishSvg />
 
             {/* Mini-Profile */}
-            <div
-              className="mt-auto mb-10 mx-auto rounded-full ring-2 ring-secondary ring-offset-base-100 ring-offset-2 cursor-pointer select-none flex xl:py-2 xl:px-4 xl:hover:bg-secondary hover:ring-secondary-focus"
-              onClick={() => {
-                router.push("/");
-                disconnect();
-              }}
-            >
-              <Avatar seed={address} image={userImg} diameter={38} className="items-center" />
-              <div className="leading-5 hidden xl:inline xl:ml-2 xl:w-[120px]">
-                <h4 className="font-bold text-sm truncate">{mainDomain || "---"}.fil</h4>
-                <p className="font-light text-sm">{sortAddress(address)}</p>
-              </div>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="h-5 xl:ml-2 hidden my-auto xl:inline"
+            <div className="mt-auto mb-10 mx-auto   hover:ring-secondary-focus">
+              <div
+                className="mt-auto mb-10 mx-auto rounded-full ring-2 ring-secondary ring-offset-base-100 ring-offset-2 cursor-pointer select-none flex xl:py-2 xl:px-4 xl:hover:bg-secondary hover:ring-secondary-focus"
+                onClick={() => {
+                  router.push("/");
+                  disconnect();
+                }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
-                />
-              </svg>
+                <Avatar seed={address} image={userImg} diameter={38} className="items-center" />
+                <div className="leading-5 hidden xl:inline xl:ml-2 xl:w-[120px]">
+                  <h4 className="font-bold text-sm truncate">{mainDomain || "---"}.fil</h4>
+                  <p className="font-light text-sm">{sortAddress(address)}</p>
+                </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="h-5 xl:ml-2 hidden my-auto xl:inline"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"
+                  />
+                </svg>
+              </div>
             </div>
           </>
         ) : (
