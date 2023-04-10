@@ -14,7 +14,7 @@ export const PublishModal = () => {
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState("");
   const [media, setMedia] = useState<Media | undefined>(undefined);
-  const increasePopulation = useLoadingStore((state) => state.setLoadingProcess);
+  const setLoadingProcess = useLoadingStore((state) => state.setLoadingProcess);
   const resetLoadingProcess = useLoadingStore((state) => state.resetLoadingProcess);
   const setLoadingNotify = useLoadingStore((state) => state.setLoadingNotify);
   const uploadInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,7 +40,7 @@ export const PublishModal = () => {
     const metadata = createMomentSwapMetadata(address, text, media);
 
     try {
-      increasePopulation();
+      setLoadingProcess();
       const metadataIPFS = await storeMetadataToIPFS(metadata);
       await mintMomentSwapNFT(metadataIPFS.toString());
       // alert("Successfully published moment!");
