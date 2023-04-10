@@ -2,7 +2,7 @@ import ReactDOM from "react-dom";
 
 export const AlertComponent = () => {
     return ReactDOM.createPortal(
-          <div className="alert alert-success shadow-lg fixed w-[300px] top-0 right-0 z-50">
+          <div className="alert alert-success shadow-lg fixed w-[300px] top-2 right-2 z-50">
             <div>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -17,7 +17,7 @@ export const AlertComponent = () => {
                   d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              <span>Your purchase has been confirmed!</span>
+              <span>Your Publish Successful!</span>
             </div>
           </div>
       ,
