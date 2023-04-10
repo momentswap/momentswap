@@ -770,7 +770,7 @@ export default function UserPage() {
             Edit Identity
           </label>
 
-          <div style={{padding:"0 20px",width:"100vw"}}>
+          <div className="px-6 w-[100vw]">
             <p className="text-2xl font-semibold">{mainDomain || "---"}.fil</p>
             <p className="text-sm">{queryAddress}</p>
           </div>

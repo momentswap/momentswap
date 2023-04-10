@@ -34,11 +34,11 @@ export const Feed = () => {
   }, [getNFTCollection, getAvatar]);
 
   return (
-    <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl">
-      <div className="flex p-2 sticky top-0 z-50 bg-base-200 border-primary gap-2">
-        <h2 className="text-lg sm:text-xl font-bold cursor-pointer my-auto">Home</h2>
-        <div className="flex items-center justify-center px-0 ml-auto w-9 h-9">
-          {/* <SparklesIcon className="h-5" /> */}
+    <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl w-[100vw]">
+      <div className="flex items-center justify-between p-2 sticky top-0 z-50 bg-base-200 border-primary">
+        <h2 className="text-lg sm:text-xl font-bold cursor-pointer">Home</h2>
+        <img src="/logo.png" alt="" className="h-8 w-8 sm:hidden" />
+        <div className="flex items-center justify-center px-0 w-9 h-9">
           <ThemeToggle />
         </div>
       </div>
