@@ -113,7 +113,7 @@ export const useSpaceFNSContract = () => {
 
   const getAvatar = useCallback(
     (user: string): Promise<string> => {
-      return contractWithSigner.getAvatar(user);
+      return contractWithProvider.getAvatar(user);
     },
     [contractWithProvider],
   );

@@ -9,19 +9,21 @@ import { collectionToMoments } from "@utils/helpers/collection-to-moments";
 import { searchKeyState } from "src/atom";
 
 export const Feed = () => {
-  const [moments, setMoments] = useState<Array<MomentMetadata>>();
+  const [moments, setMoments] = useState<Array<MomentMetadata>>([]);
   const { getNFTCollection } = useMomentSwapContract();
   const [searchKey, setSearchKey] = useRecoilState(searchKeyState);
   const { getAllDomainByCreator, getAvatar } = useSpaceFNSContract();
   useEffect(() => {
     (async () => {
       const collection = await getNFTCollection();
+
       const _moments = await collectionToMoments(collection);
       for (let m of _moments) {
         try {
           const [_mainDomain] = await getAllDomainByCreator(m.address);
-          const _avatarUrl = await getAvatar(m.address);
           m.username = _mainDomain;
+
+          const _avatarUrl = await getAvatar(m.address);
           m.userImg = _avatarUrl;
         } catch {
           m.username = "---";
@@ -41,7 +43,7 @@ export const Feed = () => {
         </div>
       </div>
       <AnimatePresence>
-        {moments?.map((moment) => (
+        {moments.map((moment) => (
           <motion.div
             key={moment.id}
             initial={{ opacity: 0 }}
