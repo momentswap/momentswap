@@ -12,7 +12,7 @@ contract SpaceFNS is ISpaceFNS {
         uint64 creatorId;
         uint64 userId;
         uint64 expireSeconds;
-        uint64 parentSpaceId;
+        uint64 primarySpaceId;
         string domainName;
     }
 
@@ -20,6 +20,12 @@ contract SpaceFNS is ISpaceFNS {
     modifier checkDomainNameLength(string calldata domainName) {
         uint256 domainName_length = bytes(domainName).length;
         require(domainName_length >= 3 && domainName_length <= 10, "Domain name length does not meet the specification");
+        _;
+    }
+
+    /// Must be the creator to modify the domain name and modify the expiration time
+    modifier isCreator(uint64 spaceId, uint64 userId) {
+        require(spaceDomains[spaceId].creatorId == userId, "Only Creator can operate");
         _;
     }
 
@@ -60,9 +66,23 @@ contract SpaceFNS is ISpaceFNS {
         return approvals[spaceId];
     }
 
+    /// @notice Get the userid of spacedomain
+    /// @param spaceId The ID of the space.
+    /// @return A userid
+    function getSpaceDomainUserId(uint64 spaceId) public view override returns (uint64) {
+        return spaceDomains[spaceId].userId;
+    }
+
+    /// @notice Get the creator ID of spacedomain
+    /// @param spaceId The ID of the space.
+    /// @return A creator ID.
+    function getSpaceDomainCreatorId(uint64 spaceId) public view override returns (uint64) {
+        return spaceDomains[spaceId].creatorId;
+    }
+
     /// @notice Mints a new Space Domain.
     /// @param creatorId The ID of the creator.
-    /// @param parentSpaceId The ID of the parent space.
+    /// @param primarySpaceId The ID of the parent space.
     /// @param domainName The name of the domain.
     /// @param expireSeconds The number of seconds until the domain expires.
     /// @return The ID of the new Space Domain.
@@ -71,25 +91,25 @@ contract SpaceFNS is ISpaceFNS {
     /// - Domain name cannot already exist
     function mintSpaceDomain(
         uint64 creatorId,
-        uint64 parentSpaceId,
+        uint64 primarySpaceId,
         string calldata domainName,
         uint64 expireSeconds
     ) public override checkDomainNameLength(domainName) returns (uint64) {
         uint64 spaceId = uint64(_spaceIds.current());
         string memory fullDomainName = domainName;
-        if (parentSpaceId != 0) {
-            string memory parentDomain = getDomainNameById(parentSpaceId);
+        if (primarySpaceId != 0) {
+            string memory parentDomain = getDomainNameById(primarySpaceId);
             fullDomainName = spliceDomainName(domainName, parentDomain);
         }
 
         require(spaceDomainIds[fullDomainName] == 0, "The domain name already exists");
-        
+
         spaceDomains[spaceId] = SpaceDomain({
             creatorId: creatorId,
             userId: creatorId,
             expireSeconds: getBlockTimestamp() + expireSeconds,
-            parentSpaceId: parentSpaceId,
-            domainName: domainName
+            primarySpaceId: primarySpaceId,
+            domainName: fullDomainName
         });
 
         spaceDomainIds[fullDomainName] = spaceId;
@@ -97,7 +117,7 @@ contract SpaceFNS is ISpaceFNS {
 
         _spaceIds.increment();
 
-        emit MintSpaceDomain(msg.sender, parentSpaceId, domainName, expireSeconds);
+        emit MintSpaceDomain(msg.sender, primarySpaceId, fullDomainName, expireSeconds);
         return spaceId;
     }
 
@@ -111,32 +131,25 @@ contract SpaceFNS is ISpaceFNS {
     /// - DomainName cannot be less than 3 and greater than 10 characters
     /// - Domain name cannot already exist
     /// - Delete the original domain name mapping
-    function updateChildDomainName(
+    function updateSubDomainName(
         uint64 spaceId,
         string calldata oldDomainName,
-        string calldata newDomainName
-    ) public override checkDomainNameLength(newDomainName){
+        string calldata newDomainName, uint64 userId
+    ) public override checkDomainNameLength(newDomainName) isCreator(spaceId, userId){
         require(approvals[spaceId] == msg.sender, "Only the holder can update the domain name");
-        require(spaceDomains[spaceId].parentSpaceId != 0, "Only subdomains are allowed to be modified" );
-
-        /// Obtain the parent domain name through the parent domain name id
-        string memory parentDomain = getDomainNameById(spaceDomains[spaceId].parentSpaceId);
-        /// Splicing the parent domain name and the new domain name into a new full domain name
-        string memory fullDomainName = spliceDomainName(newDomainName, parentDomain);
+        require(spaceDomains[spaceId].primarySpaceId != 0, "Only subdomains are allowed to be modified" );
+       
         /// The new full domain name cannot already exist
-        require(spaceDomainIds[fullDomainName] == 0, "The domain name already exists");
-
-        /// Get the original full domain name
-        string memory oldFullDomainName = spliceDomainName(oldDomainName, parentDomain);
+        require(spaceDomainIds[newDomainName] == 0, "The domain name already exists");
         
         /// Delete the original domain name
-        delete(spaceDomainIds[oldFullDomainName]);
+        delete(spaceDomainIds[oldDomainName]);
 
         /// change domain name
         spaceDomains[spaceId].domainName = newDomainName;
-        spaceDomainIds[fullDomainName] = spaceId;
+        spaceDomainIds[newDomainName] = spaceId;
 
-        emit UpdataDomainName(spaceId, fullDomainName);
+        emit UpdataDomainName(spaceId, newDomainName);
     }
 
     /// @notice Update the expiration time of a space with the given space ID
@@ -144,7 +157,7 @@ contract SpaceFNS is ISpaceFNS {
     /// @param newExpireSeconds The new expiration time, in seconds, for the space
     /// Requirements:
     /// - The caller must be authorized to update the space
-    function updateExpireSeconds(uint64 spaceId, uint64 newExpireSeconds) public override {
+    function updateExpireSeconds(uint64 spaceId, uint64 newExpireSeconds, uint64 userId) public override isCreator(spaceId, userId){
         require(approvals[spaceId] == msg.sender, "Only the holder can update the expiration time");
         uint64 expireSeconds = getBlockTimestamp() + newExpireSeconds;
         spaceDomains[spaceId].expireSeconds = expireSeconds;
@@ -198,9 +211,9 @@ contract SpaceFNS is ISpaceFNS {
     /// @dev Splicing the parent domain name and subdomain name together
     function spliceDomainName(
         string calldata subdomain,
-        string memory parentDomain
+        string memory primaryDomain
     ) internal pure returns (string memory) {
-        return string(abi.encodePacked(subdomain, ".", parentDomain));
+        return string(abi.encodePacked(subdomain, ".", primaryDomain));
     }
 
     /// @dev Obtain the domain name through spaceid (domain name id)
