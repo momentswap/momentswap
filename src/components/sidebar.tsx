@@ -13,6 +13,7 @@ export const Sidebar = () => {
   const { mainDomain } = useSpaceDomain();
   const { getAvatar } = useSpaceFNSContract();
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
+  const loading = useLoadingStore((state) => state.loading);
   useEffect(() => {
     (async () => {
       if (!address) return;
@@ -20,9 +21,6 @@ export const Sidebar = () => {
       setUserImg(_avatarUrl);
     })();
   }, []);
-
-  const loading = useLoadingStore((state) => state.loading);
-  const increasePopulation2 = useLoadingStore((state) => state.setLoadingNotify);
 
   return (
     <div className="flex justify-end xl:w-1/3 sm:min-w-[80px]">
@@ -61,6 +59,9 @@ export const Sidebar = () => {
             <PublishButton />
             {/* Mini-Profile */}
             <div className="mt-auto mb-10 mx-auto   hover:ring-secondary-focus">
+              <div className="sm:block hidden">{loading === 1 ? <Loading /> : null}</div>
+              {loading === 2 ? <AlertComponent /> : null}
+
               <div
                 className="mt-auto mb-10 mx-auto rounded-full ring-2 ring-secondary ring-offset-base-100 ring-offset-2 cursor-pointer select-none flex xl:py-2 xl:px-4 xl:hover:bg-secondary hover:ring-secondary-focus"
                 onClick={() => {
