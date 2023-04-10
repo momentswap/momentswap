@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import { useMomentSwapContract, useWalletProvider } from "@hooks";
 import { Media } from "@utils/definitions/interfaces";
 import { createMomentSwapMetadata, storeMediaToIPFS, storeMetadataToIPFS } from "@utils/helpers";
+import { useLoadingStore } from "src/ZusStore/useLoadingStore";
 
 export const PublishModal = () => {
   const router = useRouter();
@@ -13,6 +14,9 @@ export const PublishModal = () => {
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState("");
   const [media, setMedia] = useState<Media | undefined>(undefined);
+  const increasePopulation = useLoadingStore((state) => state.setLoadingProcess);
+  const resetLoadingProcess = useLoadingStore((state) => state.resetLoadingProcess);
+  const setLoadingNotify = useLoadingStore((state) => state.setLoadingNotify);
   const uploadInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length == 0 || loading) {
       return;
@@ -36,11 +40,17 @@ export const PublishModal = () => {
     const metadata = createMomentSwapMetadata(address, text, media);
 
     try {
+      increasePopulation();
       const metadataIPFS = await storeMetadataToIPFS(metadata);
       await mintMomentSwapNFT(metadataIPFS.toString());
-      alert("Successfully published moment!");
+      // alert("Successfully published moment!");
+      setLoadingNotify();
+      setTimeout(() => {
+        resetLoadingProcess();
+      }, 5000);
       router.push("/");
     } catch (err) {
+      resetLoadingProcess();
       console.error("Failed to publish moment, error:", err);
       alert("Failed to publish moment.");
     }
