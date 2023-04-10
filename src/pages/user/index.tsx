@@ -769,10 +769,12 @@ export default function UserPage() {
             </svg>
             Edit Identity
           </label>
-          <div className="mx-6">
+
+          <div style={{padding:"0 20px",width:"100vw"}}>
             <p className="text-2xl font-semibold">{mainDomain || "---"}.fil</p>
             <p className="text-sm">{queryAddress}</p>
           </div>
+
           <div className="mt-5">
             <Tab tabs={["Moments", "Likes", "Spaces"]} activeTab={currentTab} setActiveTab={setCurrentTab} />
             {tabPage}
