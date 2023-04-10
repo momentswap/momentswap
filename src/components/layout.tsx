@@ -1,7 +1,9 @@
-import { CommentModal, IdentityModal, PublishModal, Sidebar, Widgets } from "@components";
+import { CommentModal, IdentityModal, PublishModal, Sidebar, SidebarMenuItem, Widgets } from "@components";
 import Head from "next/head";
 import { FC, ReactNode } from "react";
 import { useSpaceDomain, useWalletProvider } from "src/hooks";
+import { MbFootBar } from "./mbFootbar";
+
 
 type Props = {
   children?: ReactNode;
@@ -10,7 +12,7 @@ type Props = {
 export const Layout: FC<Props> = ({ children }) => {
   const { address } = useWalletProvider();
   const { mainDomain, loading } = useSpaceDomain();
-
+  
   return (
     <>
       <CommentModal />
@@ -30,6 +32,7 @@ export const Layout: FC<Props> = ({ children }) => {
             <Sidebar />
             {children}
             <Widgets />
+            <MbFootBar />
           </>
         ) : (
           <div className="flex flex-col h-screen w-screen justify-center items-center">
