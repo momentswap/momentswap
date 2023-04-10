@@ -1,0 +1,29 @@
+.progressLoader {
+    width: 150px;
+    background: rgba(236, 236, 238, 0.253);
+    height: 10px;
+    border-radius: 7px;
+  }
+  
+  .progress {
+    width: 1px;
+    height: 10px;
+    border-radius: 7px;
+    background: rgb(255, 55, 255);
+    transition: 0.5s;
+    animation: loading_44 35s cubic-bezier(.4,1.01,1,1) forwards;
+  }
+  
+  @keyframes loading_44 {
+    0% {
+      width: 0%;
+    }
+  
+    70% {
+      width: 90%;
+    }
+  
+    100% {
+      width: 100%;
+    }
+  }
