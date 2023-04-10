@@ -729,7 +729,7 @@ export default function UserPage() {
   return (
     <>
       <Layout>
-        <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl">
+        <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl h-[100vh]">
           <div className="flex p-2 sticky top-0 z-50 bg-base-200 border-primary gap-2">
             <div onClick={() => router.back()}>
               <ArrowLeftIcon className="rounded-full h-9 w-9 p-2 hover:bg-primary" />

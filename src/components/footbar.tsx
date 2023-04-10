@@ -1,13 +1,11 @@
 import { HomeIcon, UserIcon } from "@heroicons/react/outline";
 
 import { useWalletProvider } from "src/hooks/use-wallet-provider";
-import { useLoadingStore } from "src/ZusStore/useLoadingStore";
 import { PublishButton } from "./publish-button";
 import { SidebarMenuItem } from "./sidebar-menuItem";
 
 export const Footbar = () => {
   const { address } = useWalletProvider();
-  const loading = useLoadingStore((state) => state.loading);
 
   return (
     <div className="sm:hidden">

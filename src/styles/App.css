@@ -73,12 +73,6 @@ code {
   color: #000000;
 }
 
-
-
-
-
-
-
 @keyframes slideInRight {
   from {
     transform: translateX(100%);

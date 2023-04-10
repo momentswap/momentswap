@@ -2,10 +2,9 @@ import { HomeIcon, UserIcon } from "@heroicons/react/outline";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
-import { Avatar, PublishButton, SidebarMenuItem } from "@components";
-import { useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
+import { AlertComponent, Avatar, Loading, PublishButton, SidebarMenuItem } from "@components";
+import { useLoadingStore, useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { sortAddress } from "@utils/helpers";
-import { useLoadingStore } from "src/hooks/use-loading-store";
 
 export const Sidebar = () => {
   const router = useRouter();

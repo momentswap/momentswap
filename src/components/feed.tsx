@@ -34,7 +34,7 @@ export const Feed = () => {
   }, [getNFTCollection, getAvatar]);
 
   return (
-    <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl w-[100vw]">
+    <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl w-[100vw] h-[100vh]">
       <div className="flex items-center justify-between p-2 sticky top-0 z-50 bg-base-200 border-primary">
         <h2 className="text-lg sm:text-xl font-bold cursor-pointer">Home</h2>
         <img src="/logo.png" alt="" className="h-8 w-8 sm:hidden" />

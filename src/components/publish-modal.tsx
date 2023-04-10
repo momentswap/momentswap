@@ -1,10 +1,10 @@
 import { XIcon } from "@heroicons/react/outline";
-import { useMomentSwapContract, useWalletProvider } from "@hooks";
-import { Media } from "@utils/definitions/interfaces";
-import { createMomentSwapMetadata, storeMediaToIPFS, storeMetadataToIPFS } from "@utils/helpers";
 import { useRouter } from "next/router";
 import { useState } from "react";
-import { useLoadingStore } from "src/hooks/use-loading-store";
+
+import { useLoadingStore, useMomentSwapContract, useWalletProvider } from "@hooks";
+import { Media } from "@utils/definitions/interfaces";
+import { createMomentSwapMetadata, storeMediaToIPFS, storeMetadataToIPFS } from "@utils/helpers";
 
 export const PublishModal = () => {
   const router = useRouter();
