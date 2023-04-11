@@ -4,6 +4,7 @@ import { Avatar } from "@components";
 import { useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { ipfsCidToHttpUrl, storeMediaToIPFS } from "@utils/helpers";
 import { useRouter } from "next/router";
+import { useNotifyStatus } from "@hooks/use-loading-store";
 
 export const IdentityModal = () => {
   const { address } = useWalletProvider();
@@ -15,6 +16,8 @@ export const IdentityModal = () => {
   const avatarRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const setNotifyFail = useNotifyStatus((state) => state.fail);
+
 
   useEffect(() => {
     avatarRef.current?.addEventListener("input", async () => {
@@ -58,11 +61,12 @@ export const IdentityModal = () => {
         await setAvatar(avatarSetting);
       }
       if (!mainDomain) {
-        await(await registerMainDomain(text)).wait();
+        registerMainDomain(text)
       }
     } catch (err: any) {
       if (err.code === -32603) {
-        alert("Insufficient gas.");
+      setNotifyFail()
+        // alert("Insufficient gas.");
       }
     }
 
