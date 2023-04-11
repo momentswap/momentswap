@@ -4,7 +4,7 @@ import { useSpaceDomain, useWalletProvider } from "src/hooks";
 import {
   RadiusUprightOutlined,
 } from '@ant-design/icons';
-import { useNotificationLoading } from "@utils/useNotifity";
+import { useNotificationLoading } from "@hooks";
 import { Loading } from "src/components/loading/loading";
 import { Button } from "antd";
 import { useEffect } from "react";

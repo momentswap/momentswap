@@ -11,8 +11,7 @@ import { useFNSMarketContract, useMomentSwapContract, useSpaceFNSContract, useWa
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { isEmptyAddress, secondsToYears, yearsToSeconds } from "@utils/helpers";
 import { collectionToMoments } from "@utils/helpers/collection-to-moments";
-import { useNotifyStatus } from "@hooks/use-loading-store";
-import { useNotificationLoading } from "@utils/useNotifity";
+import { useNotificationLoading, useNotifyStatus } from "@hooks";
 import { Loading } from "src/components/loading/loading";
 
 interface SpaceSlot {
