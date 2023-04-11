@@ -1,11 +1,11 @@
-import s from "./loading.module.scss";
+import style from "./loading.module.scss";
 
 export const Loading = () => {
   return (
-    <div className="m-4 max-sm:flex justify-start m-2 items-center">
+    <div className="m-4 max-sm:flex justify-start items-center">
       <span className="mr-2">Loading</span>
-      <div className={s.progressLoader}>
-        <div className={s.progress}></div>
+      <div className={style.progressLoader}>
+        <div className={style.progress}></div>
       </div>
     </div>
   );

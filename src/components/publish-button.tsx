@@ -1,6 +1,6 @@
-export const PublishSvg=()=>{
-    return (
-      <label
+export const PublishButton = () => {
+  return (
+    <label
       htmlFor="publish-modal"
       className="flex text-center bg-primary rounded-full w-12 xl:w-56 h-12 font-bold shadow-md hover:bg-primary-focus text-lg mx-auto"
     >
@@ -20,5 +20,5 @@ export const PublishSvg=()=>{
         />
       </svg>
     </label>
-    )
-}
+  );
+};

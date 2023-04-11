@@ -2,13 +2,9 @@ import { HomeIcon, UserIcon } from "@heroicons/react/outline";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
-import { Avatar, SidebarMenuItem } from "@components";
-import { useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
+import { AlertComponent, Avatar, Loading, PublishButton, SidebarMenuItem } from "@components";
+import { useLoadingStore, useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { sortAddress } from "@utils/helpers";
-import { PublishSvg } from "./svgIcon/PublishSvg";
-import { Loading } from "./loading/loading";
-import { useLoadingStore } from "src/ZusStore/useLoadingStore";
-import { AlertComponent } from "./alert";
 
 export const Sidebar = () => {
   const router = useRouter();
@@ -59,8 +55,7 @@ export const Sidebar = () => {
 
         {address ? (
           <>
-            <PublishSvg />
-
+            <PublishButton />
             {/* Mini-Profile */}
             <div className="mt-auto mb-10 mx-auto   hover:ring-secondary-focus">
               <div className="sm:block hidden">{loading === 1 ? <Loading /> : null}</div>
