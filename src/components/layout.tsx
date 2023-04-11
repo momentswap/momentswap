@@ -35,7 +35,7 @@ export const Layout: FC<Props> = ({ children }) => {
             <Footbar />
           </>
         ) : (
-          <div className="flex flex-col h-screen justify-center items-center px-6">
+          <div className="flex flex-col h-screen w-screen justify-center items-center px-6 break-all">
             <p>
               Your wallet address: <span className="font-mono">{address}</span>
             </p>

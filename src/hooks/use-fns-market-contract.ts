@@ -2,8 +2,7 @@ import { BigNumber, Contract } from "ethers";
 import { useCallback, useMemo } from "react";
 
 import FNSMarket from "@Contracts/FNSMarket.sol/RentMarket.json";
-import { useWalletProvider } from "@hooks";
-import { useNotifyStatus } from "@hooks/use-loading-store";
+import { useNotifyStatus, useWalletProvider } from "@hooks";
 
 const marketContractAddress = process.env.NEXT_PUBLIC_FNS_MARKET_CONTRACT_ADDRESS;
 if (!marketContractAddress) {

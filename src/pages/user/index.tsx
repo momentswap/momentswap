@@ -6,13 +6,17 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 
-import { Avatar, Layout, Moment, PriceButton, Tab, ThemeToggle } from "@components";
-import { useFNSMarketContract, useMomentSwapContract, useSpaceFNSContract, useWalletProvider } from "@hooks";
+import { Avatar, Layout, Loading, Moment, PriceButton, Tab, ThemeToggle } from "@components";
+import {
+  useFNSMarketContract,
+  useMomentSwapContract,
+  useNotificationLoading,
+  useNotifyStatus,
+  useSpaceFNSContract,
+  useWalletProvider,
+} from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
-import { isEmptyAddress, secondsToYears, yearsToSeconds } from "@utils/helpers";
-import { collectionToMoments } from "@utils/helpers/collection-to-moments";
-import { useNotificationLoading, useNotifyStatus } from "@hooks";
-import { Loading } from "src/components/loading/loading";
+import { collectionToMoments, isEmptyAddress, secondsToYears, yearsToSeconds } from "@utils/helpers";
 
 interface SpaceSlot {
   id: string;
@@ -187,7 +191,7 @@ export default function UserPage() {
   const handleList = async () => {
     if (!selectedSlot) {
       router.reload();
-      setNotifyFail()
+      setNotifyFail();
       return;
     }
     setLoading(true);
@@ -196,9 +200,9 @@ export default function UserPage() {
       if (isEmptyAddress(_marketAddress)) {
         await (await approve(selectedSlot.id)).wait();
       }
-      listDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears))
+      listDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears));
     } catch {
-      setNotifyFail()
+      setNotifyFail();
     }
     setLoading(false);
     // router.reload();
@@ -213,10 +217,10 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      cancelListDomain(selectedSlot.id)
+      cancelListDomain(selectedSlot.id);
       // alert("Cancel list success !");
     } catch {
-      setNotifyFail()
+      setNotifyFail();
       // alert("Failed to cancel list");
     }
     setLoading(false);
@@ -232,14 +236,10 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-        updateListDomain(
-          selectedSlot.id,
-          ethers.utils.parseEther(price).toString(),
-          yearsToSeconds(leaseTermYears),
-        )
+      updateListDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears));
       // alert("Update success !");
     } catch {
-      setNotifyFail()
+      setNotifyFail();
       // alert("Failed to update");
     }
     setLoading(false);
@@ -253,10 +253,10 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      lendDomain(selectedSlot.id, ethers.utils.parseEther(price).toString())
+      lendDomain(selectedSlot.id, ethers.utils.parseEther(price).toString());
       // alert("Buy success !");
     } catch {
-      setNotifyFail()
+      setNotifyFail();
       // alert("Failed to buy");
     }
     setLoading(false);
@@ -275,10 +275,10 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      updateSubDomain(selectedSlot.mainDomain, selectedSlot.subDomain, leaseName)
+      updateSubDomain(selectedSlot.mainDomain, selectedSlot.subDomain, leaseName);
       // alert("Rename success !");
     } catch {
-      setNotifyFail()
+      setNotifyFail();
       // alert("Failed to rename");
     }
     setLoading(false);
@@ -310,19 +310,19 @@ export default function UserPage() {
   }, []);
 
   const notifyStatus = useNotifyStatus((state) => state.status);
-  const {api,contextHolder,openNotificationInfo} = useNotificationLoading()
-  useEffect(()=>{
-    if (notifyStatus===0){
-     api.destroy()
-    } 
-    if (notifyStatus===1){
-      openNotificationInfo('Handling Wait a moment',<Loading/>)
-     }
-     if (notifyStatus===2){
-      api.destroy()
-      openNotificationInfo('Failed to publish moment.')
-     }
-  },[notifyStatus])
+  const { api, contextHolder, openNotificationInfo } = useNotificationLoading();
+  useEffect(() => {
+    if (notifyStatus === 0) {
+      api.destroy();
+    }
+    if (notifyStatus === 1) {
+      openNotificationInfo("Handling wait a moment", <Loading />);
+    }
+    if (notifyStatus === 2) {
+      api.destroy();
+      openNotificationInfo("Failed to publish moment.");
+    }
+  }, [notifyStatus]);
 
   // TODO: This method is too large and needs to be encapsulated in some components
   const renderSpacesPage = useCallback(() => {
@@ -373,7 +373,11 @@ export default function UserPage() {
 
             <div className="divider" />
             <div className="modal-action">
-              <label htmlFor="sell-modal" className={`btn btn-primary ${loading ? "loading" : ""}`} onClick={handleList}>
+              <label
+                htmlFor="sell-modal"
+                className={`btn btn-primary ${loading ? "loading" : ""}`}
+                onClick={handleList}
+              >
                 List
               </label>
             </div>
@@ -425,10 +429,18 @@ export default function UserPage() {
 
             <div className="divider" />
             <div className="modal-action">
-              <label htmlFor="update-listed-modal" className={`btn btn-secondary ${loading ? "loading" : ""}`} onClick={handleCancelList}>
+              <label
+                htmlFor="update-listed-modal"
+                className={`btn btn-secondary ${loading ? "loading" : ""}`}
+                onClick={handleCancelList}
+              >
                 Unlist
               </label>
-              <label htmlFor="update-listed-modal" className={`btn btn-primary ${loading ? "loading" : ""}`} onClick={handleUpdateList}>
+              <label
+                htmlFor="update-listed-modal"
+                className={`btn btn-primary ${loading ? "loading" : ""}`}
+                onClick={handleUpdateList}
+              >
                 Update
               </label>
             </div>
@@ -745,7 +757,7 @@ export default function UserPage() {
     <>
       {contextHolder}
       <Layout>
-        <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl">
+        <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl w-[100vw] h-[100%]">
           <div className="flex p-2 sticky top-0 z-50 bg-base-200 border-primary gap-2">
             <div onClick={() => router.back()}>
               <ArrowLeftIcon className="rounded-full h-9 w-9 p-2 hover:bg-primary" />
@@ -786,7 +798,7 @@ export default function UserPage() {
             Edit Identity
           </label>
 
-          <div style={{padding:"0 20px",width:"100vw"}}>
+          <div className="px-4 py-2">
             <p className="text-2xl font-semibold">{mainDomain || "---"}.fil</p>
             <p className="text-sm">{queryAddress}</p>
           </div>

@@ -2,8 +2,7 @@ import { BigNumber, Contract } from "ethers";
 import { useCallback, useMemo } from "react";
 
 import SapceFNS from "@Contracts/SpaceFNS.sol/SpaceFNS.json";
-import { useWalletProvider } from "@hooks";
-import { useNotifyStatus } from "@hooks/use-loading-store";
+import { useNotifyStatus, useWalletProvider } from "@hooks";
 
 const marketContractAddress = process.env.NEXT_PUBLIC_FNS_MARKET_CONTRACT_ADDRESS;
 

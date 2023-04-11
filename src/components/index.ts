@@ -1,4 +1,4 @@
-export { Alert as AlertComponent } from "./alert";
+export { Alert } from "./alert";
 export { Avatar } from "./avatar";
 export { Comment } from "./comment";
 export { CommentModal } from "./comment-modal";
@@ -18,4 +18,3 @@ export { SidebarMenuItem } from "./sidebar-menuItem";
 export { Tab } from "./tab";
 export { ThemeToggle } from "./theme-toggle";
 export { Widgets } from "./widgets";
-
