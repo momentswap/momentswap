@@ -3,6 +3,7 @@ import { useCallback, useMemo } from "react";
 
 import FNSMarket from "@Contracts/FNSMarket.sol/RentMarket.json";
 import { useWalletProvider } from "@hooks";
+import { useNotifyStatus } from "@hooks/use-loading-store";
 
 const marketContractAddress = process.env.NEXT_PUBLIC_FNS_MARKET_CONTRACT_ADDRESS;
 if (!marketContractAddress) {
@@ -19,6 +20,9 @@ export const useFNSMarketContract = () => {
   const contractWithSigner = useMemo(() => new Contract(marketContractAddress, FNSMarket.abi, signer), [signer]);
   const contractWithProvider = useMemo(() => new Contract(marketContractAddress, FNSMarket.abi, provider), [provider]);
 
+  const setNotifySuccess = useNotifyStatus((state) => state.success);
+  const setNotifyReset = useNotifyStatus((state) => state.resetStatus);
+  const setNotifyFail = useNotifyStatus((state) => state.fail);
   // Read-only contract functions
 
   const getListedDomainsByDomainID = useCallback(
@@ -38,29 +42,41 @@ export const useFNSMarketContract = () => {
   );
 
   const lendDomain = useCallback(
-    (domainID: string, price: string): Promise<any> => {
-      return contractWithSigner.lendItem(fnsContractAddress, domainID, { value: price });
+    async(domainID: string, price: string): Promise<any> => {
+      const res = await contractWithSigner.lendItem(fnsContractAddress, domainID, { value: price });
+      setNotifySuccess();
+      await res.wait();
+      setNotifyReset();
     },
     [contractWithSigner],
   );
 
   const listDomain = useCallback(
-    (domainID: string, price: string, expire: number): Promise<any> => {
-      return contractWithSigner.listItem(fnsContractAddress, domainID, price, expire);
+    async(domainID: string, price: string, expire: number): Promise<any> => {
+      const res = await contractWithSigner.listItem(fnsContractAddress, domainID, price, expire);
+      setNotifySuccess();
+      await res.wait();
+      setNotifyReset();
     },
     [contractWithSigner],
   );
 
   const updateListDomain = useCallback(
-    (domainID: string, price: string, expire: number): Promise<any> => {
-      return contractWithSigner.updateListing(fnsContractAddress, domainID, price, expire);
+    async(domainID: string, price: string, expire: number): Promise<any> => {
+      const res = await contractWithSigner.updateListing(fnsContractAddress, domainID, price, expire);
+      setNotifySuccess();
+      await res.wait();
+      setNotifyReset();
     },
     [contractWithSigner],
   );
 
   const cancelListDomain = useCallback(
-    (domainID: string): Promise<any> => {
-      return contractWithSigner.cancelListing(fnsContractAddress, domainID);
+    async(domainID: string): Promise<any> => {
+      const res = await contractWithSigner.cancelListing(fnsContractAddress, domainID);
+      setNotifySuccess();
+      await res.wait();
+      setNotifyReset();
     },
     [contractWithSigner],
   );

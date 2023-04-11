@@ -1,10 +1,11 @@
 import { XIcon } from "@heroicons/react/outline";
 import { useRouter } from "next/router";
-import { useState } from "react";
+import React, { useState } from "react";
 
-import { useLoadingStore, useMomentSwapContract, useWalletProvider } from "@hooks";
+import { useMomentSwapContract, useWalletProvider } from "@hooks";
 import { Media } from "@utils/definitions/interfaces";
 import { createMomentSwapMetadata, storeMediaToIPFS, storeMetadataToIPFS } from "@utils/helpers";
+import { useNotifyStatus } from "@hooks/use-loading-store";
 
 export const PublishModal = () => {
   const router = useRouter();
@@ -13,9 +14,9 @@ export const PublishModal = () => {
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState("");
   const [media, setMedia] = useState<Media | undefined>(undefined);
-  const setLoadingProcess = useLoadingStore((state) => state.setLoadingProcess);
-  const resetLoadingProcess = useLoadingStore((state) => state.resetLoadingProcess);
-  const setLoadingNotify = useLoadingStore((state) => state.setLoadingNotify);
+  const setNotifySuccess = useNotifyStatus((state) => state.success);
+  const setNotifyFail = useNotifyStatus((state) => state.fail);
+  const setNotifyReset = useNotifyStatus((state) => state.resetStatus);
   const uploadInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length == 0 || loading) {
       return;
@@ -39,17 +40,15 @@ export const PublishModal = () => {
     const metadata = createMomentSwapMetadata(address, text, media);
 
     try {
-      setLoadingProcess();
       const metadataIPFS = await storeMetadataToIPFS(metadata);
-      await mintMomentSwapNFT(metadataIPFS.toString());
+      setNotifySuccess();
+      const res = await mintMomentSwapNFT(metadataIPFS.toString());
+      await res.wait();
       // alert("Successfully published moment!");
-      setLoadingNotify();
-      setTimeout(() => {
-        resetLoadingProcess();
-      }, 5000);
+      setNotifyReset();
       router.push("/");
     } catch (err) {
-      resetLoadingProcess();
+      setNotifyFail();
       console.error("Failed to publish moment, error:", err);
       alert("Failed to publish moment.");
     }

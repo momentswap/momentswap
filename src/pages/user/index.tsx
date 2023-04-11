@@ -6,11 +6,14 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 
-import { Avatar, Layout, Loader, Moment, PriceButton, Tab, ThemeToggle } from "@components";
+import { Avatar, Layout, Moment, PriceButton, Tab, ThemeToggle } from "@components";
 import { useFNSMarketContract, useMomentSwapContract, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { isEmptyAddress, secondsToYears, yearsToSeconds } from "@utils/helpers";
 import { collectionToMoments } from "@utils/helpers/collection-to-moments";
+import { useNotifyStatus } from "@hooks/use-loading-store";
+import { useNotificationLoading } from "@utils/useNotifity";
+import { Loading } from "src/components/loading/loading";
 
 interface SpaceSlot {
   id: string;
@@ -36,7 +39,7 @@ export default function UserPage() {
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
   const [currentTab, setCurrentTab] = useState("Moments");
   const [tabPage, setTabPage] = useState(<></>);
-  const [moments, setMoments] = useState<Array<MomentMetadata>>([]);
+  const [moments, setMoments] = useState<Array<MomentMetadata>>();
   const [selectedSlot, setSelectedSlot] = useState<SpaceSlot | undefined>(undefined);
   const [price, setPrice] = useState<string>("");
   const [leaseTermYears, setLeaseTermYears] = useState<number>(1);
@@ -44,8 +47,10 @@ export default function UserPage() {
   const [creatorSlots, setCreatorSlots] = useState<Array<SpaceSlot | undefined>>([]);
   const [userSlots, setUserSlots] = useState<Array<SpaceSlot>>([]);
   const [loading, setLoading] = useState(false);
-  const [momentLoading, setMomentLoading] = useState(false);
   const [mainDomain, setMainDomain] = useState("");
+  const setNotifySuccess = useNotifyStatus((state) => state.success);
+  const setNotifyReset = useNotifyStatus((state) => state.resetStatus);
+  const setNotifyFail = useNotifyStatus((state) => state.fail);
   const {
     approve,
     mintSubDomain,
@@ -174,35 +179,30 @@ export default function UserPage() {
     }
 
     try {
-      await (await mintSubDomain(mainDomain, `space${parseInt(readyMintIndex) + 1}`)).wait();
-      alert("Mint success !");
+      mintSubDomain(mainDomain, `space${parseInt(readyMintIndex) + 1}`);
     } catch {
-      alert("Failed to mint");
+      setNotifyFail();
     }
   };
 
   const handleList = async () => {
     if (!selectedSlot) {
       router.reload();
-      alert("Failed to list");
+      setNotifyFail()
       return;
     }
-
     setLoading(true);
     try {
       const _marketAddress = await getApprovedByDomainID(selectedSlot.id);
       if (isEmptyAddress(_marketAddress)) {
         await (await approve(selectedSlot.id)).wait();
       }
-      await (
-        await listDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears))
-      ).wait();
-      alert("List success !");
+      listDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears))
     } catch {
-      alert("Failed to list");
+      setNotifyFail()
     }
     setLoading(false);
-    router.reload();
+    // router.reload();
   };
 
   const handleCancelList = async () => {
@@ -214,13 +214,14 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      await (await cancelListDomain(selectedSlot.id)).wait();
-      alert("Cancel list success !");
+      cancelListDomain(selectedSlot.id)
+      // alert("Cancel list success !");
     } catch {
-      alert("Failed to cancel list");
+      setNotifyFail()
+      // alert("Failed to cancel list");
     }
     setLoading(false);
-    router.reload();
+    // router.reload();
   };
 
   const handleUpdateList = async () => {
@@ -232,19 +233,18 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      await (
-        await updateListDomain(
+        updateListDomain(
           selectedSlot.id,
           ethers.utils.parseEther(price).toString(),
           yearsToSeconds(leaseTermYears),
         )
-      ).wait();
-      alert("Update success !");
+      // alert("Update success !");
     } catch {
-      alert("Failed to update");
+      setNotifyFail()
+      // alert("Failed to update");
     }
     setLoading(false);
-    router.reload();
+    // router.reload();
   };
 
   const handleBuy = async () => {
@@ -254,10 +254,11 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      await (await lendDomain(selectedSlot.id, ethers.utils.parseEther(price).toString())).wait();
-      alert("Buy success !");
+      lendDomain(selectedSlot.id, ethers.utils.parseEther(price).toString())
+      // alert("Buy success !");
     } catch {
-      alert("Failed to buy");
+      setNotifyFail()
+      // alert("Failed to buy");
     }
     setLoading(false);
     router.reload();
@@ -275,58 +276,31 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      await (await updateSubDomain(selectedSlot.mainDomain, selectedSlot.subDomain, leaseName)).wait();
-      alert("Rename success !");
+      updateSubDomain(selectedSlot.mainDomain, selectedSlot.subDomain, leaseName)
+      // alert("Rename success !");
     } catch {
-      alert("Failed to rename");
+      setNotifyFail()
+      // alert("Failed to rename");
     }
     setLoading(false);
-    router.reload();
+    // router.reload();
   };
 
   const renderMomentsPage = useCallback(() => {
     const _tabPage = (
-      <>
-        {momentLoading ? (
-          <div className="flex justify-center h-[50vh] items-center">
-            <Loader />
-          </div>
-        ) : moments.length > 0 ? (
-          <AnimatePresence>
-            <AnimatePresence>
-              {moments?.map((moment) => (
-                <motion.div
-                  key={moment.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 1 }}
-                >
-                  <Moment key={moment.id} moment={moment} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </AnimatePresence>
-        ) : (
-          <div className="flex justify-center h-[50vh] items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-6 h-6"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
-              />
-            </svg>
-            <p>No records</p>
-          </div>
-        )}
-      </>
+      <AnimatePresence>
+        {moments?.map((moment) => (
+          <motion.div
+            key={moment.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1 }}
+          >
+            <Moment key={moment.id} moment={moment} />
+          </motion.div>
+        ))}
+      </AnimatePresence>
     );
     setTabPage(_tabPage);
   }, [moments, userImg]);
@@ -335,6 +309,21 @@ export default function UserPage() {
     const _tabPage = <p>coming soon...</p>;
     setTabPage(_tabPage);
   }, []);
+
+  const notifyStatus = useNotifyStatus((state) => state.status);
+  const {api,contextHolder,openNotificationInfo} = useNotificationLoading()
+  useEffect(()=>{
+    if (notifyStatus===0){
+     api.destroy()
+    } 
+    if (notifyStatus===1){
+      openNotificationInfo('Handling Wait a moment',<Loading/>)
+     }
+     if (notifyStatus===2){
+      api.destroy()
+      openNotificationInfo('Failed to publish moment.')
+     }
+  },[notifyStatus])
 
   // TODO: This method is too large and needs to be encapsulated in some components
   const renderSpacesPage = useCallback(() => {
@@ -385,7 +374,7 @@ export default function UserPage() {
 
             <div className="divider" />
             <div className="modal-action">
-              <label className={`btn btn-primary ${loading ? "loading" : ""}`} onClick={handleList}>
+              <label htmlFor="sell-modal" className={`btn btn-primary ${loading ? "loading" : ""}`} onClick={handleList}>
                 List
               </label>
             </div>
@@ -437,10 +426,10 @@ export default function UserPage() {
 
             <div className="divider" />
             <div className="modal-action">
-              <label className={`btn btn-secondary ${loading ? "loading" : ""}`} onClick={handleCancelList}>
+              <label htmlFor="update-listed-modal" className={`btn btn-secondary ${loading ? "loading" : ""}`} onClick={handleCancelList}>
                 Unlist
               </label>
-              <label className={`btn btn-primary ${loading ? "loading" : ""}`} onClick={handleUpdateList}>
+              <label htmlFor="update-listed-modal" className={`btn btn-primary ${loading ? "loading" : ""}`} onClick={handleUpdateList}>
                 Update
               </label>
             </div>
@@ -715,14 +704,12 @@ export default function UserPage() {
   // Get collection from the contract when provider is updated.
   useEffect(() => {
     (async () => {
-      setMomentLoading(true);
       const collection = await getNFTCollectionByOwner(queryAddress);
       const _moments = await collectionToMoments(collection);
       for (let m of _moments) {
         m.username = mainDomain;
         m.userImg = userImg;
       }
-      setMomentLoading(false);
       setMoments(_moments);
     })();
   }, [getNFTCollectionByOwner, queryAddress, mainDomain, userImg]);
@@ -757,8 +744,9 @@ export default function UserPage() {
 
   return (
     <>
+      {contextHolder}
       <Layout>
-        <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl h-[100%]">
+        <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl">
           <div className="flex p-2 sticky top-0 z-50 bg-base-200 border-primary gap-2">
             <div onClick={() => router.back()}>
               <ArrowLeftIcon className="rounded-full h-9 w-9 p-2 hover:bg-primary" />
@@ -799,7 +787,7 @@ export default function UserPage() {
             Edit Identity
           </label>
 
-          <div className="px-6 w-[100vw]">
+          <div style={{padding:"0 20px",width:"100vw"}}>
             <p className="text-2xl font-semibold">{mainDomain || "---"}.fil</p>
             <p className="text-sm">{queryAddress}</p>
           </div>
