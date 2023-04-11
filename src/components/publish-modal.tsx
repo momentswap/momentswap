@@ -2,10 +2,9 @@ import { XIcon } from "@heroicons/react/outline";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 
-import { useMomentSwapContract, useWalletProvider } from "@hooks";
+import { useMomentSwapContract, useNotifyStatus, useWalletProvider } from "@hooks";
 import { Media } from "@utils/definitions/interfaces";
 import { createMomentSwapMetadata, storeMediaToIPFS, storeMetadataToIPFS } from "@utils/helpers";
-import { useNotifyStatus } from "@hooks/use-loading-store";
 
 export const PublishModal = () => {
   const router = useRouter();

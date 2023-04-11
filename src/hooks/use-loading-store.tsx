@@ -1,17 +1,18 @@
 import { create } from "zustand";
+
 type LoadingStore = {
   loading: number;
   setLoadingProcess: () => void;
   setLoadingNotify: () => void;
   resetLoadingProcess: () => void;
 };
+
 type notifyStore = {
   status: number;
   success: () => void;
   fail: () => void;
   resetStatus: () => void;
 };
-
 
 export const useLoadingStore = create<LoadingStore>((set) => ({
   loading: 0,

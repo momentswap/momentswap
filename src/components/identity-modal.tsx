@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Avatar } from "@components";
-import { useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
+import { useNotifyStatus, useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { ipfsCidToHttpUrl, storeMediaToIPFS } from "@utils/helpers";
 import { useRouter } from "next/router";
-import { useNotifyStatus } from "@hooks/use-loading-store";
 
 export const IdentityModal = () => {
   const { address } = useWalletProvider();
