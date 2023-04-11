@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { ChangeEvent, useCallback, useEffect, useState } from "react";
 
-import { Avatar, Layout, Moment, PriceButton, Tab, ThemeToggle } from "@components";
+import { Avatar, Layout, Loader, Moment, PriceButton, Tab, ThemeToggle } from "@components";
 import { useFNSMarketContract, useMomentSwapContract, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { isEmptyAddress, secondsToYears, yearsToSeconds } from "@utils/helpers";
@@ -36,7 +36,7 @@ export default function UserPage() {
   const [userImg, setUserImg] = useState<string | undefined>(undefined);
   const [currentTab, setCurrentTab] = useState("Moments");
   const [tabPage, setTabPage] = useState(<></>);
-  const [moments, setMoments] = useState<Array<MomentMetadata>>();
+  const [moments, setMoments] = useState<Array<MomentMetadata>>([]);
   const [selectedSlot, setSelectedSlot] = useState<SpaceSlot | undefined>(undefined);
   const [price, setPrice] = useState<string>("");
   const [leaseTermYears, setLeaseTermYears] = useState<number>(1);
@@ -44,6 +44,7 @@ export default function UserPage() {
   const [creatorSlots, setCreatorSlots] = useState<Array<SpaceSlot | undefined>>([]);
   const [userSlots, setUserSlots] = useState<Array<SpaceSlot>>([]);
   const [loading, setLoading] = useState(false);
+  const [momentLoading, setMomentLoading] = useState(false);
   const [mainDomain, setMainDomain] = useState("");
   const {
     approve,
@@ -173,9 +174,7 @@ export default function UserPage() {
     }
 
     try {
-      await (
-        await mintSubDomain(mainDomain, `space${parseInt(readyMintIndex) + 1}`)
-      ).wait;
+      await (await mintSubDomain(mainDomain, `space${parseInt(readyMintIndex) + 1}`)).wait();
       alert("Mint success !");
     } catch {
       alert("Failed to mint");
@@ -287,19 +286,47 @@ export default function UserPage() {
 
   const renderMomentsPage = useCallback(() => {
     const _tabPage = (
-      <AnimatePresence>
-        {moments?.map((moment) => (
-          <motion.div
-            key={moment.id}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1 }}
-          >
-            <Moment key={moment.id} moment={moment} />
-          </motion.div>
-        ))}
-      </AnimatePresence>
+      <>
+        {momentLoading ? (
+          <div className="flex justify-center h-[50vh] items-center">
+            <Loader />
+          </div>
+        ) : moments.length > 0 ? (
+          <AnimatePresence>
+            <AnimatePresence>
+              {moments?.map((moment) => (
+                <motion.div
+                  key={moment.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1 }}
+                >
+                  <Moment key={moment.id} moment={moment} />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </AnimatePresence>
+        ) : (
+          <div className="flex justify-center h-[50vh] items-center">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className="w-6 h-6"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+              />
+            </svg>
+            <p>No records</p>
+          </div>
+        )}
+      </>
     );
     setTabPage(_tabPage);
   }, [moments, userImg]);
@@ -688,12 +715,14 @@ export default function UserPage() {
   // Get collection from the contract when provider is updated.
   useEffect(() => {
     (async () => {
+      setMomentLoading(true);
       const collection = await getNFTCollectionByOwner(queryAddress);
       const _moments = await collectionToMoments(collection);
       for (let m of _moments) {
         m.username = mainDomain;
         m.userImg = userImg;
       }
+      setMomentLoading(false);
       setMoments(_moments);
     })();
   }, [getNFTCollectionByOwner, queryAddress, mainDomain, userImg]);
@@ -729,7 +758,7 @@ export default function UserPage() {
   return (
     <>
       <Layout>
-        <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl h-[100vh]">
+        <div className="border-l border-r border-primary xl:min-w-[576px] flex-grow max-w-xl h-[100%]">
           <div className="flex p-2 sticky top-0 z-50 bg-base-200 border-primary gap-2">
             <div onClick={() => router.back()}>
               <ArrowLeftIcon className="rounded-full h-9 w-9 p-2 hover:bg-primary" />

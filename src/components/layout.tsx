@@ -35,20 +35,20 @@ export const Layout: FC<Props> = ({ children }) => {
             <Footbar />
           </>
         ) : (
-          <div className="flex flex-col h-screen w-screen justify-center items-center">
+          <div className="flex flex-col h-screen justify-center items-center px-6">
             <p>
               Your wallet address: <span className="font-mono">{address}</span>
             </p>
 
             {loading ? (
-              <div>From the chain during data loading...</div>
+              <p>From the chain during data loading...</p>
             ) : (
-              <div>
+              <p>
                 The Space Domain needs to be registered for the first login:
                 <label htmlFor="identity-modal" className="link">
                   Register
                 </label>
-              </div>
+              </p>
             )}
           </div>
         )}
