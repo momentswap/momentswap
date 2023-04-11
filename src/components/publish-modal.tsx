@@ -50,7 +50,7 @@ export const PublishModal = () => {
     } catch (err) {
       setNotifyFail();
       console.error("Failed to publish moment, error:", err);
-      alert("Failed to publish moment.");
+      // alert("Failed to publish moment.");
     }
   };
 
