@@ -25,9 +25,14 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     error NoTransactionFee();
     error NoProceeds();
 
-    constructor(uint16 freeRate_) {
+    // constructor(uint16 freeRate_) {
+    //     beneficiary = payable(msg.sender);
+    //     freeRate = freeRate_;
+    // }
+
+    constructor() {
         beneficiary = payable(msg.sender);
-        freeRate = freeRate_;
+        freeRate = 500;
     }
     
     /// onlyBeneficiary modifier
@@ -180,4 +185,18 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         require(success, "Failed to transfer payment to user");
         emit WithdrawRent(msg.sender, uint64(proceed));
     }
+
+    /// @dev GetItemBySpaceID
+    function GetItemBySpaceID(address nftAddr, uint64 spaceId) public view returns(Item memory){
+        return(nftList[nftAddr][spaceId]);
+    }
+
+    function getTotalTransactionFee() public view returns(uint256){
+        return(totalTransactionFee[beneficiary]);
+    }
+
+    function getProceeds(address owner) public view returns(uint256){
+        return(proceeds[owner]);
+    }
+
 }

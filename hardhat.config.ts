@@ -21,7 +21,7 @@ const walletPrivateKey: string | undefined = process.env.WALLET_PRIVATE_KEY;
 // }
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.17",
+  solidity: "0.8.19",
   mocha:{ timeout: 600000 },
   defaultNetwork: "filecoinHyperspace",
   networks: {

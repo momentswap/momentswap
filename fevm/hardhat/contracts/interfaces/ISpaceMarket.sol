@@ -78,22 +78,26 @@ interface ISpaceMarket {
     /// @param nftAddr The address of the domain contract.
     /// @param spaceId The ID of the domain.
     /// @param price The price of the domain.
+    /// @param userId The ID of the user.
     function listSpace(address nftAddr, uint64 spaceId, uint64 price, uint64 userId) external ;
 
     /// @dev Rents a domain.
     /// @param nftAddr The address of the domain contract.
     /// @param spaceId The ID of the domain.
+    /// @param userId The ID of the user.
     function rentSpace(address nftAddr, uint64 spaceId, uint64 userId) payable external ;
 
     /// @dev Cancels the listing of a domain.
     /// @param nftAddr The address of the domain contract.
     /// @param spaceId The ID of the domain.
+    /// @param userId The ID of the user.
     function cancelListSpace(address nftAddr, uint64 spaceId, uint64 userId) external ;
 
     /// @dev Update the price of a listed space.
     /// @param nftAddr The address of the NFT for the listed space.
     /// @param spaceId The ID of the listed space.
     /// @param newPrice The new price in wei.
+    /// @param userId The ID of the user.
     function updateListedSpace(address nftAddr, uint64 spaceId, uint64 newPrice, uint64 userId) external ;
 
     /// @dev Allow the administrator to withdraw transaction fees.

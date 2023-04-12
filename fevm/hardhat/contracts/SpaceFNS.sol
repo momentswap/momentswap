@@ -103,7 +103,7 @@ contract SpaceFNS is ISpaceFNS {
         }
 
         require(spaceDomainIds[fullDomainName] == 0, "The domain name already exists");
-
+        // expireSeconds = getBlockTimestamp() + expireSeconds;
         spaceDomains[spaceId] = SpaceDomain({
             creatorId: creatorId,
             userId: creatorId,
@@ -133,23 +133,27 @@ contract SpaceFNS is ISpaceFNS {
     /// - Delete the original domain name mapping
     function updateSubDomainName(
         uint64 spaceId,
+        string calldata primaryDomain,
         string calldata oldDomainName,
-        string calldata newDomainName, uint64 userId
-    ) public override checkDomainNameLength(newDomainName) isCreator(spaceId, userId){
+        string calldata newDomainName
+    ) public override checkDomainNameLength(newDomainName) {
         require(approvals[spaceId] == msg.sender, "Only the holder can update the domain name");
         require(spaceDomains[spaceId].primarySpaceId != 0, "Only subdomains are allowed to be modified" );
        
+        string memory oldFullDomainName = spliceDomainName2(oldDomainName, primaryDomain);       
+        string memory newFullDomainName = spliceDomainName2(newDomainName, primaryDomain);
+
         /// The new full domain name cannot already exist
-        require(spaceDomainIds[newDomainName] == 0, "The domain name already exists");
+        require(spaceDomainIds[newFullDomainName] == 0, "The domain name already exists");
         
         /// Delete the original domain name
-        delete(spaceDomainIds[oldDomainName]);
+        delete(spaceDomainIds[oldFullDomainName]);
 
         /// change domain name
-        spaceDomains[spaceId].domainName = newDomainName;
-        spaceDomainIds[newDomainName] = spaceId;
+        spaceDomains[spaceId].domainName = newFullDomainName;
+        spaceDomainIds[newFullDomainName] = spaceId;
 
-        emit UpdataDomainName(spaceId, newDomainName);
+        emit UpdataDomainName(spaceId, newFullDomainName);
     }
 
     /// @notice Update the expiration time of a space with the given space ID
@@ -161,7 +165,7 @@ contract SpaceFNS is ISpaceFNS {
         require(approvals[spaceId] == msg.sender, "Only the holder can update the expiration time");
         uint64 expireSeconds = getBlockTimestamp() + newExpireSeconds;
         spaceDomains[spaceId].expireSeconds = expireSeconds;
-        emit UpdataExpriceTime(msg.sender, spaceId, expireSeconds);
+        emit UpdataExpriceTime(msg.sender, spaceId, newExpireSeconds);
     }
 
     /// @notice Authorized to the operator
@@ -216,6 +220,13 @@ contract SpaceFNS is ISpaceFNS {
         return string(abi.encodePacked(subdomain, ".", primaryDomain));
     }
 
+    function spliceDomainName2(
+        string calldata subdomain,
+        string calldata primaryDomain
+    ) internal pure returns (string memory) {
+        return string(abi.encodePacked(subdomain, ".", primaryDomain));
+    }
+
     /// @dev Obtain the domain name through spaceid (domain name id)
     function getDomainNameById(uint64 spaceId) internal view returns (string memory) {
         return spaceDomains[spaceId].domainName;
@@ -224,5 +235,15 @@ contract SpaceFNS is ISpaceFNS {
     /// @dev Get the current blockchain timestamp
     function getBlockTimestamp() public view returns (uint64) {
         return uint64(block.timestamp);
+    }
+
+    /// @dev Get SpaceId 
+    function getSpaceIdByDomainName(string calldata domainName) public view returns (uint64) {
+        return spaceDomainIds[domainName];
+    }
+
+    /// @dev Get spaceDomain 
+    function getSpaceDomainByID(uint64 id) public view returns (SpaceDomain memory) {
+        return spaceDomains[id];
     }
 }

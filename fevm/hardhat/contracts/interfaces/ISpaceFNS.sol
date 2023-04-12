@@ -91,7 +91,7 @@ interface ISpaceFNS {
     /// - DomainName cannot be less than 3 and greater than 10 characters
     /// - Domain name cannot already exist
     /// - Delete the original domain name mapping
-    function updateSubDomainName(uint64 spaceId, string calldata oldDomainName, string calldata newDomainName, uint64 userId) external ;
+    function updateSubDomainName(uint64 spaceId, string calldata primaryDomain, string calldata oldDomainName, string calldata newDomainName) external ;
 
     /// @notice Update the expiration time of a space with the given space ID
     /// @param spaceId The ID of the space to update
