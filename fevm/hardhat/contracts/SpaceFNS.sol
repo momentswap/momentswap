@@ -15,19 +15,65 @@ contract SpaceFNS is ISpaceFNS {
         uint64 primarySpaceId;
         string domainName;
     }
+    
 
     /// Check domain length decorator
     modifier checkDomainNameLength(string calldata domainName) {
         uint256 domainName_length = bytes(domainName).length;
-        require(domainName_length >= 3 && domainName_length <= 10, "Domain name length does not meet the specification");
+        if (domainName_length < 3 || domainName_length > 10) {
+            revert DomainNameEroor(); 
+        }
         _;
     }
 
     /// Must be the creator to modify the domain name and modify the expiration time
     modifier isCreator(uint64 spaceId, uint64 userId) {
-        require(spaceDomains[spaceId].creatorId == userId, "Only Creator can operate");
+        if (spaceDomains[spaceId].creatorId != userId) {
+            revert NotCreator();
+        }
         _;
     }
+
+    /// Must be called by the Account contract
+    modifier onlyCaller() {
+        if (accountCaller != msg.sender) {
+            revert NotAccountContract();
+        }
+        _;
+    }
+
+    /// The caller must have permission
+    modifier onlyAppover(uint64 spaceId){
+        if (approvals[spaceId] != tx.origin) {
+            revert NotAppoved();
+        }
+        _;
+    }
+
+    /// The owner must have permission
+    modifier onlyOwner(uint64 spaceId){
+        if (approvals[spaceId] != msg.sender) {
+            revert NotAppoved();
+        }
+        _;
+    }
+
+    /// Must be Admin can call
+    modifier onlyAdmin() {
+        if (msg.sender != admin) {
+            revert UnAdmin();
+        }
+        _;
+    }
+
+    error NotAccountContract();
+    error NotAppoved();
+    error NotExpired();
+    error NotCreator();
+    error UnAdmin();
+    error NotSubdomain();
+    error DomainAlreadyExists();
+    error DomainNameEroor();
 
     /// id(spaceId) ==> SpaceDomain struct
     mapping(uint64 => SpaceDomain) public spaceDomains;
@@ -38,13 +84,21 @@ contract SpaceFNS is ISpaceFNS {
     /// spaceId ==> authorized address
     mapping(uint64 => address) private approvals;
 
+    /// @notice Address that can call functions with onlyCaller modifier.
+    address public accountCaller;
+    address public admin;
+
+    constructor() {
+        admin = msg.sender;
+    }
+
     /// @notice Checks if a space is expired.
     /// @param spaceId The ID of the space.
     /// @return A boolean indicating whether the space is expired.
     function isExpired(uint64 spaceId) public view override returns (bool) {
         return spaceDomains[spaceId].expireSeconds < getBlockTimestamp();
     }
-
+   
     /// @notice Checks if an array of spaces is expired.
     /// @param spaceIds An array of space IDs.
     /// @return An array of booleans indicating whether each space is expired.
@@ -58,7 +112,14 @@ contract SpaceFNS is ISpaceFNS {
 
         return expireds;
     }
-    
+
+    /// @notice Allows the contract owner to set the caller address.
+    /// @param _caller The new caller address to be set.
+    /// @dev Only the contract owner can call this function.
+    function setCaller(address _caller) external onlyAdmin() {
+        accountCaller = _caller;
+    }
+
     /// @notice Gets the address approved to act on behalf of a space.
     /// @param spaceId The ID of the space.
     /// @return The address approved to act on behalf of the space.
@@ -94,7 +155,7 @@ contract SpaceFNS is ISpaceFNS {
         uint64 primarySpaceId,
         string calldata domainName,
         uint64 expireSeconds
-    ) public override checkDomainNameLength(domainName) returns (uint64) {
+    ) public override checkDomainNameLength(domainName) onlyCaller() returns (uint64) {
         uint64 spaceId = uint64(_spaceIds.current());
         string memory fullDomainName = domainName;
         if (primarySpaceId != 0) {
@@ -102,7 +163,9 @@ contract SpaceFNS is ISpaceFNS {
             fullDomainName = spliceDomainName(domainName, parentDomain);
         }
 
-        require(spaceDomainIds[fullDomainName] == 0, "The domain name already exists");
+        if (spaceDomainIds[fullDomainName] != 0) {
+            revert DomainAlreadyExists(); 
+        }
         // expireSeconds = getBlockTimestamp() + expireSeconds;
         spaceDomains[spaceId] = SpaceDomain({
             creatorId: creatorId,
@@ -113,11 +176,11 @@ contract SpaceFNS is ISpaceFNS {
         });
 
         spaceDomainIds[fullDomainName] = spaceId;
-        approvals[spaceId] = msg.sender;
+        approvals[spaceId] = tx.origin;
 
         _spaceIds.increment();
 
-        emit MintSpaceDomain(msg.sender, primarySpaceId, fullDomainName, expireSeconds);
+        emit MintSpaceDomain(tx.origin, primarySpaceId, fullDomainName, expireSeconds);
         return spaceId;
     }
 
@@ -136,16 +199,19 @@ contract SpaceFNS is ISpaceFNS {
         string calldata primaryDomain,
         string calldata oldDomainName,
         string calldata newDomainName
-    ) public override checkDomainNameLength(newDomainName) {
-        require(approvals[spaceId] == msg.sender, "Only the holder can update the domain name");
-        require(spaceDomains[spaceId].primarySpaceId != 0, "Only subdomains are allowed to be modified" );
-       
+    ) public override checkDomainNameLength(newDomainName) onlyCaller() onlyAppover(spaceId) {
+        if (spaceDomains[spaceId].primarySpaceId == 0) {
+            revert NotSubdomain(); 
+        }
+
         string memory oldFullDomainName = spliceDomainName2(oldDomainName, primaryDomain);       
         string memory newFullDomainName = spliceDomainName2(newDomainName, primaryDomain);
 
         /// The new full domain name cannot already exist
-        require(spaceDomainIds[newFullDomainName] == 0, "The domain name already exists");
-        
+        if (spaceDomainIds[newFullDomainName] != 0) {
+            revert DomainAlreadyExists(); 
+        }
+
         /// Delete the original domain name
         delete(spaceDomainIds[oldFullDomainName]);
 
@@ -161,11 +227,11 @@ contract SpaceFNS is ISpaceFNS {
     /// @param newExpireSeconds The new expiration time, in seconds, for the space
     /// Requirements:
     /// - The caller must be authorized to update the space
-    function updateExpireSeconds(uint64 spaceId, uint64 newExpireSeconds, uint64 userId) public override isCreator(spaceId, userId){
-        require(approvals[spaceId] == msg.sender, "Only the holder can update the expiration time");
+    function updateExpireSeconds(uint64 spaceId, uint64 newExpireSeconds, uint64 userId) public override 
+        isCreator(spaceId, userId) onlyCaller() onlyAppover(spaceId){
         uint64 expireSeconds = getBlockTimestamp() + newExpireSeconds;
         spaceDomains[spaceId].expireSeconds = expireSeconds;
-        emit UpdataExpriceTime(msg.sender, spaceId, newExpireSeconds);
+        emit UpdataExpriceTime(tx.origin, spaceId, newExpireSeconds);
     }
 
     /// @notice Authorized to the operator
@@ -178,8 +244,7 @@ contract SpaceFNS is ISpaceFNS {
         emit Approved(msg.sender, operator, spaceId);
     }
 
-    function approve(address operator, uint64 spaceId) public override {
-        require(approvals[spaceId] == msg.sender, "Only the authorizer can approve an operator");
+    function approve(address operator, uint64 spaceId) public override onlyOwner(spaceId) {
         _approve(operator, spaceId);
     }
 
@@ -191,8 +256,7 @@ contract SpaceFNS is ISpaceFNS {
     /// - The caller is the authorized address
     /// - Change the `userid` of `SpaceDomain` to the renter,
     /// - Change the authorized address of `SpaceDomain` to the address of the renter
-    function rentSpace(uint64 spaceId, uint64 userId, address userAddr) public override {
-        require(approvals[spaceId] == msg.sender, "Only the authorizer can rent a space");
+    function rentSpace(uint64 spaceId, uint64 userId, address userAddr) public override onlyOwner(spaceId) {
         spaceDomains[spaceId].userId = userId;
         approve(userAddr, spaceId);
     }
@@ -205,11 +269,13 @@ contract SpaceFNS is ISpaceFNS {
     /// - The caller is the creator of the domain name
     /// - After returning, the authorization address is changed to the creator
     /// - UserId changed to creator
-    function returnSpace(uint64 userId, uint64 spaceId) public override {
-        require(spaceDomains[spaceId].expireSeconds < getBlockTimestamp(), "Space Domain Name is not expired");
-        require(spaceDomains[spaceId].creatorId == userId, "Must be the creator to call");
+    function returnSpace(uint64 userId, uint64 spaceId) public override onlyCaller() isCreator(spaceId, userId) {
+        if (spaceDomains[spaceId].expireSeconds >= getBlockTimestamp()) {
+            revert NotExpired(); 
+        }
+
         spaceDomains[spaceId].userId = userId;
-        approvals[spaceId] = msg.sender;
+        approvals[spaceId] = tx.origin;
     }
 
     /// @dev Splicing the parent domain name and subdomain name together

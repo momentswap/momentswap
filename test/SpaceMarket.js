@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
-
+// npx hardhat test ./test/SpaceMarket.js --network hardhat
 describe("SpaceMarket contract", function () {
     async function deployTokenFixture() {
         const SpaceMarket = await ethers.getContractFactory("SpaceMarket");
@@ -11,7 +11,12 @@ describe("SpaceMarket contract", function () {
         const SpaceFNS = await ethers.getContractFactory("SpaceFNS");
         const hardhatSpaceFNS = await SpaceFNS.deploy();
         await hardhatSpaceFNS.deployed();
-        return { SpaceMarket, hardhatSpaceMarket, SpaceFNS, hardhatSpaceFNS, owner, addr2, addr3 };
+
+        const TestSpaceFNS = await ethers.getContractFactory("TestSpaceFNS");
+        const hardhatTestSpaceFNS = await TestSpaceFNS.deploy();
+        await hardhatTestSpaceFNS.deployed();
+
+        return { SpaceMarket, hardhatSpaceMarket, SpaceFNS, hardhatSpaceFNS, hardhatTestSpaceFNS, owner, addr2, addr3 };
     }
 
     describe("Deployment", function () {
@@ -43,20 +48,20 @@ describe("SpaceMarket contract", function () {
             // console.log(FeeRate);
         });
 
-        it("listSpace", async function () {
-            const { hardhatSpaceMarket, hardhatSpaceFNS, addr2, addr3 } = await loadFixture(deployTokenFixture);
-            
-            await expect(hardhatSpaceFNS.connect(addr3).mintSpaceDomain(3, 0, "arb", 3000000))
+        it("listSpace", async function () {          
+            const { hardhatSpaceMarket, hardhatSpaceFNS,hardhatTestSpaceFNS, addr2, addr3  } = await loadFixture(deployTokenFixture);
+            await hardhatSpaceFNS.setCaller(hardhatTestSpaceFNS.address);
+            await expect(hardhatTestSpaceFNS.connect(addr3).TestMintSpaceDomain(hardhatSpaceFNS.address, 2, 0, "arb", 3000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr3.address, 0, "arb", 3000000);
 
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 0, "eth", 2000000))
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 0, "eth", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr2.address, 0, "eth", 2000000);
-            
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 1, "arbitrum", 1))
+
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 1, "arbitrum", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
-                .withArgs(addr2.address, 1, "arbitrum.eth", 1);
+                .withArgs(addr2.address, 1, "arbitrum.eth", 2000000);
             
             await expect(hardhatSpaceFNS.connect(addr2).approve(hardhatSpaceMarket.address, 2))
                 .to.emit(hardhatSpaceFNS, "Approved")
@@ -64,7 +69,7 @@ describe("SpaceMarket contract", function () {
             // console.log(hardhatSpaceMarket.address);
             // const add =  await hardhatSpaceFNS.getApproved(2);
             // console.log(add)
-            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 2))
+            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 1))
                 .to.emit(hardhatSpaceMarket, "List")
                 .withArgs(addr2.address, hardhatSpaceFNS.address, 2, 100);
             
@@ -73,58 +78,58 @@ describe("SpaceMarket contract", function () {
         });
 
         it("cancelListSpace", async function () {
-            const { hardhatSpaceMarket, hardhatSpaceFNS, addr2, addr3 } = await loadFixture(deployTokenFixture);
-            
-            await expect(hardhatSpaceFNS.connect(addr3).mintSpaceDomain(3, 0, "arb", 3000000))
+            const { hardhatSpaceMarket, hardhatSpaceFNS,hardhatTestSpaceFNS, addr2, addr3  } = await loadFixture(deployTokenFixture);
+            await hardhatSpaceFNS.setCaller(hardhatTestSpaceFNS.address);
+            await expect(hardhatTestSpaceFNS.connect(addr3).TestMintSpaceDomain(hardhatSpaceFNS.address, 2, 0, "arb", 3000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr3.address, 0, "arb", 3000000);
 
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 0, "eth", 2000000))
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 0, "eth", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr2.address, 0, "eth", 2000000);
-            
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 1, "arbitrum", 1))
+
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 1, "arbitrum", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
-                .withArgs(addr2.address, 1, "arbitrum.eth", 1);
+                .withArgs(addr2.address, 1, "arbitrum.eth", 2000000);
             
             await expect(hardhatSpaceFNS.connect(addr2).approve(hardhatSpaceMarket.address, 2))
                 .to.emit(hardhatSpaceFNS, "Approved")
                 .to.withArgs(addr2.address, hardhatSpaceMarket.address, 2);
 
-            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 2))
+            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 1))
                 .to.emit(hardhatSpaceMarket, "List")
                 .withArgs(addr2.address, hardhatSpaceFNS.address, 2, 100);
 
-            await expect(hardhatSpaceMarket.connect(addr2).cancelListSpace(hardhatSpaceFNS.address, 2, 2))
+            await expect(hardhatSpaceMarket.connect(addr2).cancelListSpace(hardhatSpaceFNS.address, 2, 1))
                 .to.emit(hardhatSpaceMarket, "Revoke")
                 .withArgs(addr2.address,hardhatSpaceFNS.address, 2 );
         
         });
 
         it("updateListedSpace", async function () {
-            const { hardhatSpaceMarket, hardhatSpaceFNS, addr2, addr3 } = await loadFixture(deployTokenFixture);
-            
-            await expect(hardhatSpaceFNS.connect(addr3).mintSpaceDomain(3, 0, "arb", 3000000))
+            const { hardhatSpaceMarket, hardhatSpaceFNS,hardhatTestSpaceFNS, addr2, addr3  } = await loadFixture(deployTokenFixture);
+            await hardhatSpaceFNS.setCaller(hardhatTestSpaceFNS.address);
+            await expect(hardhatTestSpaceFNS.connect(addr3).TestMintSpaceDomain(hardhatSpaceFNS.address, 2, 0, "arb", 3000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr3.address, 0, "arb", 3000000);
 
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 0, "eth", 2000000))
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 0, "eth", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr2.address, 0, "eth", 2000000);
-            
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 1, "arbitrum", 1))
+
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 1, "arbitrum", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
-                .withArgs(addr2.address, 1, "arbitrum.eth", 1);
-            
+                .withArgs(addr2.address, 1, "arbitrum.eth", 2000000);
+
             await expect(hardhatSpaceFNS.connect(addr2).approve(hardhatSpaceMarket.address, 2))
                 .to.emit(hardhatSpaceFNS, "Approved")
                 .to.withArgs(addr2.address, hardhatSpaceMarket.address, 2);
 
-            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 2))
+            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 1))
                 .to.emit(hardhatSpaceMarket, "List")
                 .withArgs(addr2.address, hardhatSpaceFNS.address, 2, 100);
 
-            await expect(hardhatSpaceMarket.connect(addr2).updateListedSpace(hardhatSpaceFNS.address, 2, 200, 2))
+            await expect(hardhatSpaceMarket.connect(addr2).updateListedSpace(hardhatSpaceFNS.address, 2, 200, 1))
                 .to.emit(hardhatSpaceMarket, "Update")
                 .withArgs(addr2.address,hardhatSpaceFNS.address, 2, 200);
             // const item =  await hardhatSpaceMarket.GetItemBySpaceID(hardhatSpaceFNS.address, 2);
@@ -133,29 +138,29 @@ describe("SpaceMarket contract", function () {
         });
 
         it("rentSpace", async function () {
-            const { hardhatSpaceMarket, hardhatSpaceFNS, addr2, addr3 } = await loadFixture(deployTokenFixture);
-            
-            await expect(hardhatSpaceFNS.connect(addr3).mintSpaceDomain(3, 0, "arb", 3000000))
+            const { hardhatSpaceMarket, hardhatSpaceFNS,hardhatTestSpaceFNS, addr2, addr3  } = await loadFixture(deployTokenFixture);
+            await hardhatSpaceFNS.setCaller(hardhatTestSpaceFNS.address);
+            await expect(hardhatTestSpaceFNS.connect(addr3).TestMintSpaceDomain(hardhatSpaceFNS.address, 2, 0, "arb", 3000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr3.address, 0, "arb", 3000000);
 
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 0, "eth", 2000000))
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 0, "eth", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr2.address, 0, "eth", 2000000);
-            
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 1, "arbitrum", 1))
+
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 1, "arbitrum", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
-                .withArgs(addr2.address, 1, "arbitrum.eth", 1);
+                .withArgs(addr2.address, 1, "arbitrum.eth", 2000000);
             
             await expect(hardhatSpaceFNS.connect(addr2).approve(hardhatSpaceMarket.address, 2))
                 .to.emit(hardhatSpaceFNS, "Approved")
                 .to.withArgs(addr2.address, hardhatSpaceMarket.address, 2);
 
-            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 2))
+            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 1))
                 .to.emit(hardhatSpaceMarket, "List")
                 .withArgs(addr2.address, hardhatSpaceFNS.address, 2, 100);
 
-            await expect(hardhatSpaceMarket.connect(addr3).rentSpace(hardhatSpaceFNS.address, 2, 3, {value: 100}))
+            await expect(hardhatSpaceMarket.connect(addr3).rentSpace(hardhatSpaceFNS.address, 2, 2, {value: 100}))
                 .to.emit(hardhatSpaceMarket, "Rent")
                 .withArgs(addr3.address,hardhatSpaceFNS.address, 2, 100);
             // const free =  await  hardhatSpaceMarket.getTotalTransactionFee()
@@ -171,29 +176,29 @@ describe("SpaceMarket contract", function () {
         });
 
         it("withdrawTransactionFee", async function () {
-            const { hardhatSpaceMarket, hardhatSpaceFNS, addr2, addr3 } = await loadFixture(deployTokenFixture);
-            
-            await expect(hardhatSpaceFNS.connect(addr3).mintSpaceDomain(3, 0, "arb", 3000000))
+            const { hardhatSpaceMarket, hardhatSpaceFNS,hardhatTestSpaceFNS, addr2, addr3  } = await loadFixture(deployTokenFixture);
+            await hardhatSpaceFNS.setCaller(hardhatTestSpaceFNS.address);
+            await expect(hardhatTestSpaceFNS.connect(addr3).TestMintSpaceDomain(hardhatSpaceFNS.address, 2, 0, "arb", 3000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr3.address, 0, "arb", 3000000);
 
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 0, "eth", 2000000))
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 0, "eth", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr2.address, 0, "eth", 2000000);
-            
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 1, "arbitrum", 1))
+
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 1, "arbitrum", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
-                .withArgs(addr2.address, 1, "arbitrum.eth", 1);
+                .withArgs(addr2.address, 1, "arbitrum.eth", 2000000);
             
             await expect(hardhatSpaceFNS.connect(addr2).approve(hardhatSpaceMarket.address, 2))
                 .to.emit(hardhatSpaceFNS, "Approved")
                 .to.withArgs(addr2.address, hardhatSpaceMarket.address, 2);
 
-            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 2))
+            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 1))
                 .to.emit(hardhatSpaceMarket, "List")
                 .withArgs(addr2.address, hardhatSpaceFNS.address, 2, 100);
 
-            await expect(hardhatSpaceMarket.connect(addr3).rentSpace(hardhatSpaceFNS.address, 2, 3, {value: 100}))
+            await expect(hardhatSpaceMarket.connect(addr3).rentSpace(hardhatSpaceFNS.address, 2, 2, {value: 100}))
                 .to.emit(hardhatSpaceMarket, "Rent")
                 .withArgs(addr3.address,hardhatSpaceFNS.address, 2, 100);
             // const free =  await  hardhatSpaceMarket.getTotalTransactionFee()
@@ -204,29 +209,29 @@ describe("SpaceMarket contract", function () {
         });
         
         it("withdrawRentalIncome", async function () {
-            const { hardhatSpaceMarket, hardhatSpaceFNS, addr2, addr3 } = await loadFixture(deployTokenFixture);
-            
-            await expect(hardhatSpaceFNS.connect(addr3).mintSpaceDomain(3, 0, "arb", 3000000))
+            const { hardhatSpaceMarket, hardhatSpaceFNS,hardhatTestSpaceFNS, addr2, addr3  } = await loadFixture(deployTokenFixture);
+            await hardhatSpaceFNS.setCaller(hardhatTestSpaceFNS.address);
+            await expect(hardhatTestSpaceFNS.connect(addr3).TestMintSpaceDomain(hardhatSpaceFNS.address, 2, 0, "arb", 3000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr3.address, 0, "arb", 3000000);
 
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 0, "eth", 2000000))
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 0, "eth", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
                 .withArgs(addr2.address, 0, "eth", 2000000);
-            
-            await expect(hardhatSpaceFNS.connect(addr2).mintSpaceDomain(2, 1, "arbitrum", 1))
+
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestMintSpaceDomain(hardhatSpaceFNS.address, 1, 1, "arbitrum", 2000000))
                 .to.emit(hardhatSpaceFNS, "MintSpaceDomain")
-                .withArgs(addr2.address, 1, "arbitrum.eth", 1);
+                .withArgs(addr2.address, 1, "arbitrum.eth", 2000000);
             
             await expect(hardhatSpaceFNS.connect(addr2).approve(hardhatSpaceMarket.address, 2))
                 .to.emit(hardhatSpaceFNS, "Approved")
                 .to.withArgs(addr2.address, hardhatSpaceMarket.address, 2);
 
-            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 2))
+            await expect(hardhatSpaceMarket.connect(addr2).listSpace(hardhatSpaceFNS.address, 2, 100, 1))
                 .to.emit(hardhatSpaceMarket, "List")
                 .withArgs(addr2.address, hardhatSpaceFNS.address, 2, 100);
 
-            await expect(hardhatSpaceMarket.connect(addr3).rentSpace(hardhatSpaceFNS.address, 2, 3, {value: 100}))
+            await expect(hardhatSpaceMarket.connect(addr3).rentSpace(hardhatSpaceFNS.address, 2, 2, {value: 100}))
                 .to.emit(hardhatSpaceMarket, "Rent")
                 .withArgs(addr3.address,hardhatSpaceFNS.address, 2, 100);
             // const ownerFree =  await  hardhatSpaceMarket.getProceeds(addr2.address)

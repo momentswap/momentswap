@@ -24,11 +24,13 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     error PriceNotMet(address nftAddr, uint64 spaceId, uint64 price);
     error NoTransactionFee();
     error NoProceeds();
-
-    // constructor(uint16 freeRate_) {
-    //     beneficiary = payable(msg.sender);
-    //     freeRate = freeRate_;
-    // }
+    error UnBeneficiary();
+    error NotAppovedToMarket();
+    error NotHolder();
+    error NotCreator();
+    error FreeRateEroor(string message);
+    error InvalidNftAddress();
+    error PriceWrong();
 
     constructor() {
         beneficiary = payable(msg.sender);
@@ -37,7 +39,9 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     
     /// onlyBeneficiary modifier
     modifier onlyBeneficiary() {
-        require(msg.sender == beneficiary, "Timelock: Caller not beneficiary");
+        if (msg.sender != beneficiary) {
+            revert UnBeneficiary();
+        }
         _;
     }
 
@@ -52,13 +56,25 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
 
     /// @dev must be approved
     modifier isApproved(address nftAddr, uint64 spaceId, address owner) {
-        require(ISpaceFNS(nftAddr).getApproved(spaceId) == address(this), "Please authorize the space domain to the market");
+        if (ISpaceFNS(nftAddr).getApproved(spaceId) != owner) {
+            revert NotAppovedToMarket();
+        }
         _;
     }
 
     /// @dev must be holder
     modifier isHolder(address nftAddr, uint64 spaceId, uint64 userId) {
-        require(ISpaceFNS(nftAddr).getSpaceDomainUserId(spaceId) == userId, "Only the holder can operate");
+        if (ISpaceFNS(nftAddr).getSpaceDomainUserId(spaceId) != userId) {
+            revert NotHolder();
+        }
+        _;
+    }
+
+    /// @dev must be creator
+    modifier isCreator(address nftAddr, uint64 spaceId, uint64 userId) {
+        if (ISpaceFNS(nftAddr).getSpaceDomainCreatorId(spaceId) != userId) {
+            revert NotCreator();
+        }
         _;
     }
 
@@ -77,7 +93,9 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     /// @dev Sets the fee rate for the contract.
     /// @param feeRate The new fee rate.
     function setFeeRate(uint16 feeRate) public override onlyBeneficiary() {
-        require(feeRate >= 100, "Fee rate can only be between 0 and 100");
+        if (feeRate < 0 || feeRate > 10000) {
+            revert FreeRateEroor("Fee rate can only be between 0 and 10000");
+        }
         freeRate = feeRate;
     }
     
@@ -98,9 +116,14 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         uint64 price,
         uint64 userId) public override 
         isApproved(nftAddr, spaceId, address(this)) 
-        isHolder(nftAddr, spaceId, userId) {
-        require(nftAddr != address(0), "Invalid NFT address");
-        require(price > 0, "Price must be greater than 0");
+        isCreator(nftAddr, spaceId, userId) {
+        if (nftAddr == address(0)) {
+            revert InvalidNftAddress(); 
+        }
+
+        if (price <= 0) {
+            revert PriceWrong();
+        }
         
         nftList[nftAddr][spaceId] = Item(msg.sender, price);
         emit List(msg.sender, nftAddr, spaceId, price);
@@ -113,12 +136,15 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     /// Requirements: 
     /// - Call the rent function of the spacedomain contract
     function rentSpace(address nftAddr, uint64 spaceId, uint64 userId) public override payable isListed(nftAddr, spaceId) nonReentrant() {
+        if (nftAddr == address(0)) {
+            revert InvalidNftAddress(); 
+        }
         Item memory _item =  nftList[nftAddr][spaceId];
         uint256 amount = msg.value;
         uint64 price = _item.price;
-        require(nftAddr != address(0), "Invalid NFT address");
+        
         if (amount < price) {
-            revert PriceNotMet(nftAddr, spaceId, _item.price);
+            revert PriceNotMet(nftAddr, spaceId, uint64(msg.value));
         }
         
         uint64 fee = (price * freeRate) / 10000;
@@ -138,7 +164,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     /// @param spaceId The ID of the domain.
     /// @param userId The ID of the user.
     function cancelListSpace(address nftAddr, uint64 spaceId, uint64 userId) public override 
-        isListed(nftAddr, spaceId) isHolder(nftAddr, spaceId, userId) {
+        isListed(nftAddr, spaceId) isCreator(nftAddr, spaceId, userId) {
         
         ISpaceFNS(nftAddr).approve(msg.sender, spaceId); // return authorization to user
         delete(nftList[nftAddr][spaceId]);
@@ -152,8 +178,10 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     /// @param newPrice The new price in wei.
     /// @param userId The ID of the user.
     function updateListedSpace(address nftAddr, uint64 spaceId, uint64 newPrice, uint64 userId) public override 
-        isListed(nftAddr, spaceId) isHolder(nftAddr, spaceId, userId) {
-        require(newPrice > 0, "Price must be greater than zero");
+        isListed(nftAddr, spaceId) isCreator(nftAddr, spaceId, userId) {
+        if (newPrice <= 0) {
+            revert PriceWrong();
+        }
 
         nftList[nftAddr][spaceId].price = newPrice;
         emit Update(msg.sender, nftAddr, spaceId, newPrice);
