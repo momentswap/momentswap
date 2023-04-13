@@ -6,12 +6,12 @@ pragma solidity 0.8.19;
 interface ISpaceFNS {   
     /// @dev Emitted when a new Space Domain is minted.
     /// @param account The account that minted the domain.
-    /// @param parentSpaceId The ID of the parent space.
+    /// @param primarySpaceId The ID of the parent space.
     /// @param domainName The name of the domain.
     /// @param expireSeconds The number of seconds until the domain expires.
     event MintSpaceDomain(
         address indexed account,  
-        uint64 indexed parentSpaceId,
+        uint64 indexed primarySpaceId,
         string indexed domainName,
         uint64 expireSeconds
     );
@@ -60,16 +60,26 @@ interface ISpaceFNS {
     /// @return The address approved to act on behalf of the space.
     function getApproved(uint64 spaceId) external view returns (address);
 
+    /// @notice Get the userid of spacedomain
+    /// @param spaceId The ID of the space.
+    /// @return A userid
+    function getSpaceDomainUserId(uint64 spaceId) external view returns (uint64);
+
+    /// @notice Get the creator ID of spacedomain
+    /// @param spaceId The ID of the space.
+    /// @return A creator ID.
+    function getSpaceDomainCreatorId(uint64 spaceId) external view returns (uint64);
+
     /// @notice Mints a new Space Domain.
     /// @param creatorId The ID of the creator.
-    /// @param parentSpaceId The ID of the parent space.
+    /// @param primarySpaceId The ID of the parent space.
     /// @param domainName The name of the domain.
     /// @param expireSeconds The number of seconds until the domain expires.
     /// @return The ID of the new Space Domain.
     /// Requirements: 
     /// - DomainName cannot be less than 3 and greater than 10 characters 
     /// - Domain name cannot already exist
-    function mintSpaceDomain(uint64 creatorId, uint64 parentSpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64);
+    function mintSpaceDomain(uint64 creatorId, uint64 primarySpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64);
 
     /// @notice Updates the name of a child domain.
     /// @param spaceId The ID of the space.
@@ -81,14 +91,14 @@ interface ISpaceFNS {
     /// - DomainName cannot be less than 3 and greater than 10 characters
     /// - Domain name cannot already exist
     /// - Delete the original domain name mapping
-    function updateChildDomainName(uint64 spaceId, string calldata oldDomainName, string calldata newDomainName) external ;
+    function updateSubDomainName(uint64 spaceId, string calldata primaryDomain, string calldata oldDomainName, string calldata newDomainName) external ;
 
     /// @notice Update the expiration time of a space with the given space ID
     /// @param spaceId The ID of the space to update
     /// @param newExpireSeconds The new expiration time, in seconds, for the space
     /// Requirements:
     /// - The caller must be authorized to update the space
-    function updateExpireSeconds(uint64 spaceId, uint64 newExpireSeconds) external ;
+    function updateExpireSeconds(uint64 spaceId, uint64 newExpireSeconds, uint64 userId) external ;
 
 
     /// @notice Authorized to the operator
@@ -117,6 +127,7 @@ interface ISpaceFNS {
     /// - After returning, the authorization address is changed to the creator
     /// - UserId changed to creator
     function returnSpace(uint64 userId, uint64 spaceId) external ;
+
 }
 
 

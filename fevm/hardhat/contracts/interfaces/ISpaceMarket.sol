@@ -57,7 +57,6 @@ interface ISpaceMarket {
         address to,
         uint64 amount
     );
-    
 
     /// @notice Sets the beneficiary of the contract.
     /// @param beneficiary The address of the beneficiary.
@@ -65,7 +64,7 @@ interface ISpaceMarket {
     
     /// @dev Gets the beneficiary of the contract.
     /// @return The address of the beneficiary.
-    function getBeneficiary() external pure returns (address);
+    function getBeneficiary() external view returns (address);
 
     /// @dev Sets the fee rate for the contract.
     /// @param feeRate The new fee rate.
@@ -73,29 +72,33 @@ interface ISpaceMarket {
     
     /// @dev Gets the fee rate for the contract.
     /// @return The fee rate.
-    function getFeeRate() external pure returns (uint16);
+    function getFeeRate() external view returns (uint16);
 
     /// @dev Lists a domain for sale.
     /// @param nftAddr The address of the domain contract.
     /// @param spaceId The ID of the domain.
     /// @param price The price of the domain.
-    function listSpace(address nftAddr, uint64 spaceId, uint64 price) external ;
+    /// @param userId The ID of the user.
+    function listSpace(address nftAddr, uint64 spaceId, uint64 price, uint64 userId) external ;
 
     /// @dev Rents a domain.
     /// @param nftAddr The address of the domain contract.
     /// @param spaceId The ID of the domain.
-    function rentSpace(address nftAddr, uint64 spaceId, uint64 userId) external ;
+    /// @param userId The ID of the user.
+    function rentSpace(address nftAddr, uint64 spaceId, uint64 userId) payable external ;
 
     /// @dev Cancels the listing of a domain.
     /// @param nftAddr The address of the domain contract.
     /// @param spaceId The ID of the domain.
-    function cancelListSpace(address nftAddr, uint64 spaceId) external ;
+    /// @param userId The ID of the user.
+    function cancelListSpace(address nftAddr, uint64 spaceId, uint64 userId) external ;
 
     /// @dev Update the price of a listed space.
     /// @param nftAddr The address of the NFT for the listed space.
     /// @param spaceId The ID of the listed space.
     /// @param newPrice The new price in wei.
-    function updateListedSpace(address nftAddr, uint64 spaceId, uint64 newPrice) external ;
+    /// @param userId The ID of the user.
+    function updateListedSpace(address nftAddr, uint64 spaceId, uint64 newPrice, uint64 userId) external ;
 
     /// @dev Allow the administrator to withdraw transaction fees.
     ///
