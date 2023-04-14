@@ -81,7 +81,15 @@ interface ISpaceFNS {
     /// - Domain name cannot already exist
     function mintSpaceDomain(uint64 creatorId, uint64 primarySpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64);
 
-    function updateSubDomainName(uint64 spaceId, string calldata domainName) external ;
+    /// @notice Updates the name of a child domain.
+    /// @param spaceId The ID of the space.
+    /// Requirements:
+    /// - The caller is the authorized address
+    /// - Not parent domain
+    /// - DomainName cannot be less than 3 and greater than 10 characters
+    /// - Domain name cannot already exist
+    /// - Delete the original domain name mapping
+    function updateSubDomainName(uint64 spaceId, string calldata newDomainName) external ;
 
     /// @notice Update the expiration time of a space with the given space ID
     /// @param spaceId The ID of the space to update

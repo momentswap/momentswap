@@ -67,7 +67,7 @@ describe("SpaceFNS contract", function () {
                 .withArgs(addr2.address, 1, "arbitrum.eth", 2000000);
 
             
-            await expect(hardhatTestSpaceFNS.connect(addr2).TestUpdateSubDomainName(hardhatSpaceFNS.address, 2, "eth", "arbitrum", "polygon"))
+            await expect(hardhatTestSpaceFNS.connect(addr2).TestUpdateSubDomainName(hardhatSpaceFNS.address, 2, "polygon"))
                 .to.emit(hardhatSpaceFNS, "UpdataDomainName")
                 .withArgs(2, "polygon.eth");
 
@@ -126,7 +126,7 @@ describe("SpaceFNS contract", function () {
             // await expect(hardhatTestSpaceFNS.connect(addr3).TestUpdateExpireSeconds(hardhatSpaceFNS.address,2, 3000000, 1))
             //     .to.emit(hardhatSpaceFNS, "UpdataExpriceTime")
             //     .withArgs(addr2.address, 2, 3000000);
-            await expect(hardhatTestSpaceFNS.connect(addr3).TestUpdateSubDomainName(hardhatSpaceFNS.address, 2, "eth", "arbitrum", "polygon"))
+            await expect(hardhatTestSpaceFNS.connect(addr3).TestUpdateSubDomainName(hardhatSpaceFNS.address, 2,  "polygon"))
                 .to.emit(hardhatSpaceFNS, "UpdataDomainName")
                 .withArgs(2, "polygon.eth");
             // const SpaceDomain = await hardhatSpaceFNS.getSpaceDomainByID(2)
@@ -159,7 +159,7 @@ describe("SpaceFNS contract", function () {
             // const SpaceDomain = await hardhatSpaceFNS.getSpaceDomainByID(2);
             // console.log(SpaceDomain);
 
-            await expect(hardhatTestSpaceFNS.connect(addr3).TestUpdateSubDomainName(hardhatSpaceFNS.address, 2, "eth", "arbitrum", "polygon"))
+            await expect(hardhatTestSpaceFNS.connect(addr3).TestUpdateSubDomainName(hardhatSpaceFNS.address, 2, "polygon"))
                 .to.emit(hardhatSpaceFNS, "UpdataDomainName")
                 .withArgs(2, "polygon.eth");
             // const SpaceDomain2 = await hardhatSpaceFNS.getSpaceDomainByID(2);
