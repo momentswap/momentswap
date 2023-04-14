@@ -15,13 +15,13 @@ contract SpaceFNS is ISpaceFNS {
         uint64 primarySpaceId;
         string domainName;
     }
-    
+
 
     /// Check domain length decorator
     modifier checkDomainNameLength(string calldata domainName) {
         uint256 domainName_length = bytes(domainName).length;
         if (domainName_length < 3 || domainName_length > 10) {
-            revert DomainNameEroor(); 
+            revert DomainNameEroor();
         }
         _;
     }
@@ -98,7 +98,7 @@ contract SpaceFNS is ISpaceFNS {
     function isExpired(uint64 spaceId) public view override returns (bool) {
         return spaceDomains[spaceId].expireSeconds < getBlockTimestamp();
     }
-   
+
     /// @notice Checks if an array of spaces is expired.
     /// @param spaceIds An array of space IDs.
     /// @return An array of booleans indicating whether each space is expired.
@@ -147,8 +147,8 @@ contract SpaceFNS is ISpaceFNS {
     /// @param domainName The name of the domain.
     /// @param expireSeconds The number of seconds until the domain expires.
     /// @return The ID of the new Space Domain.
-    /// Requirements: 
-    /// - DomainName cannot be less than 3 and greater than 10 characters 
+    /// Requirements:
+    /// - DomainName cannot be less than 3 and greater than 10 characters
     /// - Domain name cannot already exist
     function mintSpaceDomain(
         uint64 creatorId,
@@ -159,12 +159,12 @@ contract SpaceFNS is ISpaceFNS {
         uint64 spaceId = uint64(_spaceIds.current());
         string memory fullDomainName = domainName;
         if (primarySpaceId != 0) {
-            string memory parentDomain = getDomainNameById(primarySpaceId);
-            fullDomainName = spliceDomainName(domainName, parentDomain);
+            string memory primaryDomain = getDomainNameById(primarySpaceId);
+            fullDomainName = spliceDomainName(domainName, primaryDomain);
         }
 
         if (spaceDomainIds[fullDomainName] != 0) {
-            revert DomainAlreadyExists(); 
+            revert DomainAlreadyExists();
         }
         // expireSeconds = getBlockTimestamp() + expireSeconds;
         spaceDomains[spaceId] = SpaceDomain({
@@ -188,7 +188,7 @@ contract SpaceFNS is ISpaceFNS {
     /// @param spaceId The ID of the space.
     /// @param oldDomainName The current name of the domain.
     /// @param newDomainName The new name of the domain.
-    /// Requirements: 
+    /// Requirements:
     /// - The caller is the authorized address
     /// - Not parent domain
     /// - DomainName cannot be less than 3 and greater than 10 characters
@@ -201,15 +201,15 @@ contract SpaceFNS is ISpaceFNS {
         string calldata newDomainName
     ) public override checkDomainNameLength(newDomainName) onlyCaller() onlyAppover(spaceId) {
         if (spaceDomains[spaceId].primarySpaceId == 0) {
-            revert NotSubdomain(); 
+            revert NotSubdomain();
         }
 
-        string memory oldFullDomainName = spliceDomainName2(oldDomainName, primaryDomain);       
+        string memory oldFullDomainName = spliceDomainName2(oldDomainName, primaryDomain);
         string memory newFullDomainName = spliceDomainName2(newDomainName, primaryDomain);
 
         /// The new full domain name cannot already exist
         if (spaceDomainIds[newFullDomainName] != 0) {
-            revert DomainAlreadyExists(); 
+            revert DomainAlreadyExists();
         }
 
         /// Delete the original domain name
@@ -227,7 +227,7 @@ contract SpaceFNS is ISpaceFNS {
     /// @param newExpireSeconds The new expiration time, in seconds, for the space
     /// Requirements:
     /// - The caller must be authorized to update the space
-    function updateExpireSeconds(uint64 spaceId, uint64 newExpireSeconds, uint64 userId) public override 
+    function updateExpireSeconds(uint64 spaceId, uint64 newExpireSeconds, uint64 userId) public override
         isCreator(spaceId, userId) onlyCaller() onlyAppover(spaceId){
         uint64 expireSeconds = getBlockTimestamp() + newExpireSeconds;
         spaceDomains[spaceId].expireSeconds = expireSeconds;
@@ -271,7 +271,7 @@ contract SpaceFNS is ISpaceFNS {
     /// - UserId changed to creator
     function returnSpace(uint64 userId, uint64 spaceId) public override onlyCaller() isCreator(spaceId, userId) {
         if (spaceDomains[spaceId].expireSeconds >= getBlockTimestamp()) {
-            revert NotExpired(); 
+            revert NotExpired();
         }
 
         spaceDomains[spaceId].userId = userId;
@@ -303,12 +303,12 @@ contract SpaceFNS is ISpaceFNS {
         return uint64(block.timestamp);
     }
 
-    /// @dev Get SpaceId 
+    /// @dev Get SpaceId
     function getSpaceIdByDomainName(string calldata domainName) public view returns (uint64) {
         return spaceDomainIds[domainName];
     }
 
-    /// @dev Get spaceDomain 
+    /// @dev Get spaceDomain
     function getSpaceDomainByID(uint64 id) public view returns (SpaceDomain memory) {
         return spaceDomains[id];
     }
