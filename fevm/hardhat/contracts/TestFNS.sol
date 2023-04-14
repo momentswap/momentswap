@@ -18,11 +18,9 @@ contract TestSpaceFNS {
     function TestUpdateSubDomainName(
         address spaceAddr,
         uint64 spaceId,
-        string calldata primaryDomain,
-        string calldata oldDomainName,
         string calldata newDomainName
     ) public   {
-        ISpaceFNS(spaceAddr).updateSubDomainName(spaceId, primaryDomain, oldDomainName, newDomainName);
+        ISpaceFNS(spaceAddr).updateSubDomainName(spaceId, newDomainName);
     }
 
     function TestUpdateExpireSeconds(

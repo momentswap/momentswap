@@ -186,8 +186,6 @@ contract SpaceFNS is ISpaceFNS {
 
     /// @notice Updates the name of a child domain.
     /// @param spaceId The ID of the space.
-    /// @param oldDomainName The current name of the domain.
-    /// @param newDomainName The new name of the domain.
     /// Requirements: 
     /// - The caller is the authorized address
     /// - Not parent domain
@@ -196,16 +194,14 @@ contract SpaceFNS is ISpaceFNS {
     /// - Delete the original domain name mapping
     function updateSubDomainName(
         uint64 spaceId,
-        string calldata primaryDomain,
-        string calldata oldDomainName,
         string calldata newDomainName
     ) public override checkDomainNameLength(newDomainName) onlyCaller() onlyAppover(spaceId) {
         if (spaceDomains[spaceId].primarySpaceId == 0) {
             revert NotSubdomain(); 
         }
 
-        string memory oldFullDomainName = spliceDomainName2(oldDomainName, primaryDomain);       
-        string memory newFullDomainName = spliceDomainName2(newDomainName, primaryDomain);
+        (string memory primaryDomain, string memory oldDomainName) = getPrimaryAndSubDomain(spaceId);
+        string memory newFullDomainName = spliceDomainName(newDomainName, primaryDomain);
 
         /// The new full domain name cannot already exist
         if (spaceDomainIds[newFullDomainName] != 0) {
@@ -213,7 +209,7 @@ contract SpaceFNS is ISpaceFNS {
         }
 
         /// Delete the original domain name
-        delete(spaceDomainIds[oldFullDomainName]);
+        delete(spaceDomainIds[oldDomainName]);
 
         /// change domain name
         spaceDomains[spaceId].domainName = newFullDomainName;
@@ -311,5 +307,16 @@ contract SpaceFNS is ISpaceFNS {
     /// @dev Get spaceDomain 
     function getSpaceDomainByID(uint64 id) public view returns (SpaceDomain memory) {
         return spaceDomains[id];
+    }
+
+    /// @dev Get primaryDomain  and subDomain by spaceId
+    function getPrimaryAndSubDomain(uint64 subSpaceId) public view returns (string memory primaryDomain, string memory subDomain) {
+        if (spaceDomains[subSpaceId].primarySpaceId == 0) {
+            revert NotSubdomain(); 
+        }
+
+        primaryDomain = spaceDomains[spaceDomains[subSpaceId].primarySpaceId].domainName;
+        subDomain = spaceDomains[subSpaceId].domainName;
+
     }
 }

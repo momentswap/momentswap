@@ -83,15 +83,13 @@ interface ISpaceFNS {
 
     /// @notice Updates the name of a child domain.
     /// @param spaceId The ID of the space.
-    /// @param oldDomainName The current name of the domain.
-    /// @param newDomainName The new name of the domain.
     /// Requirements: 
     /// - The caller is the authorized address
     /// - Not parent domain
     /// - DomainName cannot be less than 3 and greater than 10 characters
     /// - Domain name cannot already exist
     /// - Delete the original domain name mapping
-    function updateSubDomainName(uint64 spaceId, string calldata primaryDomain, string calldata oldDomainName, string calldata newDomainName) external ;
+    function updateSubDomainName(uint64 spaceId, string calldata newDomainName) external ;
 
     /// @notice Update the expiration time of a space with the given space ID
     /// @param spaceId The ID of the space to update
