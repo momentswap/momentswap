@@ -1,4 +1,4 @@
-name: FIL TESTNET CI/CD
+name: MomentSwap Contracts CI/CD
 on:
   push:
 jobs:
@@ -21,5 +21,5 @@ jobs:
       run: pnpm install
     - name: Test LOCAL
       run: pnpm run test-local
-    - name: Test
-      run: pnpm run test
+    - name: Test Network
+      run: pnpm run test-testnet
