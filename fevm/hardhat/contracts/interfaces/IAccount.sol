@@ -111,17 +111,17 @@ interface IAccount {
     /// @param commentId The ID of the comment to remove.
     function removeComment(uint128 commentId) external;
 
-    /// @notice Mints a new child space domain with the given domain name and expire time.
-    /// @dev The calling account must own the parent space in order to mint a child space domain.
-    /// @param parentSpaceId The ID of the parent space to mint the child space domain for.
-    /// @param domainName The domain name to associate with the child space domain.
-    /// @param expireSeconds The number of seconds until the child space domain expires.
-    /// @return The ID of the newly minted child space domain.
-    function mintChaildSpaceDomain(uint64 parentSpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64);
+    /// @notice Mints a new sub space domain with the given domain name and expire time.
+    /// @dev The calling account must own the primary space in order to mint a sub space domain.
+    /// @param primarySpaceId The ID of the primary space to mint the sub space domain for.
+    /// @param domainName The domain name to associate with the sub space domain.
+    /// @param expireSeconds The number of seconds until the sub space domain expires.
+    /// @return The ID of the newly minted sub space domain.
+    function mintSubSpaceDomain(uint64 primarySpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64);
 
     /// @notice Returns the space with the given space ID.
     /// @param spaceId The ID of the space to return.
-    function returnSpace(uint64 spaceId) external;
+    function returnSpace(address user, uint64 spaceId) external;
 
     /// @notice Updates the domain name for the rented space with the given space ID.
     /// @param spaceId The ID of the rented space for which to update the domain name.

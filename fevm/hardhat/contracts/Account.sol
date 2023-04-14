@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import {IAccount, AccountData} from "./interfaces/IAccount.sol";
 import {IMoment} from "./interfaces/IMoment.sol";
+import {ISpaceFNS} from "./interfaces/ISpaceFNS.sol";
 
 /// @notice This contract implements the IAccount interface and provides functionality for managing accounts.
-contract Account is IAccount {
+contract Account is IAccount, Ownable {
 
     /// @notice Error to be thrown when an account already exists for the given address.
     error AccountAlreadyExists();
@@ -15,6 +17,15 @@ contract Account is IAccount {
 
     /// @notice Error to be thrown when an unauthorized user tries to access Account contract.
     error Unauthorized();
+
+    /// @notice Error to be thrown when the maximum number of allowed sub-space domains has been reached.
+    error MaximumNumberOfSpaceDomainsReached();
+
+    /// @notice Error to be thrown when a Space domain has not expired.
+    error SpaceDomainHasNotExpired();
+
+    /// @notice Maximum number of allowed sub-space domains for an account.
+    uint64 public subSpaceDomainLimit;
 
     /// @notice Total number of created accounts.
     uint64 public totalAccountCount;
@@ -28,15 +39,22 @@ contract Account is IAccount {
     /// @notice The `IMoment` contract that provides the current timestamp.
     IMoment public immutable moment;
 
+    /// @notice The `ISpaceFNS` contract that manages the Space FNS.
+    ISpaceFNS public immutable spaceFNS;
+
     /// @notice Modifier to check if the caller's address is registered as an account.
     modifier checkRegistered() {
         if (accountIds[msg.sender] == 0) revert AccountNotFound();
         _;
     }
 
-    /// @notice Constructor that initializes the `IMoment` contract.
-    constructor(IMoment _moment) {
+    /// @notice Constructor that initializes the `IMoment` contract and sets the maximum number of allowed sub-space domains.
+    /// @param _moment The `IMoment` contract that provides the current timestamp.
+    /// @param _spaceFNS The `ISpaceFNS` contract that manages the Space FNS.
+    constructor(IMoment _moment, ISpaceFNS _spaceFNS) {
+        subSpaceDomainLimit = 5;
         moment = _moment;
+        spaceFNS = _spaceFNS;
     }
 
     /// @notice Returns the account IDs of the given addresses.
@@ -130,7 +148,20 @@ contract Account is IAccount {
     /// @param domainName The domain name to associate with the account.
     /// @param avatarURI The URI of the avatar to associate with the account.
     /// @return The ID of the newly created account.
-    function createAccount(string calldata domainName, string calldata avatarURI) external returns (uint64) {}
+    function createAccount(string calldata domainName, string calldata avatarURI) external returns (uint64) {
+        if (accountIds[msg.sender] != 0) revert AccountAlreadyExists();
+
+        uint64 accountId = ++totalAccountCount;
+        accountIds[msg.sender] = accountId;
+        uint64 spaceId = spaceFNS.mintSpaceDomain(accountId, 0, domainName, 0);
+
+        AccountData storage account = accounts[accountId];
+        account.owner = msg.sender;
+        account.avatarURI = avatarURI;
+        account.mintedSpaceIds = [spaceId];
+
+        return accountId;
+    }
 
     /// @notice Cancels the account associated with the given account ID.
     /// @dev The account must not have any associated moments, comments, or spaces in order to be cancelled.
@@ -140,7 +171,7 @@ contract Account is IAccount {
     // TODO: Transfer All to Events
     /// @notice Updates the avatar URI associated with the calling account.
     /// @param avatarURI The new avatar URI to associate with the calling account.
-    function updateAvatarURI(string calldata avatarURI) external checkRegistered {
+    function updateAvatarURI(string calldata avatarURI) public checkRegistered {
         accounts[accountIds[msg.sender]].avatarURI = avatarURI;
     }
 
@@ -222,20 +253,49 @@ contract Account is IAccount {
         }
     }
 
-    /// @notice Mints a new child space domain with the given domain name and expire time.
-    /// @dev The calling account must own the parent space in order to mint a child space domain.
-    /// @param parentSpaceId The ID of the parent space to mint the child space domain for.
-    /// @param domainName The domain name to associate with the child space domain.
-    /// @param expireSeconds The number of seconds until the child space domain expires.
-    /// @return The ID of the newly minted child space domain.
-    function mintChaildSpaceDomain(uint64 parentSpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64) {}
+    /// @notice Mints a new sub space domain with the given domain name and expire time.
+    /// @dev The calling account must own the primary space in order to mint a sub space domain.
+    /// @param primarySpaceId The ID of the primary space to mint the sub space domain for.
+    /// @param domainName The domain name to associate with the sub space domain.
+    /// @param expireSeconds The number of seconds until the sub space domain expires.
+    /// @return The ID of the newly minted sub space domain.
+    function mintSubSpaceDomain(uint64 primarySpaceId, string calldata domainName, uint64 expireSeconds) external checkRegistered returns (uint64) {
+        if (accounts[accountIds[msg.sender]].mintedSpaceIds.length > subSpaceDomainLimit) {
+            revert MaximumNumberOfSpaceDomainsReached();
+        }
+        uint64 spaceId = spaceFNS.mintSpaceDomain(accountIds[msg.sender], primarySpaceId, domainName, expireSeconds);
+        accounts[accountIds[msg.sender]].mintedSpaceIds.push(spaceId);
+        return spaceId;
+    }
 
-    /// @notice Returns the space with the given space ID.
-    /// @param spaceId The ID of the space to return.
-    function returnSpace(uint64 spaceId) external {}
+    /// @notice Function for returning a rented space domain.
+    /// @param user The address of the account that rented the space domain.
+    /// @param spaceId The ID of the space domain to return.
+    function returnSpace(address user, uint64 spaceId) external {
+        if (accountIds[user] == 0) revert AccountNotFound();
+        if (!spaceFNS.isExpired(spaceId)) revert SpaceDomainHasNotExpired();
 
-    /// @notice Updates the domain name for the rented space with the given space ID.
-    /// @param spaceId The ID of the rented space for which to update the domain name.
+        uint64[] storage rentedSpaceIds = accounts[accountIds[user]].rentedSpaceIds;
+        for (uint256 i = 1; i < rentedSpaceIds.length; i++) {
+            if (rentedSpaceIds[i] == spaceId) {
+                rentedSpaceIds[i] = rentedSpaceIds[rentedSpaceIds.length - 1];
+                rentedSpaceIds.pop();
+                spaceFNS.returnSpace(accountIds[user], spaceId);
+                break;
+            }
+        }
+    }
+
+    /// @notice Function for updating the domain name of a rented space domain.
+    /// @param spaceId The ID of the rented space domain to update.
     /// @param domainName The new domain name to set.
-    function updateRentedSpaceDomainName(uint64 spaceId, string calldata domainName) external {}
+    function updateRentedSpaceDomainName(uint64 spaceId, string calldata domainName) external checkRegistered {
+        spaceFNS.updateSubDomainName(spaceId, domainName);
+    }
+
+    /// @notice Function for setting the maximum number of sub-space domains allowed for an account.
+    /// @param limit The maximum number of sub-space domains allowed.
+    function setSubSpaceDomainLimit(uint64 limit) external onlyOwner {
+        subSpaceDomainLimit = limit;
+    }
 }

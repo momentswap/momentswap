@@ -3,14 +3,14 @@ pragma solidity 0.8.19;
 
 /// @title ISpaceFNS
 /// @dev Interface for the SpaceFNS contract.
-interface ISpaceFNS {   
+interface ISpaceFNS {
     /// @dev Emitted when a new Space Domain is minted.
     /// @param account The account that minted the domain.
     /// @param primarySpaceId The ID of the parent space.
     /// @param domainName The name of the domain.
     /// @param expireSeconds The number of seconds until the domain expires.
     event MintSpaceDomain(
-        address indexed account,  
+        address indexed account,
         uint64 indexed primarySpaceId,
         string indexed domainName,
         uint64 expireSeconds
@@ -76,22 +76,12 @@ interface ISpaceFNS {
     /// @param domainName The name of the domain.
     /// @param expireSeconds The number of seconds until the domain expires.
     /// @return The ID of the new Space Domain.
-    /// Requirements: 
-    /// - DomainName cannot be less than 3 and greater than 10 characters 
+    /// Requirements:
+    /// - DomainName cannot be less than 3 and greater than 10 characters
     /// - Domain name cannot already exist
     function mintSpaceDomain(uint64 creatorId, uint64 primarySpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64);
 
-    /// @notice Updates the name of a child domain.
-    /// @param spaceId The ID of the space.
-    /// @param oldDomainName The current name of the domain.
-    /// @param newDomainName The new name of the domain.
-    /// Requirements: 
-    /// - The caller is the authorized address
-    /// - Not parent domain
-    /// - DomainName cannot be less than 3 and greater than 10 characters
-    /// - Domain name cannot already exist
-    /// - Delete the original domain name mapping
-    function updateSubDomainName(uint64 spaceId, string calldata primaryDomain, string calldata oldDomainName, string calldata newDomainName) external ;
+    function updateSubDomainName(uint64 spaceId, string calldata domainName) external ;
 
     /// @notice Update the expiration time of a space with the given space ID
     /// @param spaceId The ID of the space to update
