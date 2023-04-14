@@ -15,8 +15,8 @@ export const IdentityModal = () => {
   const avatarRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const setNotifyFail = useNotifyStatus((state) => state.fail);
-
+  const setNotifySuccess = useNotifyStatus((state) => state.success);
+  const setNotifyReset = useNotifyStatus((state) => state.resetStatus);
 
   useEffect(() => {
     avatarRef.current?.addEventListener("input", async () => {
@@ -56,16 +56,17 @@ export const IdentityModal = () => {
     setLoading(true);
 
     try {
+      setNotifySuccess();
       if (avatarSetting) {
         await setAvatar(avatarSetting);
       }
       if (!mainDomain) {
-        registerMainDomain(text)
+        await (await registerMainDomain(text)).wait();
       }
+      setNotifyReset();
     } catch (err: any) {
       if (err.code === -32603) {
-      setNotifyFail()
-        // alert("Insufficient gas.");
+        alert("Insufficient gas.");
       }
     }
 
