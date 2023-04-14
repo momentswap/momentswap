@@ -10,7 +10,7 @@ type Props = {
 };
 
 export const Layout: FC<Props> = ({ children }) => {
-  const { address } = useWalletProvider();
+  const { address, disconnect } = useWalletProvider();
   const { mainDomain, loading } = useSpaceDomain();
 
   return (
@@ -43,12 +43,21 @@ export const Layout: FC<Props> = ({ children }) => {
             {loading ? (
               <p>From the chain during data loading...</p>
             ) : (
-              <p>
-                The Space Domain needs to be registered for the first login:
-                <label htmlFor="identity-modal" className="link">
-                  Register
-                </label>
-              </p>
+              <>
+                <p>
+                  The Space Domain needs to be registered for the first login:{" "}
+                  <label htmlFor="identity-modal" className="link">
+                    Register
+                  </label>
+                </p>
+
+                <p>
+                  Or{" "}
+                  <span className="underline cursor-pointer" onClick={disconnect}>
+                    Sign Out
+                  </span>
+                </p>
+              </>
             )}
           </div>
         )}
