@@ -48,7 +48,7 @@ const config: HardhatUserConfig = {
   },
   paths: {
     root: "./fevm/hardhat",
-    tests: "./fevm/hardhat/tests",
+    tests: "./fevm/hardhat/test",
     cache: "./fevm/hardhat/cache",
   },
 };
