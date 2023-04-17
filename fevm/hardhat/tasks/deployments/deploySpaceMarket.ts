@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import type { SpaceMarket, SpaceMarket__factory } from "../../typechain-types";
 
-export default async function deploySpaceMarket(hre: HardhatRuntimeEnvironment) {
+export async function deploySpaceMarket(hre: HardhatRuntimeEnvironment) {
   console.log("\nSpaceMarket deploying....");
 
   const spaceMarketFactory: SpaceMarket__factory = <SpaceMarket__factory>(

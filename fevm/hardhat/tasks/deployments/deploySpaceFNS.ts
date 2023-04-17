@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { SpaceFNS, SpaceFNS__factory } from "../../typechain-types";
 
-export default async function deploySpaceFNS(hre: HardhatRuntimeEnvironment) {
+export async function deploySpaceFNS(hre: HardhatRuntimeEnvironment) {
   console.log("\nSpaceFNS deploying....");
 
   const spaceFNSFactory: SpaceFNS__factory = <SpaceFNS__factory>await hre.ethers.getContractFactory("SpaceFNS");

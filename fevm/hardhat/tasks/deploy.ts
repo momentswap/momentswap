@@ -1,8 +1,5 @@
 import { task } from "hardhat/config";
-import deployAccount from "./deploy/deployAccount";
-import deployMoment from "./deploy/deployMoment";
-import deploySpaceFNS from "./deploy/deploySpaceFNS";
-import deploySpaceMarket from "./deploy/deploySpaceMarket";
+import { deployAccount, deployMoment, deploySpaceFNS, deploySpaceMarket } from "./deployments";
 
 task("deploy:all", "Deploy the entire contract cluster").setAction(async (_, hre) => {
   await hre.run("compile");

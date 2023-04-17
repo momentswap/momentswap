@@ -36,7 +36,7 @@ contract SpaceFNS is ISpaceFNS {
 
     /// Must be called by the Account contract
     modifier onlyCaller() {
-        if (accountCaller != msg.sender) {
+        if (caller != msg.sender) {
             revert NotAccountContract();
         }
         _;
@@ -85,7 +85,7 @@ contract SpaceFNS is ISpaceFNS {
     mapping(uint64 => address) private approvals;
 
     /// @notice Address that can call functions with onlyCaller modifier.
-    address public accountCaller;
+    address public caller;
     address public admin;
 
     constructor() {
@@ -117,7 +117,7 @@ contract SpaceFNS is ISpaceFNS {
     /// @param _caller The new caller address to be set.
     /// @dev Only the contract owner can call this function.
     function setCaller(address _caller) external onlyAdmin() {
-        accountCaller = _caller;
+        caller = _caller;
     }
 
     /// @notice Gets the address approved to act on behalf of a space.

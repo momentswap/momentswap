@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { Moment, Moment__factory } from "../../typechain-types";
 
-export default async function deployMoment(hre: HardhatRuntimeEnvironment) {
+export async function deployMoment(hre: HardhatRuntimeEnvironment) {
   console.log("\nMoment deploying....");
 
   const momentFactory: Moment__factory = <Moment__factory>await hre.ethers.getContractFactory("Moment");
