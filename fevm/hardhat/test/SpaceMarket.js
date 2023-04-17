@@ -1,7 +1,6 @@
 const { expect } = require("chai");
 const { loadFixture } = require("@nomicfoundation/hardhat-network-helpers");
 
-// npx hardhat test ./test/SpaceMarket.js --network hardhat
 describe("SpaceMarket contract", function () {
   async function deployTokenFixture() {
     const SpaceMarket = await ethers.getContractFactory("SpaceMarket");

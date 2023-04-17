@@ -9,10 +9,11 @@
     "export": "next export",
     "start": "next start",
     "lint": "next lint",
-    "compile": "npx hardhat compile",
-    "deploy": "npx hardhat run ./fevm/hardhat/deploy/deployMomentSwapFRC721.ts",
-    "test-local": "npx hardhat test ./fevm/hardhat/tests/* --network hardhat",
-    "test-testnet": "npx hardhat test ./fevm/hardhat/tests/* --network filecoinHyperspace"
+    "compile": "hardhat compile",
+    "deploy": "hardhat deploy:all",
+    "deploy-local": "hardhat deploy:all --network hardhat",
+    "test": "hardhat test ./fevm/hardhat/test/*",
+    "test-local": "hardhat test ./fevm/hardhat/test/* --network hardhat"
   },
   "dependencies": {
     "@heroicons/react": "v1",

@@ -21,5 +21,3 @@ jobs:
       run: pnpm install
     - name: Test LOCAL
       run: pnpm run test-local
-    - name: Test Network
-      run: pnpm run test-testnet
