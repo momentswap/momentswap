@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {IAccount, AccountData} from "./interfaces/IAccount.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interfaces/IAccount.sol";
 import {IMoment} from "./interfaces/IMoment.sol";
+import {ISpaceFNS} from "./interfaces/ISpaceFNS.sol";
 
 /// @notice This contract implements the IAccount interface and provides functionality for managing accounts.
-contract Account is IAccount {
+contract Account is IAccount, Ownable {
 
     /// @notice Error to be thrown when an account already exists for the given address.
     error AccountAlreadyExists();
@@ -13,8 +15,20 @@ contract Account is IAccount {
     /// @notice Error to be thrown when an account is not found.
     error AccountNotFound();
 
-    /// @notice Error to be thrown when an unauthorized user tries to access Account contract.
+    /// @notice Error to be thrown when an unauthorized user tries to access some functions for Account contract.
     error Unauthorized();
+
+    /// @notice Error to be thrown when the maximum number of allowed sub-space domains has been reached.
+    error MaximumNumberOfSpaceDomainsReached();
+
+    /// @notice Error to be thrown when a Space domain has expired.
+    error SpaceDomainHasExpired();
+
+    /// @notice Error to be thrown when a Space domain has not expired.
+    error SpaceDomainHasNotExpired();
+
+    /// @notice Maximum number of allowed sub-space domains for an account.
+    uint64 public subSpaceDomainLimit;
 
     /// @notice Total number of created accounts.
     uint64 public totalAccountCount;
@@ -28,22 +42,31 @@ contract Account is IAccount {
     /// @notice The `IMoment` contract that provides the current timestamp.
     IMoment public immutable moment;
 
+    /// @notice The `ISpaceFNS` contract that manages the Space FNS.
+    ISpaceFNS public immutable spaceFNS;
+
     /// @notice Modifier to check if the caller's address is registered as an account.
     modifier checkRegistered() {
         if (accountIds[msg.sender] == 0) revert AccountNotFound();
         _;
     }
 
-    /// @notice Constructor that initializes the `IMoment` contract.
-    constructor(IMoment _moment) {
+    /// @notice Constructor that initializes the `IMoment` contract and sets the maximum number of allowed sub-space domains.
+    /// @param _moment The `IMoment` contract that provides the current timestamp.
+    /// @param _spaceFNS The `ISpaceFNS` contract that manages the Space FNS.
+    constructor(IMoment _moment, ISpaceFNS _spaceFNS) {
+        subSpaceDomainLimit = 5;
         moment = _moment;
+        spaceFNS = _spaceFNS;
     }
 
     /// @notice Returns the account IDs of the given addresses.
     /// @dev If an address does not have an account, it is omitted from the result.
     /// @param addresses The list of addresses for which to retrieve the account IDs.
     /// @return An array of account IDs corresponding to the given addresses.
-    function getAccountIds(address[] calldata addresses) external view returns (uint64[] memory) {
+    function getAccountIds(
+        address[] calldata addresses
+    ) external view returns (uint64[] memory) {
         uint64[] memory _accountIds = new uint64[](addresses.length);
         for (uint256 i = 0; i < addresses.length; i++) {
             _accountIds[i] = accountIds[addresses[i]];
@@ -55,7 +78,9 @@ contract Account is IAccount {
     /// @dev If an account ID does not exist, it is omitted from the result.
     /// @param _accountIds The list of account IDs for which to retrieve the addresses.
     /// @return An array of addresses corresponding to the given account IDs.
-    function getAddresses(uint64[] calldata _accountIds) external view returns (address[] memory) {
+    function getAddresses(
+        uint64[] calldata _accountIds
+    ) external view returns (address[] memory) {
         address[] memory addresses = new address[](_accountIds.length);
         for (uint256 i = 0; i < _accountIds.length; i++) {
             addresses[i] = accounts[_accountIds[i]].owner;
@@ -67,7 +92,9 @@ contract Account is IAccount {
     /// @dev If an account ID does not exist, it is omitted from the result.
     /// @param _accountIds The list of account IDs for which to retrieve the account data.
     /// @return An array of account data corresponding to the given account IDs.
-    function getAccountData(uint64[] calldata _accountIds) external view returns (AccountData[] memory) {
+    function getAccountData(
+        uint64[] calldata _accountIds
+    ) external view returns (AccountData[] memory) {
         AccountData[] memory accountData = new AccountData[](_accountIds.length);
         for (uint256 i = 0; i < _accountIds.length; i++) {
             accountData[i] = accounts[_accountIds[i]];
@@ -80,7 +107,9 @@ contract Account is IAccount {
     /// @dev If an account ID does not exist, it is omitted from the result.
     /// @param _accountIds The list of account IDs for which to retrieve the avatar URIs.
     /// @return An array of avatar URIs corresponding to the given account IDs.
-    function getAvatarURIs(uint64[] calldata _accountIds) external view returns (string[] memory) {
+    function getAvatarURIs(
+        uint64[] calldata _accountIds
+    ) external view returns (string[] memory) {
         string[] memory avatarURIs = new string[](_accountIds.length);
         for (uint256 i = 0; i < _accountIds.length; i++) {
             avatarURIs[i] = accounts[_accountIds[i]].avatarURI;
@@ -130,18 +159,40 @@ contract Account is IAccount {
     /// @param domainName The domain name to associate with the account.
     /// @param avatarURI The URI of the avatar to associate with the account.
     /// @return The ID of the newly created account.
-    function createAccount(string calldata domainName, string calldata avatarURI) external returns (uint64) {}
+    function createAccount(
+        string calldata domainName,
+        string calldata avatarURI
+    ) external returns (uint64) {
+        if (accountIds[msg.sender] != 0) revert AccountAlreadyExists();
 
-    /// @notice Cancels the account associated with the given account ID.
-    /// @dev The account must not have any associated moments, comments, or spaces in order to be cancelled.
-    /// @param accountId The ID of the account to cancel.
-    function cancelAccount(uint64 accountId) external {}
+        uint64 accountId = ++totalAccountCount;
+        accountIds[msg.sender] = accountId;
+        uint64 spaceId = spaceFNS.mintSpaceDomain(accountId, 0, domainName, 0);
+
+        AccountData storage account = accounts[accountId];
+        account.owner = msg.sender;
+        account.avatarURI = avatarURI;
+        account.mintedSpaceIds = [spaceId];
+
+        emit CreateAccount(accountId, msg.sender, domainName, avatarURI);
+        return accountId;
+    }
+
+    /// @notice Cancels the account associated.
+    function cancelAccount() external checkRegistered {
+        emit CancelAccount(accountIds[msg.sender]);
+
+        delete accounts[accountIds[msg.sender]];
+        delete accountIds[msg.sender];
+    }
 
     // TODO: Transfer All to Events
     /// @notice Updates the avatar URI associated with the calling account.
     /// @param avatarURI The new avatar URI to associate with the calling account.
-    function updateAvatarURI(string calldata avatarURI) external checkRegistered {
+    function updateAvatarURI(string calldata avatarURI) public checkRegistered {
         accounts[accountIds[msg.sender]].avatarURI = avatarURI;
+
+        emit UpdateAvatarURI(accountIds[msg.sender], avatarURI);
     }
 
     // TODO: Transfer All to Events
@@ -151,6 +202,8 @@ contract Account is IAccount {
     function createMoment(string calldata metadataURI) external checkRegistered returns (uint120) {
         uint120 momentId = moment.createMoment(accountIds[msg.sender], metadataURI);
         accounts[accountIds[msg.sender]].momentIds.push(momentId);
+
+        emit CreateMoment(accountIds[msg.sender], momentId, metadataURI);
         return momentId;
     }
 
@@ -165,6 +218,8 @@ contract Account is IAccount {
                 momentIds[i] = momentIds[momentIds.length - 1];
                 momentIds.pop();
                 moment.removeMoment(momentId);
+
+                emit RemoveMoment(accountIds[msg.sender], momentId);
                 break;
             }
         }
@@ -177,6 +232,8 @@ contract Account is IAccount {
     function likeMoment(uint120 momentId) external checkRegistered {
         accounts[accountIds[msg.sender]].likedMomentIds.push(momentId);
         moment.addLike(momentId, accountIds[msg.sender]);
+
+        emit LikeMoment(accountIds[msg.sender], momentId);
     }
 
     // TODO: Transfer All to Events
@@ -190,6 +247,8 @@ contract Account is IAccount {
                 likedMomentIds[i] = likedMomentIds[likedMomentIds.length - 1];
                 likedMomentIds.pop();
                 moment.removeLike(momentId, accountIds[msg.sender]);
+
+                emit CancelLikeMoment(accountIds[msg.sender], momentId);
                 break;
             }
         }
@@ -200,9 +259,14 @@ contract Account is IAccount {
     /// @param momentId The ID of the moment to create the comment on.
     /// @param commentText The text of the comment to create.
     /// @return The ID of the newly created comment.
-    function createComment(uint120 momentId, string calldata commentText) external checkRegistered returns (uint128) {
+    function createComment(
+        uint120 momentId,
+        string calldata commentText
+    ) external checkRegistered returns (uint128) {
         uint128 commentId =  moment.createComment(momentId, accountIds[msg.sender], commentText);
         accounts[accountIds[msg.sender]].commentIds.push(commentId);
+
+        emit CreateComment(accountIds[msg.sender], commentId, commentText);
         return commentId;
     }
 
@@ -217,25 +281,75 @@ contract Account is IAccount {
                 commentIds[i] = commentIds[commentIds.length - 1];
                 commentIds.pop();
                 moment.removeComment(commentId);
+
+                emit RemoveComment(accountIds[msg.sender], commentId);
                 break;
             }
         }
     }
 
-    /// @notice Mints a new child space domain with the given domain name and expire time.
-    /// @dev The calling account must own the parent space in order to mint a child space domain.
-    /// @param parentSpaceId The ID of the parent space to mint the child space domain for.
-    /// @param domainName The domain name to associate with the child space domain.
-    /// @param expireSeconds The number of seconds until the child space domain expires.
-    /// @return The ID of the newly minted child space domain.
-    function mintChaildSpaceDomain(uint64 parentSpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64) {}
+    /// @notice Mints a new sub space domain with the given domain name and expire time.
+    /// @dev The calling account must own the primary space in order to mint a sub space domain.
+    /// @param primarySpaceId The ID of the primary space to mint the sub space domain for.
+    /// @param domainName The domain name to associate with the sub space domain.
+    /// @param expireSeconds The number of seconds until the sub space domain expires.
+    /// @return The ID of the newly minted sub space domain.
+    function mintSubSpaceDomain(
+        uint64 primarySpaceId,
+        string calldata domainName,
+        uint64 expireSeconds
+    ) external checkRegistered returns (uint64) {
+        if (accounts[accountIds[msg.sender]].mintedSpaceIds.length > subSpaceDomainLimit) {
+            revert MaximumNumberOfSpaceDomainsReached();
+        }
+        uint64 spaceId = spaceFNS.mintSpaceDomain(accountIds[msg.sender], primarySpaceId, domainName, expireSeconds);
+        accounts[accountIds[msg.sender]].mintedSpaceIds.push(spaceId);
 
-    /// @notice Returns the space with the given space ID.
+        emit MintSubSpaceDomain(primarySpaceId, spaceId, domainName, expireSeconds);
+        return spaceId;
+    }
+
+    /// @notice Rents the space with the given space ID.
     /// @param spaceId The ID of the space to return.
-    function returnSpace(uint64 spaceId) external {}
+    function rentSpace(uint64 spaceId) external {
+        if (spaceFNS.isExpired(spaceId)) revert SpaceDomainHasExpired();
+        if (spaceFNS.getSpaceDomainUserId(spaceId) != accountIds[msg.sender]) revert Unauthorized();
+        accounts[accountIds[msg.sender]].rentedSpaceIds.push(spaceId);
+    }
 
-    /// @notice Updates the domain name for the rented space with the given space ID.
-    /// @param spaceId The ID of the rented space for which to update the domain name.
+    /// @notice Function for returning a rented space domain.
+    /// @param user The address of the account that rented the space domain.
+    /// @param spaceId The ID of the space domain to return.
+    function returnSpace(address user, uint64 spaceId) external {
+        if (accountIds[user] == 0) revert AccountNotFound();
+        if (!spaceFNS.isExpired(spaceId)) revert SpaceDomainHasNotExpired();
+
+        uint64[] storage rentedSpaceIds = accounts[accountIds[user]].rentedSpaceIds;
+        for (uint256 i = 1; i < rentedSpaceIds.length; i++) {
+            if (rentedSpaceIds[i] == spaceId) {
+                rentedSpaceIds[i] = rentedSpaceIds[rentedSpaceIds.length - 1];
+                rentedSpaceIds.pop();
+                spaceFNS.returnSpace(accountIds[user], spaceId);
+
+                emit ReturnSpace(accountIds[user], spaceId);
+                break;
+            }
+        }
+    }
+
+    /// @notice Function for updating the domain name of a rented space domain.
+    /// @param spaceId The ID of the rented space domain to update.
     /// @param domainName The new domain name to set.
-    function updateRentedSpaceDomainName(uint64 spaceId, string calldata domainName) external {}
+    function updateRentedSpaceDomainName(uint64 spaceId, string calldata domainName) external checkRegistered {
+        spaceFNS.updateSubDomainName(spaceId, domainName);
+
+        emit UpdateRentedSpaceDomainName(spaceId, domainName);
+    }
+
+    /// @notice Function for setting the maximum number of sub-space domains allowed for an account.
+    /// @param limit The maximum number of sub-space domains allowed.
+    function setSubSpaceDomainLimit(uint64 limit) external onlyOwner {
+        subSpaceDomainLimit = limit;
+
+    }
 }

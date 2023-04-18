@@ -29,7 +29,7 @@ contract TestSpaceFNS {
     ) public {
         ISpaceFNS(spaceAddr).updateExpireSeconds(spaceId, newExpireSeconds, userId);
     }
-    
+
     function TestReturnSpace(
         address spaceAddr,
         uint64 userId, uint64 spaceId

@@ -1,14 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import {IMoment, MomentData, CommentData} from "./interfaces/IMoment.sol";
 
 /// @notice This contract implements the IMoment interface and provides functionality for managing moments.
-contract Moment is IMoment, Ownable {
+contract Moment is IMoment, Ownable, ERC721URIStorage {
 
     /// @notice Error to be thrown when the caller is not authorized to perform an action.
     error Unauthorized();
+
+    /// @notice Error to be thrown when accessing this comment.
+    error MomentNotFound();
 
     /// @notice Total number of moments created.
     uint120 public totalMomentCount;
@@ -37,8 +41,8 @@ contract Moment is IMoment, Ownable {
         _;
     }
 
-    /// @notice Constructor that sets the `owner` address to the creator of the contract.
-    constructor() {}
+    /// @notice Constructor function that initializes the ERC721 token with the name "Moment NFTs" and the symbol "MMT".
+    constructor() ERC721("Moment NFTs", "MMT") {}
 
     // TODO: Transfer All to Events
     /// @notice Returns an array of all moments that have been created.
@@ -46,7 +50,7 @@ contract Moment is IMoment, Ownable {
     function getAllMoments() external view returns (MomentData[] memory) {
         MomentData[] memory allMoments = new  MomentData[](totalMomentCount);
         for (uint120 i = 0; i < totalMomentCount; i++) {
-            allMoments[i] = moments[i];
+            allMoments[i] = moments[i + 1];
         }
         return allMoments;
     }
@@ -87,7 +91,6 @@ contract Moment is IMoment, Ownable {
         return commentData;
     }
 
-    // TODO: Transfer All to Events
     /// @notice Creates a new moment and returns its ID.
     /// @param accountId The ID of the account creating the moment.
     /// @param metadataURI The URI of the metadata associated with the moment.
@@ -100,14 +103,17 @@ contract Moment is IMoment, Ownable {
             deleted: false,
             metadataURI: metadataURI
         });
+
+        _mint(tx.origin, momentId);
+        _setTokenURI(momentId, metadataURI);
         return momentId;
     }
 
-    // TODO: Transfer All to Events
     /// @notice Removes a moment with the specified ID.
     /// @param momentId The ID of the moment to be removed.
     function removeMoment(uint120 momentId) external onlyCaller {
         moments[momentId].deleted = true;
+        _burn(momentId);
     }
 
     // TODO: Transfer All to Events
@@ -140,6 +146,8 @@ contract Moment is IMoment, Ownable {
     /// @param commentText The text of the comment.
     /// @return The ID of the newly created comment.
     function createComment(uint120 momentId, uint64 accountId, string calldata commentText) external onlyCaller returns (uint128) {
+        if (moments[momentId].creatorId == 0 || moments[momentId].deleted == true) revert MomentNotFound();
+
         uint128 commentId = ++totalCommentCount;
         comments[commentId] = CommentData({
             creatorId: accountId,

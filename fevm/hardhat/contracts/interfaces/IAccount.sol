@@ -16,6 +16,92 @@ struct AccountData {
 /// @notice This interface defines the methods that can be called on the account contract.
 interface IAccount {
 
+    /// @dev Emitted when a new account is created.
+    /// @param accountId The ID of the new account.
+    /// @param wallet The wallet address associated with the account.
+    /// @param primaryDomainName The primary domain name of the account.
+    /// @param avatarURI The URI of the account's avatar.
+    event CreateAccount(
+        uint64 accountId,
+        address wallet,
+        string primaryDomainName,
+        string avatarURI
+    );
+
+    /// @dev Emitted when an account is cancelled.
+    /// @param accountId The ID of the cancelled account.
+    event CancelAccount(uint64 accountId);
+
+    /// @dev Emitted when the avatar URI of an account is updated.
+    /// @param accountId The ID of the account.
+    /// @param avatarURI The new URI of the account's avatar.
+    event UpdateAvatarURI(uint64 accountId, string avatarURI);
+
+    /// @dev Emitted when a new moment is created.
+    /// @param accountId The ID of the account that created the moment.
+    /// @param momentId The ID of the new moment.
+    /// @param metadataURI The URI of the metadata associated with the moment.
+    event CreateMoment(
+        uint64 accountId,
+        uint120 momentId,
+        string metadataURI
+    );
+
+    /// @dev Emitted when a moment is removed.
+    /// @param accountId The ID of the account that removed the moment.
+    /// @param momentId The ID of the removed moment.
+    event RemoveMoment(uint64 accountId, uint120 momentId);
+
+    /// @dev Emitted when a moment is liked.
+    /// @param accountId The ID of the account that liked the moment.
+    /// @param momentId The ID of the liked moment.
+    event LikeMoment(uint64 accountId, uint120 momentId);
+
+    /// @dev Emitted when a like on a moment is cancelled.
+    /// @param accountId The ID of the account that cancelled the like.
+    /// @param momentId The ID of the moment that had its like cancelled.
+    event CancelLikeMoment(uint64 accountId, uint120 momentId);
+
+    /// @dev Emitted when a new comment is created.
+    /// @param accountId The ID of the account that created the comment.
+    /// @param commentId The ID of the new comment.
+    /// @param commentText The text of the new comment.
+    event CreateComment(
+        uint64 accountId,
+        uint128 commentId,
+        string commentText
+    );
+
+    /// @dev Emitted when a comment is removed.
+    /// @param accountId The ID of the account that removed the comment.
+    /// @param commentId The ID of the removed comment.
+    event RemoveComment(uint64 accountId, uint128 commentId);
+
+    /// @dev Emitted when a new sub-space domain is minted.
+    /// @param primarySpaceId The ID of the parent space.
+    /// @param subSpaceId The ID of the new sub-space.
+    /// @param subDomainName The name of the sub-domain.
+    /// @param expireSeconds The number of seconds until the sub-domain expires.
+    event MintSubSpaceDomain(
+        uint64 primarySpaceId,
+        uint64 subSpaceId,
+        string subDomainName,
+        uint64 expireSeconds
+    );
+
+    /// @dev Emitted when a space is returned.
+    /// @param accountId The ID of the account that returned the space.
+    /// @param spaceId The ID of the returned space.
+    event ReturnSpace(uint64 accountId, uint120 spaceId);
+
+    /// @dev Emitted when the domain name of a rented space is updated.
+    /// @param spaceId The ID of the rented space.
+    /// @param domainName The new domain name of the rented space.
+    event UpdateRentedSpaceDomainName(
+        uint64 spaceId,
+        string domainName
+    );
+
     /// @notice Returns the account IDs of the given addresses.
     /// @dev If an address does not have an account, it is omitted from the result.
     /// @param addresses The list of addresses for which to retrieve the account IDs.
@@ -71,10 +157,8 @@ interface IAccount {
     /// @return The ID of the newly created account.
     function createAccount(string calldata domainName, string calldata avatarURI) external returns (uint64);
 
-    /// @notice Cancels the account associated with the given account ID.
-    /// @dev The account must not have any associated moments, comments, or spaces in order to be cancelled.
-    /// @param accountId The ID of the account to cancel.
-    function cancelAccount(uint64 accountId) external;
+    /// @notice Cancels the account associated.
+    function cancelAccount() external;
 
     /// @notice Updates the avatar URI associated with the calling account.
     /// @param avatarURI The new avatar URI to associate with the calling account.
@@ -111,17 +195,22 @@ interface IAccount {
     /// @param commentId The ID of the comment to remove.
     function removeComment(uint128 commentId) external;
 
-    /// @notice Mints a new child space domain with the given domain name and expire time.
-    /// @dev The calling account must own the parent space in order to mint a child space domain.
-    /// @param parentSpaceId The ID of the parent space to mint the child space domain for.
-    /// @param domainName The domain name to associate with the child space domain.
-    /// @param expireSeconds The number of seconds until the child space domain expires.
-    /// @return The ID of the newly minted child space domain.
-    function mintChaildSpaceDomain(uint64 parentSpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64);
+    /// @notice Mints a new sub space domain with the given domain name and expire time.
+    /// @dev The calling account must own the primary space in order to mint a sub space domain.
+    /// @param primarySpaceId The ID of the primary space to mint the sub space domain for.
+    /// @param domainName The domain name to associate with the sub space domain.
+    /// @param expireSeconds The number of seconds until the sub space domain expires.
+    /// @return The ID of the newly minted sub space domain.
+    function mintSubSpaceDomain(uint64 primarySpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64);
 
-    /// @notice Returns the space with the given space ID.
+    /// @notice Rents the space with the given space ID.
     /// @param spaceId The ID of the space to return.
-    function returnSpace(uint64 spaceId) external;
+    function rentSpace(uint64 spaceId) external;
+
+    /// @notice Returns the user's space with the given space ID.
+    /// @param user The user ID of the domain name.
+    /// @param spaceId The ID of the space to return.
+    function returnSpace(address user, uint64 spaceId) external;
 
     /// @notice Updates the domain name for the rented space with the given space ID.
     /// @param spaceId The ID of the rented space for which to update the domain name.

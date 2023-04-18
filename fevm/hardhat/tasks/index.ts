@@ -1,5 +1,3 @@
 import "./deploy";
-import "./getMomentSwapNFT";
-import "./mintMomentSwapNFT";
+import "./setCaller";
 import "./utils";
-
