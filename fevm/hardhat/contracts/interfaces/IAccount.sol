@@ -203,7 +203,12 @@ interface IAccount {
     /// @return The ID of the newly minted sub space domain.
     function mintSubSpaceDomain(uint64 primarySpaceId, string calldata domainName, uint64 expireSeconds) external returns (uint64);
 
-    /// @notice Returns the space with the given space ID.
+    /// @notice Rents the space with the given space ID.
+    /// @param spaceId The ID of the space to return.
+    function rentSpace(uint64 spaceId) external;
+
+    /// @notice Returns the user's space with the given space ID.
+    /// @param user The user ID of the domain name.
     /// @param spaceId The ID of the space to return.
     function returnSpace(address user, uint64 spaceId) external;
 

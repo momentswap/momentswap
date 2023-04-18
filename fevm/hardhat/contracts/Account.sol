@@ -15,11 +15,14 @@ contract Account is IAccount, Ownable {
     /// @notice Error to be thrown when an account is not found.
     error AccountNotFound();
 
-    /// @notice Error to be thrown when an unauthorized user tries to access Account contract.
+    /// @notice Error to be thrown when an unauthorized user tries to access some functions for Account contract.
     error Unauthorized();
 
     /// @notice Error to be thrown when the maximum number of allowed sub-space domains has been reached.
     error MaximumNumberOfSpaceDomainsReached();
+
+    /// @notice Error to be thrown when a Space domain has expired.
+    error SpaceDomainHasExpired();
 
     /// @notice Error to be thrown when a Space domain has not expired.
     error SpaceDomainHasNotExpired();
@@ -304,6 +307,14 @@ contract Account is IAccount, Ownable {
 
         emit MintSubSpaceDomain(primarySpaceId, spaceId, domainName, expireSeconds);
         return spaceId;
+    }
+
+    /// @notice Rents the space with the given space ID.
+    /// @param spaceId The ID of the space to return.
+    function rentSpace(uint64 spaceId) external {
+        if (spaceFNS.isExpired(spaceId)) revert SpaceDomainHasExpired();
+        if (spaceFNS.getSpaceDomainUserId(spaceId) != accountIds[msg.sender]) revert Unauthorized();
+        accounts[accountIds[msg.sender]].rentedSpaceIds.push(spaceId);
     }
 
     /// @notice Function for returning a rented space domain.

@@ -2,9 +2,10 @@
 pragma solidity 0.8.19;
 
 import "./interfaces/ISpaceFNS.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract SpaceFNS is ISpaceFNS {
+contract SpaceFNS is ISpaceFNS, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _spaceIds;
 
@@ -21,7 +22,7 @@ contract SpaceFNS is ISpaceFNS {
     modifier checkDomainNameLength(string calldata domainName) {
         uint256 domainName_length = bytes(domainName).length;
         if (domainName_length < 3 || domainName_length > 10) {
-            revert DomainNameEroor();
+            revert DomainNameError();
         }
         _;
     }
@@ -50,18 +51,10 @@ contract SpaceFNS is ISpaceFNS {
         _;
     }
 
-    /// The owner must have permission
-    modifier onlyOwner(uint64 spaceId){
+    /// The user must have permission
+    modifier onlyUser(uint64 spaceId){
         if (approvals[spaceId] != msg.sender) {
             revert NotAppoved();
-        }
-        _;
-    }
-
-    /// Must be Admin can call
-    modifier onlyAdmin() {
-        if (msg.sender != admin) {
-            revert UnAdmin();
         }
         _;
     }
@@ -73,7 +66,7 @@ contract SpaceFNS is ISpaceFNS {
     error UnAdmin();
     error NotSubdomain();
     error DomainAlreadyExists();
-    error DomainNameEroor();
+    error DomainNameError();
 
     /// id(spaceId) ==> SpaceDomain struct
     mapping(uint64 => SpaceDomain) public spaceDomains;
@@ -116,7 +109,7 @@ contract SpaceFNS is ISpaceFNS {
     /// @notice Allows the contract owner to set the caller address.
     /// @param _caller The new caller address to be set.
     /// @dev Only the contract owner can call this function.
-    function setCaller(address _caller) external onlyAdmin() {
+    function setCaller(address _caller) external onlyOwner() {
         caller = _caller;
     }
 
@@ -156,6 +149,7 @@ contract SpaceFNS is ISpaceFNS {
         string calldata domainName,
         uint64 expireSeconds
     ) public override checkDomainNameLength(domainName) onlyCaller() returns (uint64) {
+        _spaceIds.increment();
         uint64 spaceId = uint64(_spaceIds.current());
         string memory fullDomainName = domainName;
         if (primarySpaceId != 0) {
@@ -166,19 +160,17 @@ contract SpaceFNS is ISpaceFNS {
         if (spaceDomainIds[fullDomainName] != 0) {
             revert DomainAlreadyExists();
         }
-        // expireSeconds = getBlockTimestamp() + expireSeconds;
+
         spaceDomains[spaceId] = SpaceDomain({
             creatorId: creatorId,
             userId: creatorId,
-            expireSeconds: getBlockTimestamp() + expireSeconds,
+            expireSeconds: expireSeconds,
             primarySpaceId: primarySpaceId,
             domainName: fullDomainName
         });
 
         spaceDomainIds[fullDomainName] = spaceId;
         approvals[spaceId] = tx.origin;
-
-        _spaceIds.increment();
 
         emit MintSpaceDomain(tx.origin, primarySpaceId, fullDomainName, expireSeconds);
         return spaceId;
@@ -240,7 +232,7 @@ contract SpaceFNS is ISpaceFNS {
         emit Approved(msg.sender, operator, spaceId);
     }
 
-    function approve(address operator, uint64 spaceId) public override onlyOwner(spaceId) {
+    function approve(address operator, uint64 spaceId) public override onlyUser(spaceId) {
         _approve(operator, spaceId);
     }
 
@@ -252,8 +244,9 @@ contract SpaceFNS is ISpaceFNS {
     /// - The caller is the authorized address
     /// - Change the `userid` of `SpaceDomain` to the renter,
     /// - Change the authorized address of `SpaceDomain` to the address of the renter
-    function rentSpace(uint64 spaceId, uint64 userId, address userAddr) public override onlyOwner(spaceId) {
+    function rentSpace(uint64 spaceId, uint64 userId, address userAddr) public override onlyUser(spaceId) {
         spaceDomains[spaceId].userId = userId;
+        spaceDomains[spaceId].expireSeconds += getBlockTimestamp();
         approve(userAddr, spaceId);
     }
 
