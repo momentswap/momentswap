@@ -3,7 +3,7 @@ import { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { SpaceMarket, SpaceMarket__factory } from "../../typechain-types";
 
 export async function deploySpaceMarket(hre: HardhatRuntimeEnvironment) {
-  console.log("\nSpaceMarket deploying....");
+  console.log("SpaceMarket deploying....");
 
   const spaceMarketFactory: SpaceMarket__factory = <SpaceMarket__factory>(
     await hre.ethers.getContractFactory("SpaceMarket")
@@ -11,6 +11,6 @@ export async function deploySpaceMarket(hre: HardhatRuntimeEnvironment) {
   const spaceMarket: SpaceMarket = <SpaceMarket>await spaceMarketFactory.deploy();
   await spaceMarket.deployed();
 
-  console.log("✨ SpaceMarket deployed to:", spaceMarket.address);
+  console.log(`✨ SpaceMarket deployed to: ${spaceMarket.address}\n`);
   return spaceMarket.address;
 }
