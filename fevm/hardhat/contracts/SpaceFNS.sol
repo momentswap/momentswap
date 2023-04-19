@@ -63,7 +63,6 @@ contract SpaceFNS is ISpaceFNS, Ownable {
     error NotAppoved();
     error NotExpired();
     error NotCreator();
-    error UnAdmin();
     error NotSubdomain();
     error DomainAlreadyExists();
     error DomainNameError();
@@ -79,11 +78,8 @@ contract SpaceFNS is ISpaceFNS, Ownable {
 
     /// @notice Address that can call functions with onlyCaller modifier.
     address public caller;
-    address public admin;
 
-    constructor() {
-        admin = msg.sender;
-    }
+    constructor() {}
 
     /// @notice Checks if a space is expired.
     /// @param spaceId The ID of the space.
