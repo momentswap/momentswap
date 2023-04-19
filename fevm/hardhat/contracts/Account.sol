@@ -27,11 +27,18 @@ contract Account is IAccount, Ownable {
     /// @notice Error to be thrown when a Space domain has not expired.
     error SpaceDomainHasNotExpired();
 
+    error Unapproved();
+
+    error NotUser();
+
     /// @notice Maximum number of allowed sub-space domains for an account.
     uint64 public subSpaceDomainLimit;
 
     /// @notice Total number of created accounts.
     uint64 public totalAccountCount;
+
+
+    mapping(uint64 => address) private approvals;
 
     /// @notice Mapping of addresses to account IDs.
     mapping(address => uint64) public accountIds;
@@ -51,6 +58,22 @@ contract Account is IAccount, Ownable {
         _;
     }
 
+    /// @notice The caller must have permission
+    modifier onlyAppover(uint64 spaceId){
+        if (getApproved(spaceId) != msg.sender) {
+            revert Unapproved();
+        }
+        _;
+    }
+
+    /// @notice The caller must have permission
+    modifier onlySpaceUser(uint64 spaceId) {
+        if (getSpaceUserId(spaceId) != accountIds[msg.sender]) {
+            revert NotUser();
+        }
+        _;
+    }
+
     /// @notice Constructor that initializes the `IMoment` contract and sets the maximum number of allowed sub-space domains.
     /// @param _moment The `IMoment` contract that provides the current timestamp.
     /// @param _spaceFNS The `ISpaceFNS` contract that manages the Space FNS.
@@ -60,59 +83,97 @@ contract Account is IAccount, Ownable {
         spaceFNS = _spaceFNS;
     }
 
+    /// @notice Returns the creator ID of the given space ID.
+    /// @param spaceId The ID of the space.
+    /// @return An creator ID corresponding to the given space ID.
+    function getSpaceCreatorId(uint64 spaceId) public view returns (uint64) {
+        return spaceFNS.getSpaceDomainCreatorId(spaceId);
+    }
+
+    /// @notice Gets the address approved to act on behalf of a space.
+    /// @param spaceId The ID of the space.
+    /// @return The address approved to act on behalf of the space.
+    function getApproved(uint64 spaceId)  public view override returns (address) {
+        return approvals[spaceId];
+    }
+
+    /// @notice Returns the account ID of the given address.
+    /// @dev If an address does not have an account, it is omitted from the result.
+    /// @param accountAddress The address for which to retrieve the account ID.
+    /// @return An account ID corresponding to the given address.
+    function getAccountId(address accountAddress) public view returns (uint64) {
+        return accountIds[accountAddress];
+    }
+
     /// @notice Returns the account IDs of the given addresses.
     /// @dev If an address does not have an account, it is omitted from the result.
-    /// @param addresses The list of addresses for which to retrieve the account IDs.
+    /// @param addressArray The list of addresses for which to retrieve the account IDs.
     /// @return An array of account IDs corresponding to the given addresses.
-    function getAccountIds(
-        address[] calldata addresses
-    ) external view returns (uint64[] memory) {
-        uint64[] memory _accountIds = new uint64[](addresses.length);
-        for (uint256 i = 0; i < addresses.length; i++) {
-            _accountIds[i] = accountIds[addresses[i]];
+    function batchGetAccountId(address[] calldata addressArray) public view returns (uint64[] memory) {
+        uint64[] memory _accountIds = new uint64[](addressArray.length);
+        for (uint256 i = 0; i < addressArray.length; i++) {
+            _accountIds[i] = getAccountId(addressArray[i]);
         }
         return _accountIds;
     }
 
+    /// @notice Returns the address corresponding to the given account ID.
+    /// @dev If an account ID does not exist, it is omitted from the result.
+    /// @param accountId The account ID for which to retrieve the address.
+    /// @return An address corresponding to the given account ID.
+    function getAddress(uint64 accountId) public view returns (address) {
+        return accounts[accountId].owner;
+    }
+
     /// @notice Returns the addresses corresponding to the given account IDs.
     /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param _accountIds The list of account IDs for which to retrieve the addresses.
+    /// @param accountIdArray The list of account IDs for which to retrieve the addresses.
     /// @return An array of addresses corresponding to the given account IDs.
-    function getAddresses(
-        uint64[] calldata _accountIds
-    ) external view returns (address[] memory) {
-        address[] memory addresses = new address[](_accountIds.length);
-        for (uint256 i = 0; i < _accountIds.length; i++) {
-            addresses[i] = accounts[_accountIds[i]].owner;
+    function batchGetAddress(uint64[] calldata accountIdArray) public view returns (address[] memory) {
+        address[] memory addresses = new address[](accountIdArray.length);
+        for (uint256 i = 0; i < accountIdArray.length; i++) {
+            addresses[i] = getAddress(accountIdArray[i]);
         }
         return addresses;
     }
 
+    /// @notice Returns the account data for the given account ID.
+    /// @dev If an account ID does not exist, it is omitted from the result.
+    /// @param accountId The account ID for which to retrieve the account data.
+    /// @return An account data corresponding to the given account ID.
+    function getAccountData(uint64 accountId) public view returns (AccountData memory) {
+        return accounts[accountId];
+    }
+
     /// @notice Returns the account data for the given account IDs.
     /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param _accountIds The list of account IDs for which to retrieve the account data.
+    /// @param accountIdArray The list of account IDs for which to retrieve the account data.
     /// @return An array of account data corresponding to the given account IDs.
-    function getAccountData(
-        uint64[] calldata _accountIds
-    ) external view returns (AccountData[] memory) {
-        AccountData[] memory accountData = new AccountData[](_accountIds.length);
-        for (uint256 i = 0; i < _accountIds.length; i++) {
-            accountData[i] = accounts[_accountIds[i]];
+    function batchGetAccountData(uint64[] calldata accountIdArray) public view returns (AccountData[] memory) {
+        AccountData[] memory accountData = new AccountData[](accountIdArray.length);
+        for (uint256 i = 0; i < accountIdArray.length; i++) {
+            accountData[i] = getAccountData(accountIdArray[i]);
         }
         return accountData;
+    }
+
+    /// @notice Returns the avatar URI for the given account ID.
+    /// @dev If an account ID does not exist, it is omitted from the result.
+    /// @param accountId The account ID for which to retrieve the avatar URI.
+    /// @return An avatar URI corresponding to the given account ID.
+    function getAvatarURI(uint64 accountId) public view returns (string memory) {
+        return accounts[accountId].avatarURI;
     }
 
     // TODO: Transfer All to Events
     /// @notice Returns the avatar URIs for the given account IDs.
     /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param _accountIds The list of account IDs for which to retrieve the avatar URIs.
+    /// @param accountIdArray The list of account IDs for which to retrieve the avatar URIs.
     /// @return An array of avatar URIs corresponding to the given account IDs.
-    function getAvatarURIs(
-        uint64[] calldata _accountIds
-    ) external view returns (string[] memory) {
-        string[] memory avatarURIs = new string[](_accountIds.length);
-        for (uint256 i = 0; i < _accountIds.length; i++) {
-            avatarURIs[i] = accounts[_accountIds[i]].avatarURI;
+    function batchGetAvatarURIs(uint64[] calldata accountIdArray) public view returns (string[] memory) {
+        string[] memory avatarURIs = new string[](accountIdArray.length);
+        for (uint256 i = 0; i < accountIdArray.length; i++) {
+            avatarURIs[i] = getAvatarURI(accountIdArray[i]);
         }
         return avatarURIs;
     }
@@ -141,11 +202,11 @@ contract Account is IAccount, Ownable {
          return accounts[accountId].likedMomentIds;
     }
 
-    /// @notice Returns the IDs of the spaces minted by the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the minted space IDs.
-    /// @return An array of space IDs minted by the given account ID.
-    function getMintedSpaceIds(uint64 accountId) external view returns (uint64[] memory) {
-         return accounts[accountId].mintedSpaceIds;
+    /// @notice Returns the IDs of the spaces created by the given account ID.
+    /// @param accountId The ID of the account for which to retrieve the created space IDs.
+    /// @return An array of space IDs created by the given account ID.
+    function getCreatedSpaceIds(uint64 accountId) external view returns (uint64[] memory) {
+         return accounts[accountId].createdSpaceIds;
     }
 
     /// @notice Returns the IDs of the spaces rented by the given account ID.
@@ -153,6 +214,20 @@ contract Account is IAccount, Ownable {
     /// @return An array of space IDs rented by the given account ID.
     function getRentedSpaceIds(uint64 accountId) external view returns (uint64[] memory) {
         return accounts[accountId].rentedSpaceIds;
+    }
+
+    function _approve(address operator, uint64 spaceId) internal virtual {
+        approvals[spaceId] = operator;
+        emit Approval(msg.sender, operator, spaceId);
+    }
+
+    /// @notice Authorized to the operator
+    /// @param operator The address of the operator to approve
+    /// @param spaceId The ID of the space to approve the operator for
+    /// Requirements:
+    /// - The caller must be authorized to approve an operator for the space
+     function approve(address operator, uint64 spaceId) public override onlySpaceUser(spaceId) {
+        _approve(operator, spaceId);
     }
 
     /// @notice Creates a new account with the given domain name and avatar URI.
@@ -167,12 +242,12 @@ contract Account is IAccount, Ownable {
 
         uint64 accountId = ++totalAccountCount;
         accountIds[msg.sender] = accountId;
-        uint64 spaceId = spaceFNS.mintSpaceDomain(accountId, 0, domainName, 0);
+        uint64 spaceId = spaceFNS.createSpaceDomain(accountId, 0, domainName, 0);
 
         AccountData storage account = accounts[accountId];
         account.owner = msg.sender;
         account.avatarURI = avatarURI;
-        account.mintedSpaceIds = [spaceId];
+        account.createdSpaceIds = [spaceId];
 
         emit CreateAccount(accountId, msg.sender, domainName, avatarURI);
         return accountId;
@@ -288,33 +363,35 @@ contract Account is IAccount, Ownable {
         }
     }
 
-    /// @notice Mints a new sub space domain with the given domain name and expire time.
-    /// @dev The calling account must own the primary space in order to mint a sub space domain.
-    /// @param primarySpaceId The ID of the primary space to mint the sub space domain for.
+    /// @notice Creates a new sub space domain with the given domain name and expire time.
+    /// @dev The calling account must own the primary space in order to create a sub space domain.
+    /// @param primarySpaceId The ID of the primary space to create the sub space domain for.
     /// @param domainName The domain name to associate with the sub space domain.
     /// @param expireSeconds The number of seconds until the sub space domain expires.
-    /// @return The ID of the newly minted sub space domain.
-    function mintSubSpaceDomain(
+    /// @return The ID of the newly created sub space domain.
+    function createSubSpaceDomain(
         uint64 primarySpaceId,
         string calldata domainName,
         uint64 expireSeconds
     ) external checkRegistered returns (uint64) {
-        if (accounts[accountIds[msg.sender]].mintedSpaceIds.length > subSpaceDomainLimit) {
+        if (accounts[accountIds[msg.sender]].createdSpaceIds.length > subSpaceDomainLimit) {
             revert MaximumNumberOfSpaceDomainsReached();
         }
-        uint64 spaceId = spaceFNS.mintSpaceDomain(accountIds[msg.sender], primarySpaceId, domainName, expireSeconds);
-        accounts[accountIds[msg.sender]].mintedSpaceIds.push(spaceId);
 
-        emit MintSubSpaceDomain(primarySpaceId, spaceId, domainName, expireSeconds);
+        uint64 spaceId = spaceFNS.createSpaceDomain(accountIds[msg.sender], primarySpaceId, domainName, expireSeconds);
+        accounts[accountIds[msg.sender]].createdSpaceIds.push(spaceId);
+
+        emit CreateSubSpaceDomain(primarySpaceId, spaceId, domainName, expireSeconds);
         return spaceId;
     }
 
     /// @notice Rents the space with the given space ID.
     /// @param spaceId The ID of the space to return.
-    function rentSpace(uint64 spaceId) external {
-        if (spaceFNS.isExpired(spaceId)) revert SpaceDomainHasExpired();
-        if (spaceFNS.getSpaceDomainUserId(spaceId) != accountIds[msg.sender]) revert Unauthorized();
-        accounts[accountIds[msg.sender]].rentedSpaceIds.push(spaceId);
+    function rentSpace(uint64 userId, uint64 spaceId) external onlyAppover(spaceId) {
+        spaceFNS.rentSpace(spaceId, userId);
+        accounts[userId].rentedSpaceIds.push(spaceId);
+
+        delete approvals[spaceId];
     }
 
     /// @notice Function for returning a rented space domain.
@@ -329,7 +406,7 @@ contract Account is IAccount, Ownable {
             if (rentedSpaceIds[i] == spaceId) {
                 rentedSpaceIds[i] = rentedSpaceIds[rentedSpaceIds.length - 1];
                 rentedSpaceIds.pop();
-                spaceFNS.returnSpace(accountIds[user], spaceId);
+                spaceFNS.returnSpace(spaceId);
 
                 emit ReturnSpace(accountIds[user], spaceId);
                 break;
@@ -340,16 +417,26 @@ contract Account is IAccount, Ownable {
     /// @notice Function for updating the domain name of a rented space domain.
     /// @param spaceId The ID of the rented space domain to update.
     /// @param domainName The new domain name to set.
-    function updateRentedSpaceDomainName(uint64 spaceId, string calldata domainName) external checkRegistered {
+    function updateRentedSpaceDomainName(uint64 spaceId, string calldata domainName) external checkRegistered onlySpaceUser(spaceId) {
         spaceFNS.updateSubDomainName(spaceId, domainName);
 
         emit UpdateRentedSpaceDomainName(spaceId, domainName);
+    }
+
+    /// @notice Update the expiration time of a space with the given space ID
+    /// @param spaceId The ID of the space to update
+    /// @param expireSeconds The number of seconds until the sub space domain expires.
+    /// Requirements:
+    /// - The caller must be authorized to update the space
+    function updateExpireSeconds(uint64 spaceId, uint64 expireSeconds) public override onlyAppover(spaceId) {
+        spaceFNS.updateExpireSeconds(spaceId, expireSeconds);
+
+        emit UpdateExpireSeconds(spaceId, expireSeconds);
     }
 
     /// @notice Function for setting the maximum number of sub-space domains allowed for an account.
     /// @param limit The maximum number of sub-space domains allowed.
     function setSubSpaceDomainLimit(uint64 limit) external onlyOwner {
         subSpaceDomainLimit = limit;
-
     }
 }

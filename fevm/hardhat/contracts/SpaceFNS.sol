@@ -17,7 +17,6 @@ contract SpaceFNS is ISpaceFNS, Ownable {
         string domainName;
     }
 
-
     /// Check domain length decorator
     modifier checkDomainNameLength(string calldata domainName) {
         uint256 domainName_length = bytes(domainName).length;
@@ -27,54 +26,29 @@ contract SpaceFNS is ISpaceFNS, Ownable {
         _;
     }
 
-    /// Must be the creator to modify the domain name and modify the expiration time
-    modifier isCreator(uint64 spaceId, uint64 userId) {
-        if (spaceDomains[spaceId].creatorId != userId) {
-            revert NotCreator();
-        }
-        _;
-    }
-
     /// Must be called by the Account contract
     modifier onlyCaller() {
         if (caller != msg.sender) {
-            revert NotAccountContract();
+            revert Unauthorized();
         }
         _;
     }
 
-    /// The caller must have permission
-    modifier onlyAppover(uint64 spaceId){
-        if (approvals[spaceId] != tx.origin) {
-            revert NotAppoved();
-        }
-        _;
-    }
-
-    /// The user must have permission
-    modifier onlyUser(uint64 spaceId){
-        if (approvals[spaceId] != msg.sender) {
-            revert NotAppoved();
-        }
-        _;
-    }
-
-    error NotAccountContract();
-    error NotAppoved();
+    /// @notice Error to be thrown when an unauthorized user tries to access some functions for Account contract.
+    error Unauthorized();
     error NotExpired();
     error NotCreator();
     error NotSubdomain();
     error DomainAlreadyExists();
     error DomainNameError();
+    error DomainInUse();
+    error DomainNotInUse();
 
     /// id(spaceId) ==> SpaceDomain struct
     mapping(uint64 => SpaceDomain) public spaceDomains;
 
     /// domainName ==> spaceId
     mapping(string => uint64) public spaceDomainIds;
-
-    /// spaceId ==> authorized address
-    mapping(uint64 => address) private approvals;
 
     /// @notice Address that can call functions with onlyCaller modifier.
     address public caller;
@@ -92,28 +66,13 @@ contract SpaceFNS is ISpaceFNS, Ownable {
     /// @param spaceIds An array of space IDs.
     /// @return An array of booleans indicating whether each space is expired.
     function isExpireds(uint64[] calldata spaceIds) public view override returns (bool[] memory) {
-        uint64 length = uint64(spaceIds.length);
-        bool[] memory expireds = new bool[](length);
+        bool[] memory expireds = new bool[](spaceIds.length);
 
-        for (uint64 i = 0; i < length; i++) {
-            expireds[i] = spaceDomains[spaceIds[i]].expireSeconds < getBlockTimestamp();
+        for (uint64 i = 0; i < spaceIds.length; i++) {
+            expireds[i] = isExpired(spaceIds[i]);
         }
 
         return expireds;
-    }
-
-    /// @notice Allows the contract owner to set the caller address.
-    /// @param _caller The new caller address to be set.
-    /// @dev Only the contract owner can call this function.
-    function setCaller(address _caller) external onlyOwner() {
-        caller = _caller;
-    }
-
-    /// @notice Gets the address approved to act on behalf of a space.
-    /// @param spaceId The ID of the space.
-    /// @return The address approved to act on behalf of the space.
-    function getApproved(uint64 spaceId)  public view override returns (address) {
-        return approvals[spaceId];
     }
 
     /// @notice Get the userid of spacedomain
@@ -130,7 +89,14 @@ contract SpaceFNS is ISpaceFNS, Ownable {
         return spaceDomains[spaceId].creatorId;
     }
 
-    /// @notice Mints a new Space Domain.
+    /// @notice Allows the contract owner to set the caller address.
+    /// @param _caller The new caller address to be set.
+    /// @dev Only the contract owner can call this function.
+    function setCaller(address _caller) external onlyOwner() {
+        caller = _caller;
+    }
+
+    /// @notice Creates a new Space Domain.
     /// @param creatorId The ID of the creator.
     /// @param primarySpaceId The ID of the parent space.
     /// @param domainName The name of the domain.
@@ -139,7 +105,7 @@ contract SpaceFNS is ISpaceFNS, Ownable {
     /// Requirements:
     /// - DomainName cannot be less than 3 and greater than 10 characters
     /// - Domain name cannot already exist
-    function mintSpaceDomain(
+    function createSpaceDomain(
         uint64 creatorId,
         uint64 primarySpaceId,
         string calldata domainName,
@@ -166,9 +132,7 @@ contract SpaceFNS is ISpaceFNS, Ownable {
         });
 
         spaceDomainIds[fullDomainName] = spaceId;
-        approvals[spaceId] = tx.origin;
 
-        emit MintSpaceDomain(tx.origin, primarySpaceId, fullDomainName, expireSeconds);
         return spaceId;
     }
 
@@ -183,7 +147,7 @@ contract SpaceFNS is ISpaceFNS, Ownable {
     function updateSubDomainName(
         uint64 spaceId,
         string calldata newDomainName
-    ) public override checkDomainNameLength(newDomainName) onlyCaller() onlyAppover(spaceId) {
+    ) public override checkDomainNameLength(newDomainName) onlyCaller() {
         if (spaceDomains[spaceId].primarySpaceId == 0) {
             revert NotSubdomain();
         }
@@ -202,78 +166,63 @@ contract SpaceFNS is ISpaceFNS, Ownable {
         /// change domain name
         spaceDomains[spaceId].domainName = newFullDomainName;
         spaceDomainIds[newFullDomainName] = spaceId;
-
-        emit UpdataDomainName(spaceId, newFullDomainName);
     }
 
     /// @notice Update the expiration time of a space with the given space ID
     /// @param spaceId The ID of the space to update
-    /// @param newExpireSeconds The new expiration time, in seconds, for the space
+    /// @param expireSeconds The new expiration time, in seconds, for the space
     /// Requirements:
     /// - The caller must be authorized to update the space
-    function updateExpireSeconds(uint64 spaceId, uint64 newExpireSeconds, uint64 userId) public override
-        isCreator(spaceId, userId) onlyCaller() onlyAppover(spaceId){
-        uint64 expireSeconds = getBlockTimestamp() + newExpireSeconds;
-        spaceDomains[spaceId].expireSeconds = expireSeconds;
-        emit UpdataExpriceTime(tx.origin, spaceId, newExpireSeconds);
+    function updateExpireSeconds(uint64 spaceId, uint64 expireSeconds) public override onlyCaller() {
+        SpaceDomain storage spaceDomain = spaceDomains[spaceId];
+        if (spaceDomain.creatorId != spaceDomain.userId) {
+            revert DomainInUse();
+        }
+
+        spaceDomain.expireSeconds = expireSeconds;
     }
 
-    /// @notice Authorized to the operator
-    /// @param operator The address of the operator to approve
-    /// @param spaceId The ID of the space to approve the operator for
-    /// Requirements:
-    /// - The caller must be authorized to approve an operator for the space
-    function _approve(address operator, uint64 spaceId) internal {
-        approvals[spaceId] = operator;
-        emit Approved(msg.sender, operator, spaceId);
-    }
-
-    function approve(address operator, uint64 spaceId) public override onlyUser(spaceId) {
-        _approve(operator, spaceId);
-    }
-
-    /// @notice Rent a space with the given space ID to the user with the given user ID and address
+    /// @notice Rent a space with the given space ID to the user with the given user ID
     /// @param spaceId The ID of the space to rent
     /// @param userId The ID of the user renting the space
-    /// @param userAddr The address of the user renting the space
     /// Requirements:
     /// - The caller is the authorized address
     /// - Change the `userid` of `SpaceDomain` to the renter,
     /// - Change the authorized address of `SpaceDomain` to the address of the renter
-    function rentSpace(uint64 spaceId, uint64 userId, address userAddr) public override onlyUser(spaceId) {
-        spaceDomains[spaceId].userId = userId;
-        spaceDomains[spaceId].expireSeconds += getBlockTimestamp();
-        approve(userAddr, spaceId);
+    function rentSpace(uint64 spaceId, uint64 userId) public override onlyCaller() {
+        SpaceDomain storage spaceDomain = spaceDomains[spaceId];
+        if (spaceDomain.creatorId == userId) {
+            revert();
+        }
+
+        spaceDomain.userId = userId;
+        spaceDomain.expireSeconds += getBlockTimestamp();
     }
 
-    /// @notice Return a space with the given space ID to the creator
-    /// @param userId The ID of the creator of the space
+    /// @notice Return a space to the creator
     /// @param spaceId The ID of the space to return
     /// Requirements:
     /// - Domain name has expired
-    /// - The caller is the creator of the domain name
     /// - After returning, the authorization address is changed to the creator
-    /// - UserId changed to creator
-    function returnSpace(uint64 userId, uint64 spaceId) public override onlyCaller() isCreator(spaceId, userId) {
-        if (spaceDomains[spaceId].expireSeconds >= getBlockTimestamp()) {
+    function returnSpace(uint64 spaceId) public override {
+        if (!isExpired(spaceId)) {
             revert NotExpired();
         }
 
-        spaceDomains[spaceId].userId = userId;
-        approvals[spaceId] = tx.origin;
+        SpaceDomain storage spaceDomain = spaceDomains[spaceId];
+
+        if (spaceDomain.creatorId == spaceDomain.userId) {
+            revert DomainNotInUse();
+        }
+
+        spaceDomain.expireSeconds = 0;
+        spaceDomain.userId = spaceDomains[spaceId].creatorId;
     }
 
     /// @dev Splicing the parent domain name and subdomain name together
     function spliceDomainName(
         string calldata subdomain,
         string memory primaryDomain
-    ) internal pure returns (string memory) {
-        return string(abi.encodePacked(subdomain, ".", primaryDomain));
-    }
-
-    function spliceDomainName2(
-        string calldata subdomain,
-        string calldata primaryDomain
     ) internal pure returns (string memory) {
         return string(abi.encodePacked(subdomain, ".", primaryDomain));
     }
@@ -298,14 +247,13 @@ contract SpaceFNS is ISpaceFNS, Ownable {
         return spaceDomains[id];
     }
 
-    /// @dev Get primaryDomain  and subDomain by spaceId
-    function getPrimaryAndSubDomain(uint64 subSpaceId) public view returns (string memory primaryDomain, string memory subDomain) {
+    /// @dev Get primaryDomain  and subdomain by spaceId
+    function getPrimaryAndSubDomain(uint64 subSpaceId) public view returns (string memory primaryDomain, string memory subdomain) {
         if (spaceDomains[subSpaceId].primarySpaceId == 0) {
             revert NotSubdomain();
         }
 
         primaryDomain = spaceDomains[spaceDomains[subSpaceId].primarySpaceId].domainName;
-        subDomain = spaceDomains[subSpaceId].domainName;
-
+        subdomain = spaceDomains[subSpaceId].domainName;
     }
 }
