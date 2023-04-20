@@ -116,10 +116,10 @@ interface IAccount {
         string domainName
     );
 
-    /// @notice Returns the creator ID of the given space ID.
-    /// @param spaceId The ID of the space.
-    /// @return An creator ID corresponding to the given space ID.
-    function getSpaceCreatorId(uint64 spaceId) external view returns (uint64);
+    /// @notice Checks if the caller is the creator of the specified space.
+    /// @param spaceId The ID of the space to check.
+    /// @return A boolean value indicating whether the caller is the space creator or not.
+    function isSpaceCreator(uint64 spaceId) external view returns (bool);
 
     /// @notice Gets the address approved to act on behalf of a space.
     /// @param spaceId The ID of the space.

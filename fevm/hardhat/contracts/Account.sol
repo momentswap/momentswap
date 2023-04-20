@@ -54,7 +54,7 @@ contract Account is IAccount, Ownable {
 
     /// @notice Modifier to check if the caller's address is registered as an account.
     modifier checkRegistered() {
-        if (accountIds[msg.sender] == 0) revert AccountNotFound();
+        if (accountIds[tx.origin] == 0) revert AccountNotFound();
         _;
     }
 
@@ -68,7 +68,7 @@ contract Account is IAccount, Ownable {
 
     /// @notice The caller must have permission
     modifier onlySpaceUser(uint64 spaceId) {
-        if (getSpaceUserId(spaceId) != accountIds[msg.sender]) {
+        if (spaceFNS.getSpaceDomainUserId(spaceId) != accountIds[msg.sender]) {
             revert NotUser();
         }
         _;
@@ -83,11 +83,11 @@ contract Account is IAccount, Ownable {
         spaceFNS = _spaceFNS;
     }
 
-    /// @notice Returns the creator ID of the given space ID.
-    /// @param spaceId The ID of the space.
-    /// @return An creator ID corresponding to the given space ID.
-    function getSpaceCreatorId(uint64 spaceId) public view returns (uint64) {
-        return spaceFNS.getSpaceDomainCreatorId(spaceId);
+    /// @notice Checks if the caller is the creator of the specified space.
+    /// @param spaceId The ID of the space to check.
+    /// @return A boolean value indicating whether the caller is the space creator or not.
+    function isSpaceCreator(uint64 spaceId) public view checkRegistered returns (bool) {
+        return spaceFNS.getSpaceDomainCreatorId(spaceId) == accountIds[tx.origin];
     }
 
     /// @notice Gets the address approved to act on behalf of a space.

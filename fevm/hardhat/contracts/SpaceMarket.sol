@@ -3,7 +3,6 @@ pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/ISpaceMarket.sol";
-import "./interfaces/IAccount.sol";
 import "./interfaces/ISpaceFNS.sol";
 
 contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
@@ -23,6 +22,8 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     error FreeRateError(string message);
     error InvalidContractAddress();
     error PriceMustBeAboveZero();
+    error UpdateExpireSecondsError();
+    error RentSpaceError();
 
     address payable public beneficiary;
     uint16 public freeRate;
@@ -69,7 +70,8 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
 
     /// @dev must be approved
     modifier isApproved(address accountContract, uint64 spaceId) {
-        if (IAccount(accountContract).getApproved(spaceId) != address(this)) {
+        (, bytes memory data) = accountContract.call(abi.encodeWithSignature("getApproved(uint64)", spaceId));
+        if (abi.decode(data, (address)) != address(this)) {
             revert NotAppovedToMarket();
         }
         _;
@@ -77,8 +79,8 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
 
     /// @dev must be creator
     modifier isCreator(address accountContract, uint64 spaceId) {
-        IAccount account = IAccount(accountContract);
-        if (account.getSpaceCreatorId(spaceId) != account.getAccountId(msg.sender)) {
+        (, bytes memory data) = accountContract.call(abi.encodeWithSignature("isSpaceCreator(uint64)", spaceId));
+        if (!abi.decode(data, (bool))) {
             revert NotCreator();
         }
         _;
@@ -122,9 +124,9 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         uint64 expireSeconds,
         uint256 price
     ) public override
-    isApproved(accountContract, spaceId)
-    isCreator(accountContract, spaceId)
-    notListed(accountContract, spaceId)
+        isApproved(accountContract, spaceId)
+        isCreator(accountContract, spaceId)
+        notListed(accountContract, spaceId)
     {
         if (accountContract == address(0)) {
             revert InvalidContractAddress();
@@ -135,7 +137,8 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         }
 
         spaceList[accountContract][spaceId] = Item(msg.sender, price);
-        IAccount(accountContract).updateExpireSeconds(spaceId, expireSeconds);
+        (bool success,) = accountContract.call(abi.encodeWithSignature("updateExpireSeconds(uint64,uint64)", spaceId, expireSeconds));
+        if (!success) revert UpdateExpireSecondsError();
 
         emit List(msg.sender, accountContract, spaceId, price);
     }
@@ -164,7 +167,8 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         uint256 fee = (_item.price * freeRate) / 10000;
         uint256 payment = _item.price - fee;
 
-        IAccount(accountContract).rentSpace(spaceId, userId);
+        (bool success,) = accountContract.call(abi.encodeWithSignature("rentSpace(uint64,uint64)", spaceId, userId));
+        if (!success) revert RentSpaceError();
 
         totalTransactionFee += fee;
         proceeds[_item.seller] = payment;
@@ -176,11 +180,14 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     /// @dev Cancels the listing of a domain.
     /// @param accountContract The address of the Account contract.
     /// @param spaceId The ID of the domain.
-    /// @param userId The ID of the user.
-    function cancelListSpace(address accountContract, uint64 spaceId, uint64 userId) public override
-        isListed(accountContract, spaceId) isCreator(accountContract, spaceId) {
-
-        IAccount(accountContract).approve(msg.sender, spaceId); // return authorization to user
+    function cancelListSpace(
+        address accountContract,
+        uint64 spaceId
+    ) public override
+        isApproved(accountContract, spaceId)
+        isListed(accountContract, spaceId)
+        isCreator(accountContract, spaceId)
+    {
         delete(spaceList[accountContract][spaceId]);
 
         emit Revoke(msg.sender, accountContract, spaceId);
@@ -189,26 +196,32 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     /// @dev Update the price of a listed space.
     /// @param accountContract The address of the Account contract.
     /// @param spaceId The ID of the listed space.
+    /// @param expireSeconds The number of seconds until the sub space domain expires.
     /// @param newPrice The new price in wei.
-    /// @param userId The ID of the user.
     function updateListedSpace(
         address accountContract,
         uint64 spaceId,
-        uint256 newPrice,
-        uint64 userId
-    ) public override isListed(accountContract, spaceId) isCreator(accountContract, spaceId) {
+        uint64 expireSeconds,
+        uint256 newPrice
+    ) public override
+        isListed(accountContract, spaceId)
+        isCreator(accountContract, spaceId)
+    {
         if (newPrice == 0) {
             revert PriceMustBeAboveZero();
         }
 
         spaceList[accountContract][spaceId].price = newPrice;
+        (bool success,) = accountContract.call(abi.encodeWithSignature("updateExpireSeconds(uint64,uint64)", spaceId, expireSeconds));
+        if (!success) revert UpdateExpireSecondsError();
+
         emit Update(msg.sender, accountContract, spaceId, newPrice);
     }
 
     /// @dev Allow the administrator to withdraw transaction fees.
     ///
     /// This function can only be called by the contract's administrator.
-    function withdrawTransactionFee() public override onlyBeneficiary(){
+    function withdrawTransactionFee() public override nonReentrant onlyBeneficiary() {
         uint256 totalFee = totalTransactionFee;
         if (totalFee <= 0) {
             revert NoTransactionFee();
@@ -221,7 +234,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     /// @dev Allow the user to withdraw rental income for a space they own.
     ///
     /// Triggers a WithdrawRent event.
-    function withdrawRentalIncome() public override{
+    function withdrawRentalIncome() public override nonReentrant {
         uint256 proceed = proceeds[msg.sender];
         if (proceed <= 0) {
             revert NoProceeds();
@@ -229,7 +242,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         proceeds[msg.sender] = 0;
         (bool success, ) = payable(msg.sender).call{value: proceed}("");
         require(success, "Failed to transfer payment to user");
-        emit WithdrawRent(msg.sender, uint256(proceed));
+        emit WithdrawRent(msg.sender, proceed);
     }
 
     /// @dev GetItemBySpaceID

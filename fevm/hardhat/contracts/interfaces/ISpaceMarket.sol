@@ -90,15 +90,14 @@ interface ISpaceMarket {
     /// @dev Cancels the listing of a domain.
     /// @param accountContract The address of the domain contract.
     /// @param spaceId The ID of the domain.
-    /// @param userId The ID of the user.
-    function cancelListSpace(address accountContract, uint64 spaceId, uint64 userId) external ;
+    function cancelListSpace(address accountContract, uint64 spaceId) external ;
 
     /// @dev Update the price of a listed space.
     /// @param accountContract The address of the Acount for the listed space.
     /// @param spaceId The ID of the listed space.
+    /// @param expireSeconds The new expiration time, in seconds, for the space
     /// @param newPrice The new price in wei.
-    /// @param userId The ID of the user.
-    function updateListedSpace(address accountContract, uint64 spaceId, uint256 newPrice, uint64 userId) external ;
+    function updateListedSpace(address accountContract, uint64 spaceId, uint64 expireSeconds, uint256 newPrice) external ;
 
     /// @dev Allow the administrator to withdraw transaction fees.
     ///
