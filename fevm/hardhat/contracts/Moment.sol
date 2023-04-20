@@ -2,17 +2,20 @@
 pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 import {IMoment, MomentData, CommentData} from "./interfaces/IMoment.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /// @notice This contract implements the IMoment interface and provides functionality for managing moments.
-contract Moment is IMoment, Ownable, ERC721URIStorage {
+contract Moment is IMoment, ERC1967Upgrade, Initializable, ERC721URIStorage {
 
     /// @notice Error to be thrown when the caller is not authorized to perform an action.
     error Unauthorized();
 
     /// @notice Error to be thrown when accessing this comment.
     error MomentNotFound();
+
+    error NotAdmin();
 
     /// @notice Total number of moments created.
     uint120 public totalMomentCount;
@@ -41,9 +44,21 @@ contract Moment is IMoment, Ownable, ERC721URIStorage {
         _;
     }
 
+    modifier OnlyAdmin() {
+        if (msg.sender == _getAdmin()) {
+            _; 
+        } else {
+            revert NotAdmin();
+        }
+    }
+
     /// @notice Constructor function that initializes the ERC721 token with the name "Moment NFTs" and the symbol "MMT".
     constructor() ERC721("Moment NFTs", "MMT") {}
 
+    function initMoment(address _caller) external OnlyAdmin {
+        caller = _caller;
+    }
+    
     // TODO: Transfer All to Events
     /// @notice Returns an array of all moments that have been created.
     /// @return An array of MomentData structs representing all moments created in the contract.
@@ -178,7 +193,7 @@ contract Moment is IMoment, Ownable, ERC721URIStorage {
     /// @notice Allows the contract owner to set the caller address.
     /// @param _caller The new caller address to be set.
     /// @dev Only the contract owner can call this function.
-    function setCaller(address _caller) external onlyOwner {
+    function setCaller(address _caller) external OnlyAdmin {
         caller = _caller;
     }
 }

@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IAccount.sol";
 import {IMoment} from "./interfaces/IMoment.sol";
 import {ISpaceFNS} from "./interfaces/ISpaceFNS.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 /// @notice This contract implements the IAccount interface and provides functionality for managing accounts.
-contract Account is IAccount, Ownable {
+contract Account is IAccount, ERC1967Upgrade, Initializable {
 
     /// @notice Error to be thrown when an account already exists for the given address.
     error AccountAlreadyExists();
@@ -31,6 +32,8 @@ contract Account is IAccount, Ownable {
 
     error NotUser();
 
+    error NotAdmin();
+
     /// @notice Maximum number of allowed sub-space domains for an account.
     uint64 public subSpaceDomainLimit;
 
@@ -47,10 +50,10 @@ contract Account is IAccount, Ownable {
     mapping(uint64 => AccountData) public accounts;
 
     /// @notice The `IMoment` contract that provides the current timestamp.
-    IMoment public immutable moment;
+    IMoment public moment;
 
     /// @notice The `ISpaceFNS` contract that manages the Space FNS.
-    ISpaceFNS public immutable spaceFNS;
+    ISpaceFNS public spaceFNS;
 
     /// @notice Modifier to check if the caller's address is registered as an account.
     modifier checkRegistered() {
@@ -74,11 +77,16 @@ contract Account is IAccount, Ownable {
         _;
     }
 
-    /// @notice Constructor that initializes the `IMoment` contract and sets the maximum number of allowed sub-space domains.
-    /// @param _moment The `IMoment` contract that provides the current timestamp.
-    /// @param _spaceFNS The `ISpaceFNS` contract that manages the Space FNS.
-    constructor(IMoment _moment, ISpaceFNS _spaceFNS) {
-        subSpaceDomainLimit = 5;
+    modifier OnlyAdmin() {
+        if (msg.sender == _getAdmin()) {
+            _; 
+        } else {
+            revert NotAdmin();
+        }
+    }
+
+    function initAccount(uint64 _subSpaceDomainLimit, IMoment _moment, ISpaceFNS _spaceFNS) public OnlyAdmin() {
+        subSpaceDomainLimit = _subSpaceDomainLimit;
         moment = _moment;
         spaceFNS = _spaceFNS;
     }
@@ -436,7 +444,7 @@ contract Account is IAccount, Ownable {
 
     /// @notice Function for setting the maximum number of sub-space domains allowed for an account.
     /// @param limit The maximum number of sub-space domains allowed.
-    function setSubSpaceDomainLimit(uint64 limit) external onlyOwner {
+    function setSubSpaceDomainLimit(uint64 limit) external OnlyAdmin {
         subSpaceDomainLimit = limit;
     }
 }

@@ -2,10 +2,12 @@
 pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
 import "./interfaces/ISpaceMarket.sol";
-import "./interfaces/ISpaceFNS.sol";
+import {IAccount} from "./interfaces/IAccount.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
+contract SpaceMarket is ISpaceMarket, ReentrancyGuard, ERC1967Upgrade, Initializable {
     struct Item {
         address seller;
         uint256 price;
@@ -24,20 +26,17 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     error PriceMustBeAboveZero();
     error UpdateExpireSecondsError();
     error RentSpaceError();
+    error NotAdmin();
 
     address payable public beneficiary;
     uint16 public freeRate;
-    uint256 totalTransactionFee;
+    uint256 public totalTransactionFee;
 
     mapping(address => mapping(uint64 => Item)) public spaceList;
     /// Record user earnings
-    mapping(address => uint256) proceeds;
+    mapping(address => uint256) public proceeds;
     /// Record fee income
 
-    constructor() {
-        beneficiary = payable(msg.sender);
-        freeRate = 500;
-    }
 
     /// onlyBeneficiary modifier
     modifier onlyBeneficiary() {
@@ -68,10 +67,17 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         _;
     }
 
+    modifier OnlyAdmin() {
+        if (msg.sender == _getAdmin()) {
+            _; 
+        } else {
+            revert NotAdmin();
+        }
+    }
+
     /// @dev must be approved
     modifier isApproved(address accountContract, uint64 spaceId) {
-        (, bytes memory data) = accountContract.call(abi.encodeWithSignature("getApproved(uint64)", spaceId));
-        if (abi.decode(data, (address)) != address(this)) {
+        if (IAccount(accountContract).getApproved(spaceId) != address(this)) {
             revert NotAppovedToMarket();
         }
         _;
@@ -79,8 +85,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
 
     /// @dev must be creator
     modifier isCreator(address accountContract, uint64 spaceId) {
-        (, bytes memory data) = accountContract.call(abi.encodeWithSignature("isSpaceCreator(uint64)", spaceId));
-        if (!abi.decode(data, (bool))) {
+        if (!IAccount(accountContract).isSpaceCreator(spaceId)) {
             revert NotCreator();
         }
         _;
@@ -88,7 +93,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
 
     /// @notice Sets the beneficiary of the contract.
     /// @param newBeneficiary The address of the beneficiary.
-    function setBeneficiary(address newBeneficiary) public override onlyBeneficiary() {
+    function setBeneficiary(address newBeneficiary) public override OnlyAdmin() {
         beneficiary = payable(newBeneficiary);
     }
 
@@ -100,7 +105,15 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
 
     /// @dev Sets the fee rate for the contract.
     /// @param feeRate The new fee rate.
-    function setFeeRate(uint16 feeRate) public override onlyBeneficiary() {
+    function setFeeRate(uint16 feeRate) public override OnlyAdmin() {
+        if (feeRate > 10000) {
+            revert FreeRateError("Fee rate can only be between 0 and 10000");
+        }
+        freeRate = feeRate;
+    }
+
+    function initMarket(address newBeneficiary, uint16 feeRate) public OnlyAdmin(){
+        beneficiary = payable(newBeneficiary);
         if (feeRate > 10000) {
             revert FreeRateError("Fee rate can only be between 0 and 10000");
         }
@@ -137,8 +150,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         }
 
         spaceList[accountContract][spaceId] = Item(msg.sender, price);
-        (bool success,) = accountContract.call(abi.encodeWithSignature("updateExpireSeconds(uint64,uint64)", spaceId, expireSeconds));
-        if (!success) revert UpdateExpireSecondsError();
+        IAccount(accountContract).updateExpireSeconds(spaceId, expireSeconds);
 
         emit List(msg.sender, accountContract, spaceId, price);
     }
@@ -166,9 +178,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
 
         uint256 fee = (_item.price * freeRate) / 10000;
         uint256 payment = _item.price - fee;
-
-        (bool success,) = accountContract.call(abi.encodeWithSignature("rentSpace(uint64,uint64)", spaceId, userId));
-        if (!success) revert RentSpaceError();
+        IAccount(accountContract).rentSpace(spaceId, userId);
 
         totalTransactionFee += fee;
         proceeds[_item.seller] = payment;
@@ -212,8 +222,9 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         }
 
         spaceList[accountContract][spaceId].price = newPrice;
-        (bool success,) = accountContract.call(abi.encodeWithSignature("updateExpireSeconds(uint64,uint64)", spaceId, expireSeconds));
-        if (!success) revert UpdateExpireSecondsError();
+        IAccount(accountContract).updateExpireSeconds(spaceId, expireSeconds);
+        // (bool success,) = accountContract.call(abi.encodeWithSignature("updateExpireSeconds(uint64,uint64)", spaceId, expireSeconds));
+        // if (!success) revert UpdateExpireSecondsError();
 
         emit Update(msg.sender, accountContract, spaceId, newPrice);
     }

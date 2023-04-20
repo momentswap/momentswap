@@ -2,12 +2,13 @@
 pragma solidity 0.8.19;
 
 import "./interfaces/ISpaceFNS.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
+import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
-contract SpaceFNS is ISpaceFNS, Ownable {
+contract SpaceFNS is ISpaceFNS, ERC1967Upgrade, Initializable {
     using Counters for Counters.Counter;
-    Counters.Counter private _spaceIds;
+    Counters.Counter public _spaceIds;
 
     struct SpaceDomain {
         uint64 creatorId;
@@ -34,6 +35,14 @@ contract SpaceFNS is ISpaceFNS, Ownable {
         _;
     }
 
+    modifier OnlyAdmin() {
+        if (msg.sender == _getAdmin()) {
+            _; 
+        } else {
+            revert NotAdmin();
+        }
+    }
+
     /// @notice Error to be thrown when an unauthorized user tries to access some functions for Account contract.
     error Unauthorized();
     error NotExpired();
@@ -43,6 +52,7 @@ contract SpaceFNS is ISpaceFNS, Ownable {
     error DomainNameError();
     error DomainInUse();
     error DomainNotInUse();
+    error NotAdmin();
 
     /// id(spaceId) ==> SpaceDomain struct
     mapping(uint64 => SpaceDomain) public spaceDomains;
@@ -53,7 +63,7 @@ contract SpaceFNS is ISpaceFNS, Ownable {
     /// @notice Address that can call functions with onlyCaller modifier.
     address public caller;
 
-    constructor() {}
+    // constructor() {}
 
     /// @notice Checks if a space is expired.
     /// @param spaceId The ID of the space.
@@ -92,7 +102,11 @@ contract SpaceFNS is ISpaceFNS, Ownable {
     /// @notice Allows the contract owner to set the caller address.
     /// @param _caller The new caller address to be set.
     /// @dev Only the contract owner can call this function.
-    function setCaller(address _caller) external onlyOwner() {
+    function setCaller(address _caller) external OnlyAdmin() {
+        caller = _caller;
+    }
+
+    function initSpace(address _caller) public OnlyAdmin(){
         caller = _caller;
     }
 
