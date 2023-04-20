@@ -251,7 +251,6 @@ export default function UserPage() {
       return;
     }
 
-    setLoading(true);
     try {
       lendDomain(selectedSlot.id, ethers.utils.parseEther(price).toString());
       // alert("Buy success !");
@@ -259,8 +258,7 @@ export default function UserPage() {
       setNotifyFail();
       // alert("Failed to buy");
     }
-    setLoading(false);
-    router.reload();
+    // router.reload();
   };
 
   const handleUpdateRentedDomain = async () => {
