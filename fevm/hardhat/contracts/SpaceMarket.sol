@@ -7,36 +7,38 @@ import "./interfaces/ISpaceFNS.sol";
 
 contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     struct Item {
-        address owner;
-        uint64 price;
+        address seller;
+        uint256 price;
     }
 
-    address payable public beneficiary;
-    uint16 public freeRate;
-
-    mapping(address => mapping(uint64 => Item)) public nftList;
-    /// Record user earnings
-    mapping(address => uint256) proceeds;
-    /// Record fee income
-    mapping(address => uint256) totalTransactionFee;
-
-    error NotListed(address nftAddr, uint64 spaceId);
-    error PriceNotMet(address nftAddr, uint64 spaceId, uint64 price);
+    error NotListed(address accountContract, uint256 spaceId);
+    error AlreadyListed(address accountContract, uint256 spaceId);
+    error PriceNotMet(address accountContract, uint64 spaceId, uint256 price);
     error NoTransactionFee();
     error NoProceeds();
     error UnBeneficiary();
     error NotAppovedToMarket();
-    error NotHolder();
     error NotCreator();
-    error FreeRateEroor(string message);
-    error InvalidNftAddress();
-    error PriceWrong();
+    error FreeRateError(string message);
+    error InvalidContractAddress();
+    error PriceMustBeAboveZero();
+    error UpdateExpireSecondsError();
+    error RentSpaceError();
+
+    address payable public beneficiary;
+    uint16 public freeRate;
+    uint256 totalTransactionFee;
+
+    mapping(address => mapping(uint64 => Item)) public spaceList;
+    /// Record user earnings
+    mapping(address => uint256) proceeds;
+    /// Record fee income
 
     constructor() {
         beneficiary = payable(msg.sender);
         freeRate = 500;
     }
-    
+
     /// onlyBeneficiary modifier
     modifier onlyBeneficiary() {
         if (msg.sender != beneficiary) {
@@ -46,33 +48,39 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     }
 
     /// @dev must be listed
-    modifier isListed(address nftAddr, uint64 spaceId) {
-        Item memory _item = nftList[nftAddr][spaceId];
-        if (_item.price <= 0) {
-          revert NotListed(nftAddr, spaceId);
+    modifier isListed(address accountContract, uint64 spaceId) {
+        Item memory _item = spaceList[accountContract][spaceId];
+        if (_item.price == 0) {
+          revert NotListed(accountContract, spaceId);
+        }
+        _;
+    }
+
+    /// @dev must be not Listed
+    modifier notListed(
+        address accountContract,
+        uint64 spaceId
+    ) {
+        Item memory _item = spaceList[accountContract][spaceId];
+        if (_item.price > 0) {
+          revert AlreadyListed(accountContract, spaceId);
         }
         _;
     }
 
     /// @dev must be approved
-    modifier isApproved(address nftAddr, uint64 spaceId, address owner) {
-        if (ISpaceFNS(nftAddr).getApproved(spaceId) != owner) {
+    modifier isApproved(address accountContract, uint64 spaceId) {
+        (, bytes memory data) = accountContract.call(abi.encodeWithSignature("getApproved(uint64)", spaceId));
+        if (abi.decode(data, (address)) != address(this)) {
             revert NotAppovedToMarket();
         }
         _;
     }
 
-    /// @dev must be holder
-    modifier isHolder(address nftAddr, uint64 spaceId, uint64 userId) {
-        if (ISpaceFNS(nftAddr).getSpaceDomainUserId(spaceId) != userId) {
-            revert NotHolder();
-        }
-        _;
-    }
-
     /// @dev must be creator
-    modifier isCreator(address nftAddr, uint64 spaceId, uint64 userId) {
-        if (ISpaceFNS(nftAddr).getSpaceDomainCreatorId(spaceId) != userId) {
+    modifier isCreator(address accountContract, uint64 spaceId) {
+        (, bytes memory data) = accountContract.call(abi.encodeWithSignature("isSpaceCreator(uint64)", spaceId));
+        if (!abi.decode(data, (bool))) {
             revert NotCreator();
         }
         _;
@@ -83,119 +91,142 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     function setBeneficiary(address newBeneficiary) public override onlyBeneficiary() {
         beneficiary = payable(newBeneficiary);
     }
-    
+
     /// @dev Gets the beneficiary of the contract.
     /// @return The address of the beneficiary.
     function getBeneficiary() public view override returns (address) {
         return beneficiary;
     }
-    
+
     /// @dev Sets the fee rate for the contract.
     /// @param feeRate The new fee rate.
     function setFeeRate(uint16 feeRate) public override onlyBeneficiary() {
-        if (feeRate < 0 || feeRate > 10000) {
-            revert FreeRateEroor("Fee rate can only be between 0 and 10000");
+        if (feeRate > 10000) {
+            revert FreeRateError("Fee rate can only be between 0 and 10000");
         }
         freeRate = feeRate;
     }
-    
+
     /// @dev Gets the fee rate for the contract.
     /// @return The fee rate.
     function getFeeRate() public view override returns (uint16) {
         return freeRate;
     }
-    
+
     /// @dev Lists a domain for sale.
-    /// @param nftAddr The address of the domain contract.
+    /// @param accountContract The address of the Account contract.
     /// @param spaceId The ID of the domain.
+    /// @param expireSeconds The number of seconds until the sub space domain expires.
     /// @param price The price of the domain.
-    /// @param userId The ID of the user.
     function listSpace(
-        address nftAddr,
+        address accountContract,
         uint64 spaceId,
-        uint64 price,
-        uint64 userId) public override 
-        isApproved(nftAddr, spaceId, address(this)) 
-        isCreator(nftAddr, spaceId, userId) {
-        if (nftAddr == address(0)) {
-            revert InvalidNftAddress(); 
+        uint64 expireSeconds,
+        uint256 price
+    ) public override
+        isApproved(accountContract, spaceId)
+        isCreator(accountContract, spaceId)
+        notListed(accountContract, spaceId)
+    {
+        if (accountContract == address(0)) {
+            revert InvalidContractAddress();
         }
 
-        if (price <= 0) {
-            revert PriceWrong();
+        if (price == 0) {
+            revert PriceMustBeAboveZero();
         }
-        
-        nftList[nftAddr][spaceId] = Item(msg.sender, price);
-        emit List(msg.sender, nftAddr, spaceId, price);
+
+        spaceList[accountContract][spaceId] = Item(msg.sender, price);
+        (bool success,) = accountContract.call(abi.encodeWithSignature("updateExpireSeconds(uint64,uint64)", spaceId, expireSeconds));
+        if (!success) revert UpdateExpireSecondsError();
+
+        emit List(msg.sender, accountContract, spaceId, price);
     }
-    
+
     /// @dev Rents a domain.
-    /// @param nftAddr The address of the domain contract.
+    /// @param accountContract The address of the Account contract.
     /// @param spaceId The ID of the domain.
     /// @param userId The ID of the user.
-    /// Requirements: 
-    /// - Call the rent function of the spacedomain contract
-    function rentSpace(address nftAddr, uint64 spaceId, uint64 userId) public override payable isListed(nftAddr, spaceId) nonReentrant() {
-        if (nftAddr == address(0)) {
-            revert InvalidNftAddress(); 
+    /// Requirements:
+    /// - Call the rent function of the Account contract
+    function rentSpace(
+        address accountContract,
+        uint64 spaceId,
+        uint64 userId
+    ) public override payable isListed(accountContract, spaceId) nonReentrant() {
+        if (accountContract == address(0)) {
+            revert InvalidContractAddress();
         }
-        Item memory _item =  nftList[nftAddr][spaceId];
-        uint256 amount = msg.value;
-        uint64 price = _item.price;
-        
-        if (amount < price) {
-            revert PriceNotMet(nftAddr, spaceId, uint64(msg.value));
+
+        Item memory _item = spaceList[accountContract][spaceId];
+
+        if (msg.value < _item.price) {
+            revert PriceNotMet(accountContract, spaceId, msg.value);
         }
-        
-        uint64 fee = (price * freeRate) / 10000;
-        uint64 payment = price - fee;
 
-        ISpaceFNS(nftAddr).rentSpace(spaceId, userId, msg.sender);
+        uint256 fee = (_item.price * freeRate) / 10000;
+        uint256 payment = _item.price - fee;
 
-        totalTransactionFee[beneficiary] += fee;   
-        proceeds[_item.owner] = payment;
+        (bool success,) = accountContract.call(abi.encodeWithSignature("rentSpace(uint64,uint64)", spaceId, userId));
+        if (!success) revert RentSpaceError();
 
-        delete(nftList[nftAddr][spaceId]);
-        emit Rent(msg.sender, nftAddr, spaceId, price);
+        totalTransactionFee += fee;
+        proceeds[_item.seller] = payment;
+
+        delete(spaceList[accountContract][spaceId]);
+        emit Rent(msg.sender, accountContract, spaceId, _item.price);
     }
-    
-    /// @dev Cancels the listing of a domain.
-    /// @param nftAddr The address of the domain contract.
-    /// @param spaceId The ID of the domain.
-    /// @param userId The ID of the user.
-    function cancelListSpace(address nftAddr, uint64 spaceId, uint64 userId) public override 
-        isListed(nftAddr, spaceId) isCreator(nftAddr, spaceId, userId) {
-        
-        ISpaceFNS(nftAddr).approve(msg.sender, spaceId); // return authorization to user
-        delete(nftList[nftAddr][spaceId]);
 
-        emit Revoke(msg.sender, nftAddr, spaceId);
+    /// @dev Cancels the listing of a domain.
+    /// @param accountContract The address of the Account contract.
+    /// @param spaceId The ID of the domain.
+    function cancelListSpace(
+        address accountContract,
+        uint64 spaceId
+    ) public override
+        isApproved(accountContract, spaceId)
+        isListed(accountContract, spaceId)
+        isCreator(accountContract, spaceId)
+    {
+        delete(spaceList[accountContract][spaceId]);
+
+        emit Revoke(msg.sender, accountContract, spaceId);
     }
 
     /// @dev Update the price of a listed space.
-    /// @param nftAddr The address of the NFT for the listed space.
+    /// @param accountContract The address of the Account contract.
     /// @param spaceId The ID of the listed space.
+    /// @param expireSeconds The number of seconds until the sub space domain expires.
     /// @param newPrice The new price in wei.
-    /// @param userId The ID of the user.
-    function updateListedSpace(address nftAddr, uint64 spaceId, uint64 newPrice, uint64 userId) public override 
-        isListed(nftAddr, spaceId) isCreator(nftAddr, spaceId, userId) {
-        if (newPrice <= 0) {
-            revert PriceWrong();
+    function updateListedSpace(
+        address accountContract,
+        uint64 spaceId,
+        uint64 expireSeconds,
+        uint256 newPrice
+    ) public override
+        isListed(accountContract, spaceId)
+        isCreator(accountContract, spaceId)
+    {
+        if (newPrice == 0) {
+            revert PriceMustBeAboveZero();
         }
 
-        nftList[nftAddr][spaceId].price = newPrice;
-        emit Update(msg.sender, nftAddr, spaceId, newPrice);
+        spaceList[accountContract][spaceId].price = newPrice;
+        (bool success,) = accountContract.call(abi.encodeWithSignature("updateExpireSeconds(uint64,uint64)", spaceId, expireSeconds));
+        if (!success) revert UpdateExpireSecondsError();
+
+        emit Update(msg.sender, accountContract, spaceId, newPrice);
     }
 
     /// @dev Allow the administrator to withdraw transaction fees.
     ///
     /// This function can only be called by the contract's administrator.
-    function withdrawTransactionFee() public override onlyBeneficiary(){
-        uint256 totalFee = totalTransactionFee[msg.sender];
+    function withdrawTransactionFee() public override nonReentrant onlyBeneficiary() {
+        uint256 totalFee = totalTransactionFee;
         if (totalFee <= 0) {
             revert NoTransactionFee();
         }
-        totalTransactionFee[beneficiary] = 0;
+        totalTransactionFee = 0;
         (bool success,) = beneficiary.call{value: totalFee}("");
         require(success, "Failed to send transaction fee to beneficiary");
     }
@@ -203,7 +234,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     /// @dev Allow the user to withdraw rental income for a space they own.
     ///
     /// Triggers a WithdrawRent event.
-    function withdrawRentalIncome() public override{
+    function withdrawRentalIncome() public override nonReentrant {
         uint256 proceed = proceeds[msg.sender];
         if (proceed <= 0) {
             revert NoProceeds();
@@ -211,20 +242,20 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         proceeds[msg.sender] = 0;
         (bool success, ) = payable(msg.sender).call{value: proceed}("");
         require(success, "Failed to transfer payment to user");
-        emit WithdrawRent(msg.sender, uint64(proceed));
+        emit WithdrawRent(msg.sender, proceed);
     }
 
     /// @dev GetItemBySpaceID
     function GetItemBySpaceID(address nftAddr, uint64 spaceId) public view returns(Item memory){
-        return(nftList[nftAddr][spaceId]);
+        return spaceList[nftAddr][spaceId];
     }
 
     function getTotalTransactionFee() public view returns(uint256){
-        return(totalTransactionFee[beneficiary]);
+        return totalTransactionFee;
     }
 
-    function getProceeds(address owner) public view returns(uint256){
-        return(proceeds[owner]);
+    function getProceeds(address seller) public view returns(uint256){
+        return proceeds[seller];
     }
 
 }
