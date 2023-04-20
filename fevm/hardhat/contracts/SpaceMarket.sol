@@ -3,54 +3,46 @@ pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/ISpaceMarket.sol";
-import "./interfaces/ISpaceFNS.sol";
+import "./interfaces/IAccount.sol";
 
 contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
-    struct Item {
-        address seller;
-        uint256 price;
-    }
-
     error NotListed(address accountContract, uint256 spaceId);
     error AlreadyListed(address accountContract, uint256 spaceId);
     error PriceNotMet(address accountContract, uint64 spaceId, uint256 price);
     error NoTransactionFee();
     error NoProceeds();
-    error UnBeneficiary();
+    error NotBeneficiary();
     error NotAppovedToMarket();
     error NotCreator();
-    error FreeRateError(string message);
+    error FeeRateError(string message);
     error InvalidContractAddress();
     error PriceMustBeAboveZero();
-    error UpdateExpireSecondsError();
-    error RentSpaceError();
 
     address payable public beneficiary;
-    uint16 public freeRate;
+    uint16 public feeRate;
     uint256 totalTransactionFee;
 
-    mapping(address => mapping(uint64 => Item)) public spaceList;
+    mapping(address => mapping(uint64 => uint256)) public itemPrices;
     /// Record user earnings
     mapping(address => uint256) proceeds;
     /// Record fee income
 
     constructor() {
         beneficiary = payable(msg.sender);
-        freeRate = 500;
+        feeRate = 500;
     }
 
     /// onlyBeneficiary modifier
     modifier onlyBeneficiary() {
         if (msg.sender != beneficiary) {
-            revert UnBeneficiary();
+            revert NotBeneficiary();
         }
         _;
     }
 
     /// @dev must be listed
     modifier isListed(address accountContract, uint64 spaceId) {
-        Item memory _item = spaceList[accountContract][spaceId];
-        if (_item.price == 0) {
+        if (itemPrices[accountContract][spaceId] == 0) {
           revert NotListed(accountContract, spaceId);
         }
         _;
@@ -61,8 +53,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         address accountContract,
         uint64 spaceId
     ) {
-        Item memory _item = spaceList[accountContract][spaceId];
-        if (_item.price > 0) {
+        if (itemPrices[accountContract][spaceId] > 0) {
           revert AlreadyListed(accountContract, spaceId);
         }
         _;
@@ -70,8 +61,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
 
     /// @dev must be approved
     modifier isApproved(address accountContract, uint64 spaceId) {
-        (, bytes memory data) = accountContract.call(abi.encodeWithSignature("getApproved(uint64)", spaceId));
-        if (abi.decode(data, (address)) != address(this)) {
+        if (IAccount(accountContract).getApproved(spaceId) != address(this)) {
             revert NotAppovedToMarket();
         }
         _;
@@ -79,8 +69,8 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
 
     /// @dev must be creator
     modifier isCreator(address accountContract, uint64 spaceId) {
-        (, bytes memory data) = accountContract.call(abi.encodeWithSignature("isSpaceCreator(uint64)", spaceId));
-        if (!abi.decode(data, (bool))) {
+        (bool ok,) = IAccount(accountContract).checkSpaceCreator(spaceId);
+        if (!ok) {
             revert NotCreator();
         }
         _;
@@ -99,18 +89,31 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
     }
 
     /// @dev Sets the fee rate for the contract.
-    /// @param feeRate The new fee rate.
-    function setFeeRate(uint16 feeRate) public override onlyBeneficiary() {
-        if (feeRate > 10000) {
-            revert FreeRateError("Fee rate can only be between 0 and 10000");
+    /// @param _feeRate The new fee rate.
+    function setFeeRate(uint16 _feeRate) public override onlyBeneficiary() {
+        if (_feeRate > 10000) {
+            revert FeeRateError("Fee rate can only be between 0 and 10000");
         }
-        freeRate = feeRate;
+        feeRate = _feeRate;
     }
 
     /// @dev Gets the fee rate for the contract.
     /// @return The fee rate.
     function getFeeRate() public view override returns (uint16) {
-        return freeRate;
+        return feeRate;
+    }
+
+    function getItemPrice(address accountContract, uint64 spaceId) public view override returns (uint256) {
+        return itemPrices[accountContract][spaceId];
+    }
+
+    function batchGetItemPrice(address accountContract, uint64[] memory spaceIdArray) public view override returns (uint256[] memory) {
+        uint256[] memory priceArray = new uint256[](spaceIdArray.length);
+        for (uint256 i = 0; i < spaceIdArray.length; i++) {
+            priceArray[i] = getItemPrice(accountContract, spaceIdArray[i]);
+        }
+
+        return priceArray;
     }
 
     /// @dev Lists a domain for sale.
@@ -136,9 +139,8 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
             revert PriceMustBeAboveZero();
         }
 
-        spaceList[accountContract][spaceId] = Item(msg.sender, price);
-        (bool success,) = accountContract.call(abi.encodeWithSignature("updateExpireSeconds(uint64,uint64)", spaceId, expireSeconds));
-        if (!success) revert UpdateExpireSecondsError();
+        itemPrices[accountContract][spaceId] = price;
+        IAccount(accountContract).updateExpireSeconds(spaceId, expireSeconds);
 
         emit List(msg.sender, accountContract, spaceId, price);
     }
@@ -153,28 +155,28 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         address accountContract,
         uint64 spaceId,
         uint64 userId
-    ) public override payable isListed(accountContract, spaceId) nonReentrant() {
+    ) public override payable isListed(accountContract, spaceId) {
         if (accountContract == address(0)) {
             revert InvalidContractAddress();
         }
 
-        Item memory _item = spaceList[accountContract][spaceId];
+        uint256 itemPrice = itemPrices[accountContract][spaceId];
 
-        if (msg.value < _item.price) {
+        if (msg.value < itemPrice) {
             revert PriceNotMet(accountContract, spaceId, msg.value);
         }
 
-        uint256 fee = (_item.price * freeRate) / 10000;
-        uint256 payment = _item.price - fee;
+        uint256 fee = (itemPrice * feeRate) / 10000;
+        uint256 payment = itemPrice - fee;
 
-        (bool success,) = accountContract.call(abi.encodeWithSignature("rentSpace(uint64,uint64)", spaceId, userId));
-        if (!success) revert RentSpaceError();
+        IAccount(accountContract).rentSpace(userId, spaceId);
 
+        (, address creator) = IAccount(accountContract).checkSpaceCreator(spaceId);
         totalTransactionFee += fee;
-        proceeds[_item.seller] = payment;
+        proceeds[creator] = payment;
 
-        delete(spaceList[accountContract][spaceId]);
-        emit Rent(msg.sender, accountContract, spaceId, _item.price);
+        delete(itemPrices[accountContract][spaceId]);
+        emit Rent(msg.sender, accountContract, spaceId, itemPrice);
     }
 
     /// @dev Cancels the listing of a domain.
@@ -188,7 +190,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         isListed(accountContract, spaceId)
         isCreator(accountContract, spaceId)
     {
-        delete(spaceList[accountContract][spaceId]);
+        delete(itemPrices[accountContract][spaceId]);
 
         emit Revoke(msg.sender, accountContract, spaceId);
     }
@@ -211,9 +213,9 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
             revert PriceMustBeAboveZero();
         }
 
-        spaceList[accountContract][spaceId].price = newPrice;
-        (bool success,) = accountContract.call(abi.encodeWithSignature("updateExpireSeconds(uint64,uint64)", spaceId, expireSeconds));
-        if (!success) revert UpdateExpireSecondsError();
+        itemPrices[accountContract][spaceId] = newPrice;
+        IAccount(accountContract).updateExpireSeconds(spaceId, expireSeconds);
+
 
         emit Update(msg.sender, accountContract, spaceId, newPrice);
     }
@@ -243,11 +245,6 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         (bool success, ) = payable(msg.sender).call{value: proceed}("");
         require(success, "Failed to transfer payment to user");
         emit WithdrawRent(msg.sender, proceed);
-    }
-
-    /// @dev GetItemBySpaceID
-    function GetItemBySpaceID(address nftAddr, uint64 spaceId) public view returns(Item memory){
-        return spaceList[nftAddr][spaceId];
     }
 
     function getTotalTransactionFee() public view returns(uint256){

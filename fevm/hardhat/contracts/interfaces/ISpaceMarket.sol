@@ -58,6 +58,10 @@ interface ISpaceMarket {
         uint256 amount
     );
 
+    function getItemPrice(address accountContract, uint64 spaceId) external view returns (uint256);
+
+    function batchGetItemPrice(address accountContract, uint64[] memory spaceIdArray) external view returns (uint256[] memory);
+
     /// @notice Sets the beneficiary of the contract.
     /// @param beneficiary The address of the beneficiary.
     function setBeneficiary(address beneficiary) external;
