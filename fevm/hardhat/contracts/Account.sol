@@ -77,15 +77,16 @@ contract Account is IAccount, ERC1967Upgrade, Initializable {
         _;
     }
 
-    modifier OnlyAdmin() {
-        if (msg.sender == _getAdmin()) {
-            _; 
-        } else {
+    /// @notice The caller must have admin
+    modifier onlyAdmin() {
+        if (msg.sender != _getAdmin()) {
             revert NotAdmin();
         }
+        _;
     }
 
-    function initAccount(uint64 _subSpaceDomainLimit, IMoment _moment, ISpaceFNS _spaceFNS) public OnlyAdmin() {
+    /// @dev The initialization function can only be called once
+    function initAccount(uint64 _subSpaceDomainLimit, IMoment _moment, ISpaceFNS _spaceFNS) public onlyAdmin() {
         subSpaceDomainLimit = _subSpaceDomainLimit;
         moment = _moment;
         spaceFNS = _spaceFNS;
@@ -444,7 +445,7 @@ contract Account is IAccount, ERC1967Upgrade, Initializable {
 
     /// @notice Function for setting the maximum number of sub-space domains allowed for an account.
     /// @param limit The maximum number of sub-space domains allowed.
-    function setSubSpaceDomainLimit(uint64 limit) external OnlyAdmin {
+    function setSubSpaceDomainLimit(uint64 limit) external onlyAdmin {
         subSpaceDomainLimit = limit;
     }
 }

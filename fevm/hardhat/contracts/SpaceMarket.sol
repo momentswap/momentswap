@@ -69,11 +69,10 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard, ERC1967Upgrade, Initializ
 
     /// @notice The caller must have admin
     modifier onlyAdmin() {
-        if (msg.sender == _getAdmin()) {
-            _; 
-        } else {
+        if (msg.sender != _getAdmin()) {
             revert NotAdmin();
         }
+        _;
     }
 
     /// @notice must be approved

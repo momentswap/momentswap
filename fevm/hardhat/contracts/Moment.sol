@@ -44,14 +44,13 @@ contract Moment is IMoment, ERC1967Upgrade, Initializable, ERC721URIStorage {
         if (msg.sender != caller) revert Unauthorized();
         _;
     }
-    
+
     /// @notice The caller must have admin
     modifier onlyAdmin() {
-        if (msg.sender == _getAdmin()) {
-            _; 
-        } else {
+        if (msg.sender != _getAdmin()) {
             revert NotAdmin();
         }
+        _;
     }
 
     /// @notice Constructor function that initializes the ERC721 token with the name "Moment NFTs" and the symbol "MMT".

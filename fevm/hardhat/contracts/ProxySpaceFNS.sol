@@ -21,17 +21,16 @@ contract ProxySpaceFNS is Proxy, ERC1967Upgrade, Initializable {
     mapping(string => uint64) public spaceDomainIds;
     address public caller;
 
-    ///  @dev Modifier to check whether the `msg.sender` is the admin.
-    /// If it is, it will run the function. Otherwise, it will delegate the call
-    /// to the implementation.
-    modifier ifAdmin() {
-        if (msg.sender == _getAdmin()) {
-            _;
-        } else {
-            _fallback();
+    error NotAdmin();
+    /// @notice The caller must have admin
+    modifier onlyAdmin() {
+        if (msg.sender != _getAdmin()) {
+            revert NotAdmin();
         }
+        _;
     }
 
+    ///  @dev Initialization function, setting the logical contract address, can only be called once
     function initialize(address _logic) public initializer() {
         _changeAdmin(msg.sender);
         _upgradeTo(_logic);
@@ -43,17 +42,17 @@ contract ProxySpaceFNS is Proxy, ERC1967Upgrade, Initializable {
     }
 
     /// @dev update Implementation
-    function updateImplementation(address _logic) public ifAdmin {
+    function updateImplementation(address _logic) public onlyAdmin {
         _upgradeTo(_logic);
     }
 
     /// @notice set admin address
-    function setAdmin(address newAdmin) public  ifAdmin() {
+    function setAdmin(address newAdmin) public  onlyAdmin {
         _changeAdmin(newAdmin);
     }
 
     /// @notice get implementation address
-    function getImplementation() public ifAdmin returns (address) {
+    function getImplementation() public view onlyAdmin returns (address) {
         return StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value;
     }
 

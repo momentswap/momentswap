@@ -18,7 +18,7 @@ contract SpaceFNS is ISpaceFNS, ERC1967Upgrade, Initializable {
         string domainName;
     }
 
-    /// Check domain length decorator
+    /// @notice Check domain length decorator
     modifier checkDomainNameLength(string calldata domainName) {
         uint256 domainName_length = bytes(domainName).length;
         if (domainName_length < 3 || domainName_length > 10) {
@@ -27,7 +27,7 @@ contract SpaceFNS is ISpaceFNS, ERC1967Upgrade, Initializable {
         _;
     }
 
-    /// Must be called by the Account contract
+    /// @notice  Must be called by the Account contract
     modifier onlyCaller() {
         if (caller != msg.sender) {
             revert Unauthorized();
@@ -35,12 +35,12 @@ contract SpaceFNS is ISpaceFNS, ERC1967Upgrade, Initializable {
         _;
     }
 
-    modifier OnlyAdmin() {
-        if (msg.sender == _getAdmin()) {
-            _; 
-        } else {
+    /// @notice The caller must have admin
+    modifier onlyAdmin() {
+        if (msg.sender != _getAdmin()) {
             revert NotAdmin();
         }
+        _;
     }
 
     /// @notice Error to be thrown when an unauthorized user tries to access some functions for Account contract.
@@ -102,11 +102,12 @@ contract SpaceFNS is ISpaceFNS, ERC1967Upgrade, Initializable {
     /// @notice Allows the contract owner to set the caller address.
     /// @param _caller The new caller address to be set.
     /// @dev Only the contract owner can call this function.
-    function setCaller(address _caller) external OnlyAdmin() {
+    function setCaller(address _caller) external onlyAdmin() {
         caller = _caller;
     }
 
-    function initSpace(address _caller) public OnlyAdmin() initializer() {
+    /// @dev The initialization function can only be called once
+    function initSpace(address _caller) public onlyAdmin() {
         caller = _caller;
     }
 
