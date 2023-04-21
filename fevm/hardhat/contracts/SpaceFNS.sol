@@ -106,7 +106,7 @@ contract SpaceFNS is ISpaceFNS, ERC1967Upgrade, Initializable {
         caller = _caller;
     }
 
-    function initSpace(address _caller) public OnlyAdmin(){
+    function initSpace(address _caller) public OnlyAdmin() initializer() {
         caller = _caller;
     }
 

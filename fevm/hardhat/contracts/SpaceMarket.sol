@@ -32,11 +32,11 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard, ERC1967Upgrade, Initializ
     uint16 public freeRate;
     uint256 public totalTransactionFee;
 
+    /// @notice Mapping of account addresses to Mapping of spaceId to Item.
     mapping(address => mapping(uint64 => Item)) public spaceList;
-    /// Record user earnings
+    
+    /// @notice Mapping of addresses to proceeds.
     mapping(address => uint256) public proceeds;
-    /// Record fee income
-
 
     /// onlyBeneficiary modifier
     modifier onlyBeneficiary() {
@@ -46,7 +46,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard, ERC1967Upgrade, Initializ
         _;
     }
 
-    /// @dev must be listed
+    /// @notice must be listed
     modifier isListed(address accountContract, uint64 spaceId) {
         Item memory _item = spaceList[accountContract][spaceId];
         if (_item.price == 0) {
@@ -55,7 +55,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard, ERC1967Upgrade, Initializ
         _;
     }
 
-    /// @dev must be not Listed
+    /// @notice must be not Listed
     modifier notListed(
         address accountContract,
         uint64 spaceId
@@ -67,7 +67,8 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard, ERC1967Upgrade, Initializ
         _;
     }
 
-    modifier OnlyAdmin() {
+    /// @notice The caller must have admin
+    modifier onlyAdmin() {
         if (msg.sender == _getAdmin()) {
             _; 
         } else {
@@ -75,7 +76,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard, ERC1967Upgrade, Initializ
         }
     }
 
-    /// @dev must be approved
+    /// @notice must be approved
     modifier isApproved(address accountContract, uint64 spaceId) {
         if (IAccount(accountContract).getApproved(spaceId) != address(this)) {
             revert NotAppovedToMarket();
@@ -83,7 +84,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard, ERC1967Upgrade, Initializ
         _;
     }
 
-    /// @dev must be creator
+    /// @notice must be creator
     modifier isCreator(address accountContract, uint64 spaceId) {
         if (!IAccount(accountContract).isSpaceCreator(spaceId)) {
             revert NotCreator();
@@ -93,7 +94,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard, ERC1967Upgrade, Initializ
 
     /// @notice Sets the beneficiary of the contract.
     /// @param newBeneficiary The address of the beneficiary.
-    function setBeneficiary(address newBeneficiary) public override OnlyAdmin() {
+    function setBeneficiary(address newBeneficiary) public override onlyAdmin() {
         beneficiary = payable(newBeneficiary);
     }
 
@@ -105,14 +106,15 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard, ERC1967Upgrade, Initializ
 
     /// @dev Sets the fee rate for the contract.
     /// @param feeRate The new fee rate.
-    function setFeeRate(uint16 feeRate) public override OnlyAdmin() {
+    function setFeeRate(uint16 feeRate) public override onlyAdmin() {
         if (feeRate > 10000) {
             revert FreeRateError("Fee rate can only be between 0 and 10000");
         }
         freeRate = feeRate;
     }
 
-    function initMarket(address newBeneficiary, uint16 feeRate) public OnlyAdmin(){
+    /// @dev The initialization function can only be called once
+    function initMarket(address newBeneficiary, uint16 feeRate) public onlyAdmin(){
         beneficiary = payable(newBeneficiary);
         if (feeRate > 10000) {
             revert FreeRateError("Fee rate can only be between 0 and 10000");

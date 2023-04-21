@@ -1,23 +1,28 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
+import "./interfaces/IAccount.sol";
+import {IMoment} from "./interfaces/IMoment.sol";
+import {ISpaceFNS} from "./interfaces/ISpaceFNS.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/Proxy.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Upgrade.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 
-contract ProxySpaceMarket is ReentrancyGuard, Proxy, ERC1967Upgrade, Initializable {
-    struct Item {
-        address seller;
-        uint256 price;
-    }
-    address payable public beneficiary;
-    uint16 public freeRate;
-    uint256 public totalTransactionFee;
-    mapping(address => mapping(uint64 => Item)) public spaceList;
-    mapping(address => uint256) public proceeds;
+contract ProxyAccount is Proxy, ERC1967Upgrade, Initializable {
+    uint64 public subSpaceDomainLimit;
+    uint64 public totalAccountCount;
+    mapping(uint64 => address) private approvals;
+    mapping(address => uint64) public accountIds;
+    mapping(uint64 => AccountData) public accounts;
+    IMoment public moment;
+    ISpaceFNS public spaceFNS;
 
+    /**
+   * @dev Modifier to check whether the `msg.sender` is the admin.
+   * If it is, it will run the function. Otherwise, it will delegate the call
+   * to the implementation.
+   */
     modifier ifAdmin() {
         if (msg.sender == _getAdmin()) {
             _;

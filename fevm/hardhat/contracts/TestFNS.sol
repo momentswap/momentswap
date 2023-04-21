@@ -11,7 +11,7 @@ contract TestSpaceFNS {
         string calldata domainName,
         uint64 expireSeconds
     ) public returns (uint64)  {
-        uint64 id = ISpaceFNS(spaceAddr).mintSpaceDomain(creatorId, primarySpaceId, domainName, expireSeconds);
+        uint64 id = ISpaceFNS(spaceAddr).createSpaceDomain(creatorId, primarySpaceId, domainName, expireSeconds);
         return id;
     }
 
@@ -25,16 +25,16 @@ contract TestSpaceFNS {
 
     function TestUpdateExpireSeconds(
         address spaceAddr,
-        uint64 spaceId, uint64 newExpireSeconds, uint64 userId
+        uint64 spaceId, uint64 newExpireSeconds
     ) public {
-        ISpaceFNS(spaceAddr).updateExpireSeconds(spaceId, newExpireSeconds, userId);
+        ISpaceFNS(spaceAddr).updateExpireSeconds(spaceId, newExpireSeconds);
     }
 
     function TestReturnSpace(
         address spaceAddr,
-        uint64 userId, uint64 spaceId
+        uint64 spaceId
     ) public  {
-        ISpaceFNS(spaceAddr).returnSpace(userId, spaceId);
+        ISpaceFNS(spaceAddr).returnSpace(spaceId);
     }
 
 }

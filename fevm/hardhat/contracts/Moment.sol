@@ -15,6 +15,7 @@ contract Moment is IMoment, ERC1967Upgrade, Initializable, ERC721URIStorage {
     /// @notice Error to be thrown when accessing this comment.
     error MomentNotFound();
 
+    /// @notice Error to Not admin call
     error NotAdmin();
 
     /// @notice Total number of moments created.
@@ -43,8 +44,9 @@ contract Moment is IMoment, ERC1967Upgrade, Initializable, ERC721URIStorage {
         if (msg.sender != caller) revert Unauthorized();
         _;
     }
-
-    modifier OnlyAdmin() {
+    
+    /// @notice The caller must have admin
+    modifier onlyAdmin() {
         if (msg.sender == _getAdmin()) {
             _; 
         } else {
@@ -55,7 +57,8 @@ contract Moment is IMoment, ERC1967Upgrade, Initializable, ERC721URIStorage {
     /// @notice Constructor function that initializes the ERC721 token with the name "Moment NFTs" and the symbol "MMT".
     constructor() ERC721("Moment NFTs", "MMT") {}
 
-    function initMoment(address _caller) external OnlyAdmin {
+    /// @dev The initialization function can only be called once
+    function initMoment(address _caller) external onlyAdmin {
         caller = _caller;
     }
     
@@ -193,7 +196,7 @@ contract Moment is IMoment, ERC1967Upgrade, Initializable, ERC721URIStorage {
     /// @notice Allows the contract owner to set the caller address.
     /// @param _caller The new caller address to be set.
     /// @dev Only the contract owner can call this function.
-    function setCaller(address _caller) external OnlyAdmin {
+    function setCaller(address _caller) external onlyAdmin {
         caller = _caller;
     }
 }
