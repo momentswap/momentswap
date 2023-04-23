@@ -216,8 +216,7 @@ contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
         itemPrices[accountContract][spaceId] = newPrice;
         IAccount(accountContract).updateExpireSeconds(spaceId, expireSeconds);
 
-
-        emit Update(msg.sender, accountContract, spaceId, newPrice);
+        emit Update(msg.sender, accountContract, spaceId, expireSeconds, newPrice);
     }
 
     /// @dev Allow the administrator to withdraw transaction fees.

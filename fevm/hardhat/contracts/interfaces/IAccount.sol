@@ -20,7 +20,11 @@ interface IAccount {
     /// @param owner The owner of the space.
     /// @param operator The address that is operator.
     /// @param spaceId The ID of the space.
-    event Approval(address indexed owner, address indexed operator, uint256 indexed spaceId);
+    event Approval(
+        address indexed owner,
+        address indexed operator,
+        uint256 indexed spaceId
+    );
 
     /// @dev Emitted when a new account is created.
     /// @param accountId The ID of the new account.
@@ -95,26 +99,37 @@ interface IAccount {
         uint64 expireSeconds
     );
 
+    /// @dev Emitted when a space is rented.
+    /// @param userId The ID of the user that rented the space.
+    /// @param spaceId The ID of the rented space.
+    event RentSpace(uint64 indexed userId, uint120 indexed spaceId);
+
     /// @dev Emitted when a space is returned.
-    /// @param accountId The ID of the account that returned the space.
+    /// @param userId The ID of the user that returned the space.
     /// @param spaceId The ID of the returned space.
-    event ReturnSpace(uint64 indexed accountId, uint120 indexed spaceId);
+    event ReturnSpace(uint64 indexed userId, uint120 indexed spaceId);
 
     /// @dev Emitted when the expire seconds of the space is updated.
     /// @param spaceId The ID of the space.
     /// @param expireSeconds The new expire seconds of the rent space.
-    event UpdateExpireSeconds(
-        uint64 indexed spaceId,
-        uint64 expireSeconds
-    );
+    event UpdateExpireSeconds(uint64 indexed spaceId, uint64 expireSeconds);
 
     /// @dev Emitted when the domain name of a rented space is updated.
     /// @param spaceId The ID of the rented space.
     /// @param domainName The new domain name of the rented space.
-    event UpdateRentedSpaceDomainName(
-        uint64 indexed spaceId,
-        string domainName
-    );
+    event UpdateRentedSpaceDomainName(uint64 indexed spaceId,string domainName);
+
+    /// @dev Emitted when the sub-space domain limit is updated.
+    /// @param limit The new limit of sub-space domains.
+    event SetSubSpaceDomainLimit(uint64 limit);
+
+    /// @dev Emitted when the mint fee is updated.
+    /// @param mintFee The new mint fee amount.
+    event SetMintFee(uint256 mintFee);
+
+    /// @dev Emitted when the beneficiary of the contract is updated.
+    /// @param beneficiary The new beneficiary address.
+    event SetBeneficiary(address beneficiary);
 
     /// @notice Checks if the caller is the creator of the specified space.
     /// @param spaceId The ID of the space to check.

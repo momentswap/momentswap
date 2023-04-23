@@ -110,7 +110,7 @@ contract SpaceFNS is ISpaceFNS, Ownable {
         uint64 primarySpaceId,
         string calldata domainName,
         uint64 expireSeconds
-    ) public override checkDomainNameLength(domainName) onlyCaller() returns (uint64) {
+    ) public override onlyCaller checkDomainNameLength(domainName) returns (uint64) {
         _spaceIds.increment();
         uint64 spaceId = uint64(_spaceIds.current());
         string memory fullDomainName = domainName;
@@ -147,7 +147,7 @@ contract SpaceFNS is ISpaceFNS, Ownable {
     function updateSubDomainName(
         uint64 spaceId,
         string calldata newDomainName
-    ) public override checkDomainNameLength(newDomainName) onlyCaller() {
+    ) public override onlyCaller checkDomainNameLength(newDomainName)  {
         if (spaceDomains[spaceId].primarySpaceId == 0) {
             revert NotSubdomain();
         }
@@ -173,7 +173,7 @@ contract SpaceFNS is ISpaceFNS, Ownable {
     /// @param expireSeconds The new expiration time, in seconds, for the space
     /// Requirements:
     /// - The caller must be authorized to update the space
-    function updateExpireSeconds(uint64 spaceId, uint64 expireSeconds) public override onlyCaller() {
+    function updateExpireSeconds(uint64 spaceId, uint64 expireSeconds) public override onlyCaller {
         SpaceDomain storage spaceDomain = spaceDomains[spaceId];
         if (spaceDomain.creatorId != spaceDomain.userId) {
             revert DomainInUse();
@@ -189,7 +189,7 @@ contract SpaceFNS is ISpaceFNS, Ownable {
     /// - The caller is the authorized address
     /// - Change the `userid` of `SpaceDomain` to the renter,
     /// - Change the authorized address of `SpaceDomain` to the address of the renter
-    function rentSpace(uint64 spaceId, uint64 userId) public override onlyCaller() {
+    function rentSpace(uint64 spaceId, uint64 userId) public override onlyCaller {
         SpaceDomain storage spaceDomain = spaceDomains[spaceId];
         if (spaceDomain.creatorId == userId) {
             revert();

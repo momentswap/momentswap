@@ -3,6 +3,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
 import hre from "hardhat";
+import { withArgs } from "swr/_internal";
 import { Account, Moment, SpaceFNS } from "../typechain-types";
 
 describe("Jointly debugging contracts for Account, Domain, and Moment", function () {
@@ -29,7 +30,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
     await loadFixture(fixture);
   });
 
-  describe("Set caller", function () {
+  describe("Only Caller", function () {
     it("Should allow setting the contract caller for Moment and SpaceFNS", async function () {
       await moment.setCaller(account.address);
       await spaceFNS.setCaller(account.address);
@@ -44,6 +45,35 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await expect(spaceFNS.connect(wallets[1]).setCaller(account.address)).to.revertedWith(
         "Ownable: caller is not the owner",
       );
+    });
+
+    it("Should revert if non designated caller to call some functions", async function () {
+      await expect(
+        moment
+          .connect(wallets[1])
+          .createMoment(1, "ipfs://bafyreiarydudpizgiikhkvtw4z3hiyv2riof7hpmfsxlsbezvonehnjzye/metadata.json"),
+      ).to.revertedWithCustomError(moment, "Unauthorized");
+      await expect(moment.connect(wallets[1]).removeMoment(1)).to.revertedWithCustomError(moment, "Unauthorized");
+      await expect(moment.connect(wallets[1]).addLike(1, 1)).to.revertedWithCustomError(moment, "Unauthorized");
+      await expect(moment.connect(wallets[1]).removeLike(1, 1)).to.revertedWithCustomError(moment, "Unauthorized");
+      await expect(moment.connect(wallets[1]).createComment(1, 1, "comment text")).to.revertedWithCustomError(
+        moment,
+        "Unauthorized",
+      );
+      await expect(moment.connect(wallets[1]).removeComment(1)).to.revertedWithCustomError(moment, "Unauthorized");
+      await expect(spaceFNS.connect(wallets[1]).createSpaceDomain(1, 0, "foobar", 1000)).to.revertedWithCustomError(
+        spaceFNS,
+        "Unauthorized",
+      );
+      await expect(spaceFNS.connect(wallets[1]).updateSubDomainName(1, "foobar")).to.revertedWithCustomError(
+        spaceFNS,
+        "Unauthorized",
+      );
+      await expect(spaceFNS.connect(wallets[1]).updateExpireSeconds(1, 3000)).to.revertedWithCustomError(
+        spaceFNS,
+        "Unauthorized",
+      );
+      await expect(spaceFNS.connect(wallets[1]).rentSpace(1, 2)).to.revertedWithCustomError(spaceFNS, "Unauthorized");
     });
   });
 
@@ -66,7 +96,9 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       const domainName = "foo";
       const avatarURI = "ipfs://bafkreiep4swwvvpwhyskpz2zzxbgom6o7yrccyu4bxpizhjfyvigwfqynu";
 
-      await account.createAccount(domainName, avatarURI);
+      await expect(account.createAccount(domainName, avatarURI))
+        .to.emit(account, "CreateAccount")
+        .withArgs(1, wallets[0].address, domainName, avatarURI);
       await account.connect(wallets[1]).createAccount("bar", avatarURI);
 
       const accountIds = await account.batchGetAccountId([wallets[0].address, wallets[1].address]);
@@ -127,7 +159,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
 
     it("Should allow account cancellation", async function () {
       await account.createAccount("foo", "ipfs://bafkreiep4swwvvpwhyskpz2zzxbgom6o7yrccyu4bxpizhjfyvigwfqynu");
-      await account.cancelAccount();
+      await expect(account.cancelAccount()).to.emit(account, "CancelAccount").withArgs(1);
       expect((await account.batchGetAccountId([wallets[0].address]))[0]).to.equal(BigNumber.from(0));
       expect((await account.batchGetAccountData([1]))[0][0]).to.equal("0x0000000000000000000000000000000000000000");
       expect((await account.batchGetAccountData([1]))[0][1]).to.equal("");
@@ -137,7 +169,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       const oldAvatar = "ipfs://bafkreiep4swwvvpwhyskpz2zzxbgom6o7yrccyu4bxpizhjfyvigwfqynu";
       const newAvatar = "ipfs://bafkreihby2cftowhtmdwvgat7r22w2nrl4ekjqeslbjnlx6ltimiujncg4";
       await account.createAccount("foo", oldAvatar);
-      await account.updateAvatarURI(newAvatar);
+      await expect(account.updateAvatarURI(newAvatar)).to.emit(account, "UpdateAvatarURI").withArgs(1, newAvatar);
       expect((await account.batchGetAccountData([1]))[0][1]).to.equal(newAvatar);
     });
   });
@@ -149,7 +181,9 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
     });
 
     it("Should allow creating subdomain", async function () {
-      await account.createSubSpaceDomain(1, "bar", 1000);
+      await expect(account.createSubSpaceDomain(1, "bar", 1000))
+        .to.emit(account, "CreateSubSpaceDomain")
+        .withArgs(1, 2, "bar", 1000);
       const createdSpaceIds = await account.getCreatedSpaceIds(1);
       expect(createdSpaceIds[0]).to.equal(BigNumber.from(1));
       expect(createdSpaceIds[1]).to.equal(BigNumber.from(2));
@@ -199,8 +233,10 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
         .createAccount("bar", "ipfs://bafkreiep4swwvvpwhyskpz2zzxbgom6o7yrccyu4bxpizhjfyvigwfqynu");
       await account.createSubSpaceDomain(1, "subdomain", 1000);
 
-      await account.approve(wallets[2].address, 3);
-      await account.connect(wallets[2]).rentSpace(2, 3);
+      await expect(account.approve(wallets[2].address, 3))
+        .to.emit(account, "Approval")
+        .withArgs(wallets[0].address, wallets[2].address, 3);
+      await expect(account.connect(wallets[2]).rentSpace(2, 3)).to.emit(account, "RentSpace").withArgs(2, 3);
       expect((await account.connect(wallets[1]).getRentedSpaceIds(2))[0]).to.equal(BigNumber.from(3));
       expect(await spaceFNS.getSpaceDomainCreatorId(3)).to.equal(BigNumber.from(1));
       expect(await spaceFNS.getSpaceDomainUserId(3)).to.equal(BigNumber.from(2));
@@ -216,7 +252,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await account.connect(wallets[2]).rentSpace(2, 3);
       expect((await account.connect(wallets[1]).getRentedSpaceIds(2))[0]).to.equal(BigNumber.from(3));
 
-      await account.returnSpace(2, 3);
+      await expect(account.returnSpace(2, 3)).to.emit(account, "ReturnSpace"), withArgs(2, 3);
       expect((await account.connect(wallets[1]).getRentedSpaceIds(2)).length).to.equal(0);
     });
   });
@@ -231,7 +267,9 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
     it("Should allow creating momnet", async function () {
       const metadataURI = "ipfs://bafyreiarydudpizgiikhkvtw4z3hiyv2riof7hpmfsxlsbezvonehnjzye/metadata.json";
       const mintFee = account.mintFee();
-      await account.createMoment(metadataURI, { value: mintFee });
+      await expect(account.createMoment(metadataURI, { value: mintFee }))
+        .to.emit(account, "CreateMoment")
+        .withArgs(1, 1, metadataURI);
       await account.createMoment(metadataURI, { value: mintFee });
       await account.createMoment(metadataURI, { value: mintFee });
 
@@ -266,7 +304,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await account.createMoment(metadataURI, { value: mintFee });
       await account.createMoment(metadataURI, { value: mintFee });
       await account.createMoment(metadataURI, { value: mintFee });
-      await account.removeMoment(1);
+      await expect(account.removeMoment(1)).to.emit(account, "RemoveMoment").withArgs(1, 1);
       await account.removeMoment(3);
 
       const momentIds = await account.getMomentIds(1);
@@ -311,7 +349,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
 
     it("Should allow create comment", async function () {
       const commentText = "Hello World!";
-      await account.createComment(1, commentText);
+      await expect(account.createComment(1, commentText)).to.emit(account, "CreateComment").withArgs(1, 1, commentText);
       await account.createComment(1, commentText);
       await account.createComment(1, commentText);
 
@@ -340,7 +378,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await account.createComment(1, commentText);
       await account.createComment(1, commentText);
       await account.createComment(1, commentText);
-      await account.removeComment(1);
+      await expect(account.removeComment(1)).to.emit(account, "RemoveComment").withArgs(1, 1);
       await account.removeComment(3);
 
       const commentIds = await account.getCommentIds(1);
@@ -376,7 +414,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
     });
 
     it("Should allow like moment", async function () {
-      await account.likeMoment(1);
+      await expect(account.likeMoment(1)).to.emit(account, "LikeMoment").withArgs(1, 1);
       await account.likeMoment(2);
       await account.likeMoment(3);
       await account.likeMoment(4);
@@ -401,7 +439,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await account.likeMoment(3);
       await account.likeMoment(4);
       await account.connect(wallets[1]).likeMoment(4);
-      await account.cancelLikeMoment(1);
+      await expect(account.cancelLikeMoment(1)).to.emit(account, "CancelLikeMoment").withArgs(1, 1);
       await account.cancelLikeMoment(4);
 
       const likedMomentIds = await account.getLikedMomentIds(1);

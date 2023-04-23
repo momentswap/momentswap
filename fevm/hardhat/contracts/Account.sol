@@ -344,8 +344,9 @@ contract Account is IAccount, Ownable {
     function rentSpace(uint64 userId, uint64 spaceId) external onlyAppover(spaceId) {
         spaceFNS.rentSpace(spaceId, userId);
         accounts[userId].rentedSpaceIds.push(spaceId);
-
         delete approvals[spaceId];
+
+        emit RentSpace(userId, spaceId);
     }
 
     /// @notice Function for returning a rented space domain.
@@ -392,13 +393,23 @@ contract Account is IAccount, Ownable {
     /// @param limit The maximum number of sub-space domains allowed.
     function setSubSpaceDomainLimit(uint64 limit) external onlyOwner {
         subSpaceDomainLimit = limit;
+
+        emit SetSubSpaceDomainLimit(limit);
     }
 
+    /// @dev Sets the fee required to mint a new space.
+    /// @param _mintFee The new fee amount.
     function setMintFee(uint256 _mintFee) public onlyOwner {
         mintFee = _mintFee;
+
+        emit SetMintFee(_mintFee);
     }
 
+    /// @dev Sets the address of the beneficiary account.
+    /// @param _beneficiary The address of the beneficiary account.
     function setBeneficiary(address _beneficiary) public onlyOwner {
         beneficiary = payable(_beneficiary);
+
+        emit SetBeneficiary(_beneficiary);
     }
 }

@@ -128,7 +128,7 @@ contract Moment is IMoment, Ownable, ERC721URIStorage {
     /// @notice Removes a like from the specified moment for the specified account.
     /// @param momentId The ID of the moment to remove the like from.
     /// @param accountId The ID of the account removing the like.
-    function removeLike(uint120 momentId, uint64 accountId) external {
+    function removeLike(uint120 momentId, uint64 accountId) external onlyCaller {
         uint64[] storage likedMomentIds = likes[momentId];
         for (uint256 i = 0; i < likedMomentIds.length; i++) {
             if (likedMomentIds[i] == accountId) {

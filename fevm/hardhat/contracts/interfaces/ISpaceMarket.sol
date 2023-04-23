@@ -42,11 +42,13 @@ interface ISpaceMarket {
     /// @param seller The address of the seller.
     /// @param accountContract The address of the domain contract.
     /// @param spaceId The ID of the domain.
+    /// @param expireSeconds The new expire seconds of the rent space.
     /// @param newPrice The new price of the domain.
     event Update(
         address indexed seller,
         address indexed accountContract,
         uint64 indexed spaceId,
+        uint64 expireSeconds,
         uint256 newPrice
     );
 
