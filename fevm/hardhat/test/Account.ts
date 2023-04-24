@@ -227,6 +227,12 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       expect(await account.subSpaceDomainLimit()).to.equal(BigNumber.from(98));
     });
 
+    it("Should revert if non-owner to set subdomain limit", async function () {
+      await expect(account.connect(wallets[1]).setSubSpaceDomainLimit(98)).to.revertedWith(
+        "Ownable: caller is not the owner",
+      );
+    });
+
     it("Should allow rent space", async function () {
       await account
         .connect(wallets[1])
@@ -352,6 +358,16 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       expect(await account.beneficiary()).to.equal(wallets[0].address);
       await account.setBeneficiary(wallets[1].address);
       expect(await account.beneficiary()).to.equal(wallets[1].address);
+    });
+
+    it("Should revert if not beneficiary", async function () {
+      await expect(account.connect(wallets[1]).setBeneficiary(wallets[1].address)).to.revertedWith(
+        "Ownable: caller is not the owner",
+      );
+
+      await expect(account.connect(wallets[1]).setMintFee(1234567890)).to.revertedWith(
+        "Ownable: caller is not the owner",
+      );
     });
   });
 
