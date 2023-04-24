@@ -2,6 +2,7 @@
 // Hardhat's config file will always run before any task,
 // so you can use it to integrate with other tools, like importing @babel/register.
 import "@nomicfoundation/hardhat-toolbox";
+import "@openzeppelin/hardhat-upgrades";
 import { config as dotenvConfig } from "dotenv";
 import { HardhatUserConfig } from "hardhat/config";
 import { resolve } from "path";

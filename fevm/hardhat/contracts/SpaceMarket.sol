@@ -1,35 +1,42 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./interfaces/ISpaceMarket.sol";
 import "./interfaces/IAccount.sol";
+import "./interfaces/ISpaceMarket.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-contract SpaceMarket is ISpaceMarket, ReentrancyGuard {
-    error NotListed(address accountContract, uint256 spaceId);
+contract SpaceMarket is ISpaceMarket, Initializable, ReentrancyGuardUpgradeable {
     error AlreadyListed(address accountContract, uint256 spaceId);
-    error PriceNotMet(address accountContract, uint64 spaceId, uint256 price);
-    error NoTransactionFee();
     error NoProceeds();
+    error NoTransactionFee();
     error NotBeneficiary();
     error NotAppovedToMarket();
     error NotCreator();
-    error FeeRateError(string message);
-    error InvalidContractAddress();
+    error NotListed(address accountContract, uint256 spaceId);
     error PriceMustBeAboveZero();
+    error InvalidContractAddress();
+    error FeeRateError(string message);
+    error PriceNotMet(address accountContract, uint64 spaceId, uint256 price);
 
-    address payable public beneficiary;
+    /// @notice The percentage of the total transaction fee that will be charged as a fee rate.
     uint16 public feeRate;
+
+    /// @notice Address that will receive fees collected from transactions.
+    address payable public beneficiary;
+
+    /// @notice Total transaction fee collected.
     uint256 totalTransactionFee;
 
+    /// @notice Mapping of item prices by Account contract and item ID.
     mapping(address => mapping(uint64 => uint256)) public itemPrices;
-    /// Record user earnings
-    mapping(address => uint256) proceeds;
-    /// Record fee income
 
-    constructor() {
-        beneficiary = payable(msg.sender);
+    /// @notice Mapping of proceeds by user address.
+    mapping(address => uint256) proceeds;
+
+
+    function initialize() public initializer {
         feeRate = 500;
+        beneficiary = payable(msg.sender);
     }
 
     /// onlyBeneficiary modifier

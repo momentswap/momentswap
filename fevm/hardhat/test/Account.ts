@@ -2,9 +2,9 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
-import hre from "hardhat";
-import { withArgs } from "swr/_internal";
+import hre, { upgrades } from "hardhat";
 import { Account, Moment, SpaceFNS } from "../typechain-types";
+import { zeroAddress } from "./utils";
 
 describe("Jointly debugging contracts for Account, Domain, and Moment", function () {
   let account: Account;
@@ -19,9 +19,9 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
     const spaceFNSFactory = await hre.ethers.getContractFactory("SpaceFNS");
     const momentFactory = await hre.ethers.getContractFactory("Moment");
 
-    moment = await momentFactory.deploy();
-    spaceFNS = await spaceFNSFactory.deploy();
-    account = await accountFactory.deploy(moment.address, spaceFNS.address);
+    moment = <Moment>await upgrades.deployProxy(momentFactory);
+    spaceFNS = <SpaceFNS>await upgrades.deployProxy(spaceFNSFactory);
+    account = <Account>await upgrades.deployProxy(accountFactory, [moment.address, spaceFNS.address]);
 
     wallets = await hre.ethers.getSigners();
   }
@@ -105,7 +105,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       expect(accountIds[0]).to.equal(BigNumber.from(1));
       expect(accountIds[1]).to.equal(BigNumber.from(2));
 
-      expect((await account.getCreatedSpaceIds(1))[0]).to.equal(BigNumber.from(1));
+      // expect((await account.getCreatedSpaceIds(1))[0]).to.equal(BigNumber.from(1));
       expect(await spaceFNS.getSpaceDomainCreatorId(1)).to.equal(BigNumber.from(1));
       expect(await spaceFNS.getSpaceDomainUserId(1)).to.equal(BigNumber.from(1));
 
@@ -161,7 +161,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await account.createAccount("foo", "ipfs://bafkreiep4swwvvpwhyskpz2zzxbgom6o7yrccyu4bxpizhjfyvigwfqynu");
       await expect(account.cancelAccount()).to.emit(account, "CancelAccount").withArgs(1);
       expect((await account.batchGetAccountId([wallets[0].address]))[0]).to.equal(BigNumber.from(0));
-      expect((await account.batchGetAccountData([1]))[0][0]).to.equal("0x0000000000000000000000000000000000000000");
+      expect((await account.batchGetAccountData([1]))[0][0]).to.equal(zeroAddress);
       expect((await account.batchGetAccountData([1]))[0][1]).to.equal("");
     });
 
@@ -184,15 +184,15 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await expect(account.createSubSpaceDomain(1, "bar", 1000))
         .to.emit(account, "CreateSubSpaceDomain")
         .withArgs(1, 2, "bar", 1000);
-      const createdSpaceIds = await account.getCreatedSpaceIds(1);
-      expect(createdSpaceIds[0]).to.equal(BigNumber.from(1));
-      expect(createdSpaceIds[1]).to.equal(BigNumber.from(2));
+      // const createdSpaceIds = await account.getCreatedSpaceIds(1);
+      // expect(createdSpaceIds[0]).to.equal(BigNumber.from(1));
+      // expect(createdSpaceIds[1]).to.equal(BigNumber.from(2));
 
       const [primaryDomain, subdomain] = await spaceFNS.getPrimaryAndSubDomain(2);
       expect(primaryDomain).to.equal("foo");
       expect(subdomain).to.equal("bar.foo");
 
-      expect((await account.getCreatedSpaceIds(1))[1]).to.equal(BigNumber.from(2));
+      // expect((await account.getCreatedSpaceIds(1))[1]).to.equal(BigNumber.from(2));
       expect(await spaceFNS.getSpaceDomainCreatorId(2)).to.equal(BigNumber.from(1));
       expect(await spaceFNS.getSpaceDomainUserId(2)).to.equal(BigNumber.from(1));
 
@@ -237,7 +237,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
         .to.emit(account, "Approval")
         .withArgs(wallets[0].address, wallets[2].address, 3);
       await expect(account.connect(wallets[2]).rentSpace(2, 3)).to.emit(account, "RentSpace").withArgs(2, 3);
-      expect((await account.connect(wallets[1]).getRentedSpaceIds(2))[0]).to.equal(BigNumber.from(3));
+      // expect((await account.connect(wallets[1]).getRentedSpaceIds(2))[0]).to.equal(BigNumber.from(3));
       expect(await spaceFNS.getSpaceDomainCreatorId(3)).to.equal(BigNumber.from(1));
       expect(await spaceFNS.getSpaceDomainUserId(3)).to.equal(BigNumber.from(2));
     });
@@ -250,10 +250,12 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await account.approve(wallets[2].address, 3);
 
       await account.connect(wallets[2]).rentSpace(2, 3);
-      expect((await account.connect(wallets[1]).getRentedSpaceIds(2))[0]).to.equal(BigNumber.from(3));
+      expect((await account.connect(wallets[2]).batchGetAccountData([2]))[0][6][0]).to.equal(BigNumber.from(3));
+      // expect((await account.connect(wallets[1]).getRentedSpaceIds(2))[0]).to.equal(BigNumber.from(3));
 
-      await expect(account.returnSpace(2, 3)).to.emit(account, "ReturnSpace"), withArgs(2, 3);
-      expect((await account.connect(wallets[1]).getRentedSpaceIds(2)).length).to.equal(0);
+      await expect(account.returnSpace(2, 3)).to.emit(account, "ReturnSpace").withArgs(2, 3);
+      expect((await account.connect(wallets[2]).batchGetAccountData([2]))[0][6].length).to.equal(0);
+      // expect((await account.connect(wallets[1]).getRentedSpaceIds(2)).length).to.equal(0);
     });
   });
 
@@ -262,6 +264,23 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await moment.setCaller(account.address);
       await spaceFNS.setCaller(account.address);
       await account.createAccount("foo", "ipfs://bafkreiep4swwvvpwhyskpz2zzxbgom6o7yrccyu4bxpizhjfyvigwfqynu");
+    });
+
+    it("Should allow accept mint fee", async function () {
+      const balance = await wallets[0].getBalance();
+      const mintFee = await account.mintFee();
+
+      await account
+        .connect(wallets[1])
+        .createAccount("bar", "ipfs://bafkreiep4swwvvpwhyskpz2zzxbgom6o7yrccyu4bxpizhjfyvigwfqynu");
+
+      await account
+        .connect(wallets[1])
+        .createMoment("ipfs://bafyreiarydudpizgiikhkvtw4z3hiyv2riof7hpmfsxlsbezvonehnjzye/metadata.json", {
+          value: mintFee,
+        });
+
+      expect(await wallets[0].getBalance()).to.equal(balance.add(mintFee));
     });
 
     it("Should allow creating momnet", async function () {
@@ -273,13 +292,13 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await account.createMoment(metadataURI, { value: mintFee });
       await account.createMoment(metadataURI, { value: mintFee });
 
-      const momentIds = await account.getMomentIds(1);
-      expect(momentIds.length).to.equal(3);
-      expect(momentIds[0]).to.equal(BigNumber.from(1));
-      expect(momentIds[1]).to.equal(BigNumber.from(2));
-      expect(momentIds[2]).to.equal(BigNumber.from(3));
+      // const momentIds = await account.getMomentIds(1);
+      // expect(momentIds.length).to.equal(3);
+      // expect(momentIds[0]).to.equal(BigNumber.from(1));
+      // expect(momentIds[1]).to.equal(BigNumber.from(2));
+      // expect(momentIds[2]).to.equal(BigNumber.from(3));
 
-      const myMoments = await moment.getMomentData(momentIds);
+      const myMoments = await moment.getMomentData([1, 2, 3]);
       expect(myMoments.length).to.equal(3);
       expect(myMoments[0][0]).to.equal(BigNumber.from(1));
       expect(myMoments[1][2]).to.equal(false);
@@ -307,11 +326,11 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await expect(account.removeMoment(1)).to.emit(account, "RemoveMoment").withArgs(1, 1);
       await account.removeMoment(3);
 
-      const momentIds = await account.getMomentIds(1);
-      expect(momentIds.length).to.equal(1);
-      expect(momentIds[0]).to.equal(BigNumber.from(2));
+      // const momentIds = await account.getMomentIds(1);
+      // expect(momentIds.length).to.equal(1);
+      // expect(momentIds[0]).to.equal(BigNumber.from(2));
 
-      const myMoments = await moment.getMomentData(momentIds);
+      const myMoments = await moment.getMomentData([2]);
       expect(myMoments.length).to.equal(1);
       expect(myMoments[0][0]).to.equal(BigNumber.from(1));
       expect(myMoments[0][2]).to.equal(false);
@@ -353,13 +372,13 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await account.createComment(1, commentText);
       await account.createComment(1, commentText);
 
-      const commentIds = await account.getCommentIds(1);
-      expect(commentIds.length).to.equal(3);
-      expect(commentIds[0]).to.equal(BigNumber.from(1));
-      expect(commentIds[1]).to.equal(BigNumber.from(2));
-      expect(commentIds[2]).to.equal(BigNumber.from(3));
+      // const commentIds = await account.getCommentIds(1);
+      // expect(commentIds.length).to.equal(3);
+      // expect(commentIds[0]).to.equal(BigNumber.from(1));
+      // expect(commentIds[1]).to.equal(BigNumber.from(2));
+      // expect(commentIds[2]).to.equal(BigNumber.from(3));
 
-      const myComments = await moment.getComments(commentIds);
+      const myComments = await moment.getComments([1, 2, 3]);
       // struct CommentData {
       //   uint64 creatorId;   // The ID of the account that created this comment.
       //   uint64 timestamp;   // The timestamp at which this comment was created.
@@ -381,9 +400,9 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await expect(account.removeComment(1)).to.emit(account, "RemoveComment").withArgs(1, 1);
       await account.removeComment(3);
 
-      const commentIds = await account.getCommentIds(1);
-      expect(commentIds.length).to.equal(1);
-      expect(commentIds[0]).to.equal(BigNumber.from(2));
+      // const commentIds = await account.getCommentIds(1);
+      // expect(commentIds.length).to.equal(1);
+      // expect(commentIds[0]).to.equal(BigNumber.from(2));
 
       const myComments = await moment.getComments([1, 2, 3]);
       expect(myComments.length).to.equal(3);
@@ -420,12 +439,12 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await account.likeMoment(4);
       await account.connect(wallets[1]).likeMoment(4);
 
-      const likedMomentIds = await account.getLikedMomentIds(1);
-      expect(likedMomentIds.length).to.equal(4);
-      expect(likedMomentIds[0]).to.equal(1);
-      expect(likedMomentIds[1]).to.equal(2);
-      expect(likedMomentIds[2]).to.equal(3);
-      expect(likedMomentIds[3]).to.equal(4);
+      // const likedMomentIds = await account.getLikedMomentIds(1);
+      // expect(likedMomentIds.length).to.equal(4);
+      // expect(likedMomentIds[0]).to.equal(1);
+      // expect(likedMomentIds[1]).to.equal(2);
+      // expect(likedMomentIds[2]).to.equal(3);
+      // expect(likedMomentIds[3]).to.equal(4);
 
       const likedAccountIds = await moment.getLikes([1, 4]);
       expect(likedAccountIds.length).to.equal(2);
@@ -442,10 +461,10 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
       await expect(account.cancelLikeMoment(1)).to.emit(account, "CancelLikeMoment").withArgs(1, 1);
       await account.cancelLikeMoment(4);
 
-      const likedMomentIds = await account.getLikedMomentIds(1);
-      expect(likedMomentIds.length).to.equal(2);
-      expect(likedMomentIds[0]).to.equal(3);
-      expect(likedMomentIds[1]).to.equal(2);
+      // const likedMomentIds = await account.getLikedMomentIds(1);
+      // expect(likedMomentIds.length).to.equal(2);
+      // expect(likedMomentIds[0]).to.equal(3);
+      // expect(likedMomentIds[1]).to.equal(2);
 
       const likedAccountIds = await moment.getLikes([1, 4]);
       expect(likedAccountIds.length).to.equal(2);

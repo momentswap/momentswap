@@ -2,8 +2,9 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
-import hre from "hardhat";
+import hre, { upgrades } from "hardhat";
 import { Account, SpaceFNS, SpaceMarket } from "../typechain-types";
+import { calcGasFee, zeroAddress } from "./utils";
 
 describe("SpaceMarket contract", function () {
   let account: Account;
@@ -18,9 +19,10 @@ describe("SpaceMarket contract", function () {
     const spaceFNSFactory = await hre.ethers.getContractFactory("SpaceFNS");
     const spaceMarketFactory = await hre.ethers.getContractFactory("SpaceMarket");
 
-    spaceFNS = await spaceFNSFactory.deploy();
-    spaceMarket = await spaceMarketFactory.deploy();
-    account = await accountFactory.deploy("0x0000000000000000000000000000000000000000", spaceFNS.address);
+    spaceMarket = <SpaceMarket>await upgrades.deployProxy(spaceMarketFactory, []);
+    spaceFNS = <SpaceFNS>await upgrades.deployProxy(spaceFNSFactory, []);
+    account = <Account>await upgrades.deployProxy(accountFactory, [zeroAddress, spaceFNS.address]);
+
     wallets = await hre.ethers.getSigners();
   }
 
@@ -109,7 +111,9 @@ describe("SpaceMarket contract", function () {
     await spaceMarket.listSpace(account.address, 3, 1000, 50);
     await spaceMarket.rentSpace(account.address, 3, 2, { value: 50 });
     expect(await spaceMarket.connect(wallets[1]).getItemPrice(account.address, 3)).to.equal(BigNumber.from(0));
-    expect((await account.connect(wallets[1]).getRentedSpaceIds([2]))[0]).to.equal(BigNumber.from(3));
+    expect(await spaceFNS.getSpaceDomainUserId(2)).to.equal(BigNumber.from(2));
+    expect((await account.batchGetAccountData([2]))[0][6][0]).to.equal(BigNumber.from(3));
+    // expect((await account.connect(wallets[1]).getRentedSpaceIds([2]))[0]).to.equal(BigNumber.from(3));
   });
 
   it("Should allow setting fee rate", async function () {
@@ -133,5 +137,24 @@ describe("SpaceMarket contract", function () {
       spaceMarket,
       "NotBeneficiary",
     );
+  });
+
+  it("Should allow withdraw income", async function () {
+    const amount = BigNumber.from(100);
+    const feeRate = await spaceMarket.getFeeRate();
+    const txFee = amount.mul(feeRate).div(10000);
+    const netFee = amount.sub(txFee);
+
+    await account.approve(spaceMarket.address, 3);
+    await spaceMarket.listSpace(account.address, 3, 1000, amount);
+    await spaceMarket.connect(wallets[1]).rentSpace(account.address, 3, 2, { value: amount });
+
+    const balance1 = await wallets[0].getBalance();
+    const tx1 = await spaceMarket.withdrawRentalIncome();
+    expect(await wallets[0].getBalance()).to.equal(balance1.add(netFee).sub(await calcGasFee(tx1)));
+
+    const balance2 = await wallets[0].getBalance();
+    const tx2 = await spaceMarket.withdrawTransactionFee();
+    expect(await wallets[0].getBalance()).to.equal(balance2.add(txFee).sub(await calcGasFee(tx2)));
   });
 });

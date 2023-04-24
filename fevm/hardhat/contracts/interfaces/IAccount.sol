@@ -154,31 +154,6 @@ interface IAccount {
     /// @return An array of account data corresponding to the given account IDs.
     function batchGetAccountData(uint64[] calldata accountIdArray) external view returns (AccountData[] memory);
 
-    /// @notice Returns the moment IDs associated with the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the moment IDs.
-    /// @return An array of moment IDs associated with the given account ID.
-    function getMomentIds(uint64 accountId) external view returns (uint120[] memory);
-
-    /// @notice Returns the comment IDs associated with the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the comment IDs.
-    /// @return An array of comment IDs associated with the given account ID.
-    function getCommentIds(uint64 accountId) external view returns (uint128[] memory);
-
-    /// @notice Returns the moment IDs that the account has liked.
-    /// @param accountId The ID of the account for which to retrieve the liked moment IDs.
-    /// @return An array of moment IDs that the account has liked.
-    function getLikedMomentIds(uint64 accountId) external view returns (uint120[] memory);
-
-    /// @notice Returns the IDs of the spaces created by the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the created space IDs.
-    /// @return An array of space IDs created by the given account ID.
-    function getCreatedSpaceIds(uint64 accountId) external view returns (uint64[] memory);
-
-    /// @notice Returns the IDs of the spaces rented by the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the rented space IDs.
-    /// @return An array of space IDs rented by the given account ID.
-    function getRentedSpaceIds(uint64 accountId) external view returns (uint64[] memory);
-
     /// @notice Authorized to the operator
     /// @param operator The address of the operator to approve
     /// @param spaceId The ID of the space to approve the operator for

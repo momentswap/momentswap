@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IAccount.sol";
 import {IMoment} from "./interfaces/IMoment.sol";
 import {ISpaceFNS} from "./interfaces/ISpaceFNS.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @notice This contract implements the IAccount interface and provides functionality for managing accounts.
-contract Account is IAccount, Ownable {
+contract Account is IAccount, Initializable, OwnableUpgradeable {
 
     /// @notice Error to be thrown when an account already exists for the given address.
     error AccountAlreadyExists();
@@ -33,6 +33,7 @@ contract Account is IAccount, Ownable {
     /// @notice Error to be thrown when a function is called by a non-user account.
     error NotUser();
 
+    /// @notice Error to be thrown when a user attempts to mint without paying the required fee.
     error MintFeeNotPaid();
 
     /// @notice Maximum number of allowed sub-space domains for an account.
@@ -41,8 +42,10 @@ contract Account is IAccount, Ownable {
     /// @notice Total number of created accounts.
     uint64 public totalAccountCount;
 
+    /// @notice The fee charged for minting tokens.
     uint256 public mintFee;
 
+    /// @notice The address that will receive the fees for minting tokens.
     address payable public beneficiary;
 
     /// @notice Mapping of space id to SpaceMarket address.
@@ -55,10 +58,10 @@ contract Account is IAccount, Ownable {
     mapping(uint64 => AccountData) public accounts;
 
     /// @notice The `IMoment` contract that provides the current timestamp.
-    IMoment public immutable moment;
+    IMoment public moment;
 
     /// @notice The `ISpaceFNS` contract that manages the Space FNS.
-    ISpaceFNS public immutable spaceFNS;
+    ISpaceFNS public spaceFNS;
 
     /// @notice Modifier to check if the caller's address is registered as an account.
     modifier checkRegistered() {
@@ -82,15 +85,16 @@ contract Account is IAccount, Ownable {
         _;
     }
 
-    /// @notice Constructor that initializes the `IMoment` contract and sets the maximum number of allowed sub-space domains.
+    /// @notice initialize function that initializes the `IMoment` contract and sets the maximum number of allowed sub-space domains.
     /// @param _moment The `IMoment` contract that provides the current timestamp.
     /// @param _spaceFNS The `ISpaceFNS` contract that manages the Space FNS.
-    constructor(IMoment _moment, ISpaceFNS _spaceFNS) {
-        mintFee = 0.0003 ether;
-        beneficiary = payable(msg.sender);
-        subSpaceDomainLimit = 5;
+    function initialize(IMoment _moment, ISpaceFNS _spaceFNS) public initializer {
+        __Ownable_init();
         moment = _moment;
         spaceFNS = _spaceFNS;
+        mintFee = 0.0003 ether;
+        subSpaceDomainLimit = 5;
+        beneficiary = payable(msg.sender);
     }
 
     /// @notice Checks if the caller is the creator of the specified space.
@@ -131,44 +135,6 @@ contract Account is IAccount, Ownable {
             accountData[i] = accounts[accountIdArray[i]];
         }
         return accountData;
-    }
-
-    // TODO: Transfer All to Events
-    /// @notice Returns the moment IDs associated with the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the moment IDs.
-    /// @return An array of moment IDs associated with the given account ID.
-    function getMomentIds(uint64 accountId) external view returns (uint120[] memory) {
-        return accounts[accountId].momentIds;
-    }
-
-    // TODO: Transfer All to Events
-    /// @notice Returns the comment IDs associated with the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the comment IDs.
-    /// @return An array of comment IDs associated with the given account ID.
-    function getCommentIds(uint64 accountId) external view returns (uint128[] memory) {
-        return accounts[accountId].commentIds;
-    }
-
-    // TODO: Transfer All to Events
-    /// @notice Returns the moment IDs that the account has liked.
-    /// @param accountId The ID of the account for which to retrieve the liked moment IDs.
-    /// @return An array of moment IDs that the account has liked.
-    function getLikedMomentIds(uint64 accountId) external view returns (uint120[] memory) {
-         return accounts[accountId].likedMomentIds;
-    }
-
-    /// @notice Returns the IDs of the spaces created by the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the created space IDs.
-    /// @return An array of space IDs created by the given account ID.
-    function getCreatedSpaceIds(uint64 accountId) external view returns (uint64[] memory) {
-         return accounts[accountId].createdSpaceIds;
-    }
-
-    /// @notice Returns the IDs of the spaces rented by the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the rented space IDs.
-    /// @return An array of space IDs rented by the given account ID.
-    function getRentedSpaceIds(uint64 accountId) external view returns (uint64[] memory) {
-        return accounts[accountId].rentedSpaceIds;
     }
 
     /// @notice Authorized to the operator
