@@ -42,11 +42,13 @@ interface ISpaceMarket {
     /// @param seller The address of the seller.
     /// @param accountContract The address of the domain contract.
     /// @param spaceId The ID of the domain.
+    /// @param expireSeconds The new expire seconds of the rent space.
     /// @param newPrice The new price of the domain.
     event Update(
         address indexed seller,
         address indexed accountContract,
         uint64 indexed spaceId,
+        uint64 expireSeconds,
         uint256 newPrice
     );
 
@@ -57,6 +59,10 @@ interface ISpaceMarket {
         address to,
         uint256 amount
     );
+
+    function getItemPrice(address accountContract, uint64 spaceId) external view returns (uint256);
+
+    function batchGetItemPrice(address accountContract, uint64[] memory spaceIdArray) external view returns (uint256[] memory);
 
     /// @notice Sets the beneficiary of the contract.
     /// @param beneficiary The address of the beneficiary.

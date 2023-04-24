@@ -20,7 +20,11 @@ interface IAccount {
     /// @param owner The owner of the space.
     /// @param operator The address that is operator.
     /// @param spaceId The ID of the space.
-    event Approval(address indexed owner, address indexed operator, uint256 indexed spaceId);
+    event Approval(
+        address indexed owner,
+        address indexed operator,
+        uint256 indexed spaceId
+    );
 
     /// @dev Emitted when a new account is created.
     /// @param accountId The ID of the new account.
@@ -95,42 +99,48 @@ interface IAccount {
         uint64 expireSeconds
     );
 
+    /// @dev Emitted when a space is rented.
+    /// @param userId The ID of the user that rented the space.
+    /// @param spaceId The ID of the rented space.
+    event RentSpace(uint64 indexed userId, uint120 indexed spaceId);
+
     /// @dev Emitted when a space is returned.
-    /// @param accountId The ID of the account that returned the space.
+    /// @param userId The ID of the user that returned the space.
     /// @param spaceId The ID of the returned space.
-    event ReturnSpace(uint64 indexed accountId, uint120 indexed spaceId);
+    event ReturnSpace(uint64 indexed userId, uint120 indexed spaceId);
 
     /// @dev Emitted when the expire seconds of the space is updated.
     /// @param spaceId The ID of the space.
     /// @param expireSeconds The new expire seconds of the rent space.
-    event UpdateExpireSeconds(
-        uint64 indexed spaceId,
-        uint64 expireSeconds
-    );
+    event UpdateExpireSeconds(uint64 indexed spaceId, uint64 expireSeconds);
 
     /// @dev Emitted when the domain name of a rented space is updated.
     /// @param spaceId The ID of the rented space.
     /// @param domainName The new domain name of the rented space.
-    event UpdateRentedSpaceDomainName(
-        uint64 indexed spaceId,
-        string domainName
-    );
+    event UpdateRentedSpaceDomainName(uint64 indexed spaceId,string domainName);
+
+    /// @dev Emitted when the sub-space domain limit is updated.
+    /// @param limit The new limit of sub-space domains.
+    event SetSubSpaceDomainLimit(uint64 limit);
+
+    /// @dev Emitted when the mint fee is updated.
+    /// @param mintFee The new mint fee amount.
+    event SetMintFee(uint256 mintFee);
+
+    /// @dev Emitted when the beneficiary of the contract is updated.
+    /// @param beneficiary The new beneficiary address.
+    event SetBeneficiary(address beneficiary);
 
     /// @notice Checks if the caller is the creator of the specified space.
     /// @param spaceId The ID of the space to check.
     /// @return A boolean value indicating whether the caller is the space creator or not.
-    function isSpaceCreator(uint64 spaceId) external view returns (bool);
+    /// @return The address of the space creator.
+    function checkSpaceCreator(uint64 spaceId) external view returns (bool, address);
 
     /// @notice Gets the address approved to act on behalf of a space.
     /// @param spaceId The ID of the space.
     /// @return The address approved to act on behalf of the space.
     function getApproved(uint64 spaceId) external view returns (address);
-
-    /// @notice Returns the account ID of the given address.
-    /// @dev If an address does not have an account, it is omitted from the result.
-    /// @param accountAddress The address for which to retrieve the account ID.
-    /// @return An account ID corresponding to the given address.
-    function getAccountId(address accountAddress) external view returns (uint64);
 
     /// @notice Returns the account IDs of the given addresses.
     /// @dev If an address does not have an account, it is omitted from the result.
@@ -138,67 +148,11 @@ interface IAccount {
     /// @return An array of account IDs corresponding to the given addresses.
     function batchGetAccountId(address[] calldata addressArray) external view returns (uint64[] memory);
 
-    /// @notice Returns the address corresponding to the given account ID.
-    /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param accountId The account ID for which to retrieve the address.
-    /// @return An address corresponding to the given account ID.
-    function getAddress(uint64 accountId) external view returns (address);
-
-    /// @notice Returns the addresses corresponding to the given account IDs.
-    /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param accountIdArray The list of account IDs for which to retrieve the addresses.
-    /// @return An array of addresses corresponding to the given account IDs.
-    function batchGetAddress(uint64[] calldata accountIdArray) external view returns (address[] memory);
-
-
-    /// @notice Returns the account data for the given account ID.
-    /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param accountId The account ID for which to retrieve the account data.
-    /// @return An account data corresponding to the given account ID.
-    function getAccountData(uint64 accountId) external view returns (AccountData memory);
-
     /// @notice Returns the account data for the given account IDs.
     /// @dev If an account ID does not exist, it is omitted from the result.
     /// @param accountIdArray The list of account IDs for which to retrieve the account data.
     /// @return An array of account data corresponding to the given account IDs.
     function batchGetAccountData(uint64[] calldata accountIdArray) external view returns (AccountData[] memory);
-
-    /// @notice Returns the avatar URI for the given account ID.
-    /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param accountId The account ID for which to retrieve the avatar URI.
-    /// @return An avatar URI corresponding to the given account ID.
-    function getAvatarURI(uint64 accountId) external view returns (string memory);
-
-    /// @notice Returns the avatar URIs for the given account IDs.
-    /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param accountIdArray The list of account IDs for which to retrieve the avatar URIs.
-    /// @return An array of avatar URIs corresponding to the given account IDs.
-    function batchGetAvatarURIs(uint64[] calldata accountIdArray) external view returns (string[] memory);
-
-    /// @notice Returns the moment IDs associated with the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the moment IDs.
-    /// @return An array of moment IDs associated with the given account ID.
-    function getMomentIds(uint64 accountId) external view returns (uint120[] memory);
-
-    /// @notice Returns the comment IDs associated with the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the comment IDs.
-    /// @return An array of comment IDs associated with the given account ID.
-    function getCommentIds(uint64 accountId) external view returns (uint128[] memory);
-
-    /// @notice Returns the moment IDs that the account has liked.
-    /// @param accountId The ID of the account for which to retrieve the liked moment IDs.
-    /// @return An array of moment IDs that the account has liked.
-    function getLikedMomentIds(uint64 accountId) external view returns (uint120[] memory);
-
-    /// @notice Returns the IDs of the spaces created by the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the created space IDs.
-    /// @return An array of space IDs created by the given account ID.
-    function getCreatedSpaceIds(uint64 accountId) external view returns (uint64[] memory);
-
-    /// @notice Returns the IDs of the spaces rented by the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the rented space IDs.
-    /// @return An array of space IDs rented by the given account ID.
-    function getRentedSpaceIds(uint64 accountId) external view returns (uint64[] memory);
 
     /// @notice Authorized to the operator
     /// @param operator The address of the operator to approve
@@ -221,7 +175,7 @@ interface IAccount {
     /// @notice Creates a new moment with the given metadata URI.
     /// @param metadataURI The URI of the metadata to associate with the moment.
     /// @return The ID of the newly created moment.
-    function createMoment(string calldata metadataURI) external returns (uint120);
+    function createMoment(string calldata metadataURI) external payable returns (uint120);
 
     /// @notice Removes the moment associated with the given moment ID.
     /// @dev The calling account must be the owner of the moment in order to remove it.
@@ -262,10 +216,10 @@ interface IAccount {
     /// @param spaceId The ID of the space to return.
     function rentSpace(uint64 userId, uint64 spaceId) external;
 
-    /// @notice Returns the user's space with the given space ID.
-    /// @param user The user ID of the domain name.
-    /// @param spaceId The ID of the space to return.
-    function returnSpace(address user, uint64 spaceId) external;
+    /// @notice Function for returning a rented space domain.
+    /// @param userId The id of the account that rented the space domain.
+    /// @param spaceId The ID of the space domain to return.
+    function returnSpace(uint64 userId, uint64 spaceId) external;
 
     /// @notice Updates the domain name for the rented space with the given space ID.
     /// @param spaceId The ID of the rented space for which to update the domain name.

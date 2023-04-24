@@ -10,9 +10,9 @@ interface ISpaceFNS {
     function isExpired(uint64 spaceId) external view returns (bool);
 
     /// @notice Checks if an array of spaces is expired.
-    /// @param spaceIds An array of space IDs.
+    /// @param spaceIdArray An array of space IDs.
     /// @return An array of booleans indicating whether each space is expired.
-    function isExpireds(uint64[] calldata spaceIds) external view returns (bool[] memory);
+   function batchIsExpired(uint64[] calldata spaceIdArray) external view returns (bool[] memory);
 
     /// @notice Get the userid of spacedomain
     /// @param spaceId The ID of the space.

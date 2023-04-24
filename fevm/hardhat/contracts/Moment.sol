@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import {IMoment, MomentData, CommentData} from "./interfaces/IMoment.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 
 /// @notice This contract implements the IMoment interface and provides functionality for managing moments.
-contract Moment is IMoment, Ownable, ERC721URIStorage {
+contract Moment is IMoment, Initializable, OwnableUpgradeable, ERC721URIStorageUpgradeable {
 
     /// @notice Error to be thrown when the caller is not authorized to perform an action.
     error Unauthorized();
@@ -41,8 +41,11 @@ contract Moment is IMoment, Ownable, ERC721URIStorage {
         _;
     }
 
-    /// @notice Constructor function that initializes the ERC721 token with the name "Moment NFTs" and the symbol "MMT".
-    constructor() ERC721("Moment NFTs", "MMT") {}
+    /// @notice initialize function that initializes the ERC721 token with the name "Moment NFTs" and the symbol "MMT".
+    function initialize() public initializer {
+        __Ownable_init();
+        __ERC721_init("Moment NFTs", "MMT");
+    }
 
     // TODO: Transfer All to Events
     /// @notice Returns an array of all moments that have been created.
@@ -128,7 +131,7 @@ contract Moment is IMoment, Ownable, ERC721URIStorage {
     /// @notice Removes a like from the specified moment for the specified account.
     /// @param momentId The ID of the moment to remove the like from.
     /// @param accountId The ID of the account removing the like.
-    function removeLike(uint120 momentId, uint64 accountId) external {
+    function removeLike(uint120 momentId, uint64 accountId) external onlyCaller {
         uint64[] storage likedMomentIds = likes[momentId];
         for (uint256 i = 0; i < likedMomentIds.length; i++) {
             if (likedMomentIds[i] == accountId) {

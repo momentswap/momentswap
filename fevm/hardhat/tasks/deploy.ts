@@ -16,6 +16,7 @@ task("deploy:all", "Deploy the entire contract cluster").setAction(async (_, hre
     contractAddress: momentAddress,
     callerAddress: accountAddress,
   });
+
   await hre.run("setCaller", {
     contractName: "SpaceFNS",
     contractAddress: spaceFnsAddress,

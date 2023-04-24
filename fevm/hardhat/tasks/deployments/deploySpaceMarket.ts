@@ -8,7 +8,7 @@ export async function deploySpaceMarket(hre: HardhatRuntimeEnvironment) {
   const spaceMarketFactory: SpaceMarket__factory = <SpaceMarket__factory>(
     await hre.ethers.getContractFactory("SpaceMarket")
   );
-  const spaceMarket: SpaceMarket = <SpaceMarket>await spaceMarketFactory.deploy();
+  const spaceMarket: SpaceMarket = <SpaceMarket>await hre.upgrades.deployProxy(spaceMarketFactory, []);
   await spaceMarket.deployed();
 
   console.log(`✨ SpaceMarket deployed to: ${spaceMarket.address}\n`);

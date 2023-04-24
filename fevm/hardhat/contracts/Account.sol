@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IAccount.sol";
 import {IMoment} from "./interfaces/IMoment.sol";
 import {ISpaceFNS} from "./interfaces/ISpaceFNS.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// @notice This contract implements the IAccount interface and provides functionality for managing accounts.
-contract Account is IAccount, Ownable {
+contract Account is IAccount, Initializable, OwnableUpgradeable {
 
     /// @notice Error to be thrown when an account already exists for the given address.
     error AccountAlreadyExists();
@@ -27,9 +27,14 @@ contract Account is IAccount, Ownable {
     /// @notice Error to be thrown when a Space domain has not expired.
     error SpaceDomainHasNotExpired();
 
+    /// @notice Error to be thrown when an operation requires approval but the approval has not been given yet.
     error Unapproved();
 
+    /// @notice Error to be thrown when a function is called by a non-user account.
     error NotUser();
+
+    /// @notice Error to be thrown when a user attempts to mint without paying the required fee.
+    error MintFeeNotPaid();
 
     /// @notice Maximum number of allowed sub-space domains for an account.
     uint64 public subSpaceDomainLimit;
@@ -37,7 +42,13 @@ contract Account is IAccount, Ownable {
     /// @notice Total number of created accounts.
     uint64 public totalAccountCount;
 
+    /// @notice The fee charged for minting tokens.
+    uint256 public mintFee;
 
+    /// @notice The address that will receive the fees for minting tokens.
+    address payable public beneficiary;
+
+    /// @notice Mapping of space id to SpaceMarket address.
     mapping(uint64 => address) private approvals;
 
     /// @notice Mapping of addresses to account IDs.
@@ -47,10 +58,10 @@ contract Account is IAccount, Ownable {
     mapping(uint64 => AccountData) public accounts;
 
     /// @notice The `IMoment` contract that provides the current timestamp.
-    IMoment public immutable moment;
+    IMoment public moment;
 
     /// @notice The `ISpaceFNS` contract that manages the Space FNS.
-    ISpaceFNS public immutable spaceFNS;
+    ISpaceFNS public spaceFNS;
 
     /// @notice Modifier to check if the caller's address is registered as an account.
     modifier checkRegistered() {
@@ -74,20 +85,25 @@ contract Account is IAccount, Ownable {
         _;
     }
 
-    /// @notice Constructor that initializes the `IMoment` contract and sets the maximum number of allowed sub-space domains.
+    /// @notice initialize function that initializes the `IMoment` contract and sets the maximum number of allowed sub-space domains.
     /// @param _moment The `IMoment` contract that provides the current timestamp.
     /// @param _spaceFNS The `ISpaceFNS` contract that manages the Space FNS.
-    constructor(IMoment _moment, ISpaceFNS _spaceFNS) {
-        subSpaceDomainLimit = 5;
+    function initialize(IMoment _moment, ISpaceFNS _spaceFNS) public initializer {
+        __Ownable_init();
         moment = _moment;
         spaceFNS = _spaceFNS;
+        mintFee = 0.0003 ether;
+        subSpaceDomainLimit = 5;
+        beneficiary = payable(msg.sender);
     }
 
     /// @notice Checks if the caller is the creator of the specified space.
     /// @param spaceId The ID of the space to check.
     /// @return A boolean value indicating whether the caller is the space creator or not.
-    function isSpaceCreator(uint64 spaceId) public view checkRegistered returns (bool) {
-        return spaceFNS.getSpaceDomainCreatorId(spaceId) == accountIds[tx.origin];
+    /// @return The address of the space creator.
+    function checkSpaceCreator(uint64 spaceId) public view checkRegistered returns (bool, address) {
+        uint64 creatorId = spaceFNS.getSpaceDomainCreatorId(spaceId);
+        return (creatorId == accountIds[tx.origin], accounts[creatorId].owner);
     }
 
     /// @notice Gets the address approved to act on behalf of a space.
@@ -97,14 +113,6 @@ contract Account is IAccount, Ownable {
         return approvals[spaceId];
     }
 
-    /// @notice Returns the account ID of the given address.
-    /// @dev If an address does not have an account, it is omitted from the result.
-    /// @param accountAddress The address for which to retrieve the account ID.
-    /// @return An account ID corresponding to the given address.
-    function getAccountId(address accountAddress) public view returns (uint64) {
-        return accountIds[accountAddress];
-    }
-
     /// @notice Returns the account IDs of the given addresses.
     /// @dev If an address does not have an account, it is omitted from the result.
     /// @param addressArray The list of addresses for which to retrieve the account IDs.
@@ -112,37 +120,9 @@ contract Account is IAccount, Ownable {
     function batchGetAccountId(address[] calldata addressArray) public view returns (uint64[] memory) {
         uint64[] memory _accountIds = new uint64[](addressArray.length);
         for (uint256 i = 0; i < addressArray.length; i++) {
-            _accountIds[i] = getAccountId(addressArray[i]);
+            _accountIds[i] = accountIds[addressArray[i]];
         }
         return _accountIds;
-    }
-
-    /// @notice Returns the address corresponding to the given account ID.
-    /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param accountId The account ID for which to retrieve the address.
-    /// @return An address corresponding to the given account ID.
-    function getAddress(uint64 accountId) public view returns (address) {
-        return accounts[accountId].owner;
-    }
-
-    /// @notice Returns the addresses corresponding to the given account IDs.
-    /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param accountIdArray The list of account IDs for which to retrieve the addresses.
-    /// @return An array of addresses corresponding to the given account IDs.
-    function batchGetAddress(uint64[] calldata accountIdArray) public view returns (address[] memory) {
-        address[] memory addresses = new address[](accountIdArray.length);
-        for (uint256 i = 0; i < accountIdArray.length; i++) {
-            addresses[i] = getAddress(accountIdArray[i]);
-        }
-        return addresses;
-    }
-
-    /// @notice Returns the account data for the given account ID.
-    /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param accountId The account ID for which to retrieve the account data.
-    /// @return An account data corresponding to the given account ID.
-    function getAccountData(uint64 accountId) public view returns (AccountData memory) {
-        return accounts[accountId];
     }
 
     /// @notice Returns the account data for the given account IDs.
@@ -152,73 +132,9 @@ contract Account is IAccount, Ownable {
     function batchGetAccountData(uint64[] calldata accountIdArray) public view returns (AccountData[] memory) {
         AccountData[] memory accountData = new AccountData[](accountIdArray.length);
         for (uint256 i = 0; i < accountIdArray.length; i++) {
-            accountData[i] = getAccountData(accountIdArray[i]);
+            accountData[i] = accounts[accountIdArray[i]];
         }
         return accountData;
-    }
-
-    /// @notice Returns the avatar URI for the given account ID.
-    /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param accountId The account ID for which to retrieve the avatar URI.
-    /// @return An avatar URI corresponding to the given account ID.
-    function getAvatarURI(uint64 accountId) public view returns (string memory) {
-        return accounts[accountId].avatarURI;
-    }
-
-    // TODO: Transfer All to Events
-    /// @notice Returns the avatar URIs for the given account IDs.
-    /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param accountIdArray The list of account IDs for which to retrieve the avatar URIs.
-    /// @return An array of avatar URIs corresponding to the given account IDs.
-    function batchGetAvatarURIs(uint64[] calldata accountIdArray) public view returns (string[] memory) {
-        string[] memory avatarURIs = new string[](accountIdArray.length);
-        for (uint256 i = 0; i < accountIdArray.length; i++) {
-            avatarURIs[i] = getAvatarURI(accountIdArray[i]);
-        }
-        return avatarURIs;
-    }
-
-    // TODO: Transfer All to Events
-    /// @notice Returns the moment IDs associated with the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the moment IDs.
-    /// @return An array of moment IDs associated with the given account ID.
-    function getMomentIds(uint64 accountId) external view returns (uint120[] memory) {
-        return accounts[accountId].momentIds;
-    }
-
-    // TODO: Transfer All to Events
-    /// @notice Returns the comment IDs associated with the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the comment IDs.
-    /// @return An array of comment IDs associated with the given account ID.
-    function getCommentIds(uint64 accountId) external view returns (uint128[] memory) {
-        return accounts[accountId].commentIds;
-    }
-
-    // TODO: Transfer All to Events
-    /// @notice Returns the moment IDs that the account has liked.
-    /// @param accountId The ID of the account for which to retrieve the liked moment IDs.
-    /// @return An array of moment IDs that the account has liked.
-    function getLikedMomentIds(uint64 accountId) external view returns (uint120[] memory) {
-         return accounts[accountId].likedMomentIds;
-    }
-
-    /// @notice Returns the IDs of the spaces created by the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the created space IDs.
-    /// @return An array of space IDs created by the given account ID.
-    function getCreatedSpaceIds(uint64 accountId) external view returns (uint64[] memory) {
-         return accounts[accountId].createdSpaceIds;
-    }
-
-    /// @notice Returns the IDs of the spaces rented by the given account ID.
-    /// @param accountId The ID of the account for which to retrieve the rented space IDs.
-    /// @return An array of space IDs rented by the given account ID.
-    function getRentedSpaceIds(uint64 accountId) external view returns (uint64[] memory) {
-        return accounts[accountId].rentedSpaceIds;
-    }
-
-    function _approve(address operator, uint64 spaceId) internal virtual {
-        approvals[spaceId] = operator;
-        emit Approval(msg.sender, operator, spaceId);
     }
 
     /// @notice Authorized to the operator
@@ -227,7 +143,8 @@ contract Account is IAccount, Ownable {
     /// Requirements:
     /// - The caller must be authorized to approve an operator for the space
      function approve(address operator, uint64 spaceId) public override onlySpaceUser(spaceId) {
-        _approve(operator, spaceId);
+        approvals[spaceId] = operator;
+        emit Approval(msg.sender, operator, spaceId);
     }
 
     /// @notice Creates a new account with the given domain name and avatar URI.
@@ -274,7 +191,10 @@ contract Account is IAccount, Ownable {
     /// @notice Creates a new moment with the given metadata URI.
     /// @param metadataURI The URI of the metadata to associate with the moment.
     /// @return The ID of the newly created moment.
-    function createMoment(string calldata metadataURI) external checkRegistered returns (uint120) {
+    function createMoment(string calldata metadataURI) external payable checkRegistered returns (uint120) {
+        if (msg.value < mintFee) revert MintFeeNotPaid();
+        beneficiary.transfer(msg.value);
+
         uint120 momentId = moment.createMoment(accountIds[msg.sender], metadataURI);
         accounts[accountIds[msg.sender]].momentIds.push(momentId);
 
@@ -390,25 +310,26 @@ contract Account is IAccount, Ownable {
     function rentSpace(uint64 userId, uint64 spaceId) external onlyAppover(spaceId) {
         spaceFNS.rentSpace(spaceId, userId);
         accounts[userId].rentedSpaceIds.push(spaceId);
-
         delete approvals[spaceId];
+
+        emit RentSpace(userId, spaceId);
     }
 
     /// @notice Function for returning a rented space domain.
-    /// @param user The address of the account that rented the space domain.
+    /// @param userId The id of the account that rented the space domain.
     /// @param spaceId The ID of the space domain to return.
-    function returnSpace(address user, uint64 spaceId) external {
-        if (accountIds[user] == 0) revert AccountNotFound();
+    function returnSpace(uint64 userId, uint64 spaceId) external {
+        if (userId == 0) revert AccountNotFound();
         if (!spaceFNS.isExpired(spaceId)) revert SpaceDomainHasNotExpired();
 
-        uint64[] storage rentedSpaceIds = accounts[accountIds[user]].rentedSpaceIds;
-        for (uint256 i = 1; i < rentedSpaceIds.length; i++) {
+        uint64[] storage rentedSpaceIds = accounts[userId].rentedSpaceIds;
+        for (uint256 i = 0; i < rentedSpaceIds.length; i++) {
             if (rentedSpaceIds[i] == spaceId) {
                 rentedSpaceIds[i] = rentedSpaceIds[rentedSpaceIds.length - 1];
                 rentedSpaceIds.pop();
                 spaceFNS.returnSpace(spaceId);
 
-                emit ReturnSpace(accountIds[user], spaceId);
+                emit ReturnSpace(userId, spaceId);
                 break;
             }
         }
@@ -438,5 +359,23 @@ contract Account is IAccount, Ownable {
     /// @param limit The maximum number of sub-space domains allowed.
     function setSubSpaceDomainLimit(uint64 limit) external onlyOwner {
         subSpaceDomainLimit = limit;
+
+        emit SetSubSpaceDomainLimit(limit);
+    }
+
+    /// @dev Sets the fee required to mint a new space.
+    /// @param _mintFee The new fee amount.
+    function setMintFee(uint256 _mintFee) public onlyOwner {
+        mintFee = _mintFee;
+
+        emit SetMintFee(_mintFee);
+    }
+
+    /// @dev Sets the address of the beneficiary account.
+    /// @param _beneficiary The address of the beneficiary account.
+    function setBeneficiary(address _beneficiary) public onlyOwner {
+        beneficiary = payable(_beneficiary);
+
+        emit SetBeneficiary(_beneficiary);
     }
 }
