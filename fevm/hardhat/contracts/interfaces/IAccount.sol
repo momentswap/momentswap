@@ -4,10 +4,7 @@ pragma solidity 0.8.19;
 /// @notice Data stored for each user account.
 struct AccountData {
     address owner;              // The address that owns this account.
-    string avatarURI;           // The URI of the avatar image associated with this account.
     uint120[] momentIds;        // An array of IDs representing the moments created by this account.
-    uint128[] commentIds;       // An array of IDs representing the comments made by this account.
-    uint120[] likedMomentIds;   // An array of IDs representing the moments that this account has liked.
     uint64[] createdSpaceIds;   // An array of IDs representing the spaces that this account has created.
     uint64[] rentedSpaceIds;    // An array of IDs representing the spaces that this account is currently renting.
 }
@@ -74,10 +71,12 @@ interface IAccount {
 
     /// @dev Emitted when a new comment is created.
     /// @param accountId The ID of the account that created the comment.
+    /// @param momentId The ID of the moment that created the comment..
     /// @param commentId The ID of the new comment.
     /// @param commentText The text of the new comment.
     event CreateComment(
         uint64 indexed accountId,
+        uint120 indexed momentId,
         uint128 indexed commentId,
         string commentText
     );
@@ -148,6 +147,12 @@ interface IAccount {
     /// @return An array of account IDs corresponding to the given addresses.
     function batchGetAccountId(address[] calldata addressArray) external view returns (uint64[] memory);
 
+    /// @notice Returns the addresses corresponding to the given account IDs.
+    /// @dev If an account ID does not exist, it is omitted from the result.
+    /// @param accountIdArray The list of account IDs for which to retrieve the addresses.
+    /// @return An array of addresses corresponding to the given account IDs.
+    function batchGetAddress(uint64[] calldata accountIdArray) external view returns (address[] memory);
+
     /// @notice Returns the account data for the given account IDs.
     /// @dev If an account ID does not exist, it is omitted from the result.
     /// @param accountIdArray The list of account IDs for which to retrieve the account data.
@@ -174,8 +179,7 @@ interface IAccount {
 
     /// @notice Creates a new moment with the given metadata URI.
     /// @param metadataURI The URI of the metadata to associate with the moment.
-    /// @return The ID of the newly created moment.
-    function createMoment(string calldata metadataURI) external payable returns (uint120);
+    function createMoment(string calldata metadataURI) external payable;
 
     /// @notice Removes the moment associated with the given moment ID.
     /// @dev The calling account must be the owner of the moment in order to remove it.
@@ -195,8 +199,7 @@ interface IAccount {
     /// @notice Creates a new comment on the moment associated with the given moment ID with the given comment text.
     /// @param momentId The ID of the moment to create the comment on.
     /// @param commentText The text of the comment to create.
-    /// @return The ID of the newly created comment.
-    function createComment(uint120 momentId, string calldata commentText) external returns (uint128);
+    function createComment(uint120 momentId, string calldata commentText) external;
 
     /// @notice Removes the comment associated with the given comment ID.
     /// @dev The calling account must be the owner of the comment in order to remove it.

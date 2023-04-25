@@ -15,14 +15,8 @@ contract Account is IAccount, Initializable, OwnableUpgradeable {
     /// @notice Error to be thrown when an account is not found.
     error AccountNotFound();
 
-    /// @notice Error to be thrown when an unauthorized user tries to access some functions for Account contract.
-    error Unauthorized();
-
     /// @notice Error to be thrown when the maximum number of allowed sub-space domains has been reached.
     error MaximumNumberOfSpaceDomainsReached();
-
-    /// @notice Error to be thrown when a Space domain has expired.
-    error SpaceDomainHasExpired();
 
     /// @notice Error to be thrown when a Space domain has not expired.
     error SpaceDomainHasNotExpired();
@@ -113,6 +107,26 @@ contract Account is IAccount, Initializable, OwnableUpgradeable {
         return approvals[spaceId];
     }
 
+    /// @notice Returns the account data for the given account ID.
+    /// @dev If an account ID does not exist, it is omitted from the result.
+    /// @param accountId The account ID for which to retrieve the account data.
+    /// @return An account data corresponding to the given account ID.
+    function getAccountData(uint64 accountId) public view returns (AccountData memory) {
+        return accounts[accountId];
+    }
+
+    /// @notice Returns the account data for the given account IDs.
+    /// @dev If an account ID does not exist, it is omitted from the result.
+    /// @param accountIdArray The list of account IDs for which to retrieve the account data.
+    /// @return An array of account data corresponding to the given account IDs.
+    function batchGetAccountData(uint64[] calldata accountIdArray) public view returns (AccountData[] memory){
+        AccountData[] memory accountData = new AccountData[](accountIdArray.length);
+        for (uint256 i = 0; i < accountIdArray.length; i++) {
+            accountData[i] = accounts[accountIdArray[i]];
+        }
+        return accountData;
+    }
+
     /// @notice Returns the account IDs of the given addresses.
     /// @dev If an address does not have an account, it is omitted from the result.
     /// @param addressArray The list of addresses for which to retrieve the account IDs.
@@ -125,16 +139,30 @@ contract Account is IAccount, Initializable, OwnableUpgradeable {
         return _accountIds;
     }
 
-    /// @notice Returns the account data for the given account IDs.
+    /// @notice Returns the addresses corresponding to the given account IDs.
     /// @dev If an account ID does not exist, it is omitted from the result.
-    /// @param accountIdArray The list of account IDs for which to retrieve the account data.
-    /// @return An array of account data corresponding to the given account IDs.
-    function batchGetAccountData(uint64[] calldata accountIdArray) public view returns (AccountData[] memory) {
-        AccountData[] memory accountData = new AccountData[](accountIdArray.length);
+    /// @param accountIdArray The list of account IDs for which to retrieve the addresses.
+    /// @return An array of addresses corresponding to the given account IDs.
+    function batchGetAddress(uint64[] calldata accountIdArray) public view returns (address[] memory) {
+        address[] memory addresses = new address[](accountIdArray.length);
         for (uint256 i = 0; i < accountIdArray.length; i++) {
-            accountData[i] = accounts[accountIdArray[i]];
+            addresses[i] = accounts[accountIdArray[i]].owner;
         }
-        return accountData;
+        return addresses;
+    }
+
+    /// @notice Returns the IDs of the spaces created by the given account ID.
+    /// @param accountId The ID of the account for which to retrieve the created space IDs.
+    /// @return An array of space IDs created by the given account ID.
+    function getCreatedSpaceIds(uint64 accountId) external view returns (uint64[] memory) {
+         return accounts[accountId].createdSpaceIds;
+    }
+
+    /// @notice Returns the IDs of the spaces rented by the given account ID.
+    /// @param accountId The ID of the account for which to retrieve the rented space IDs.
+    /// @return An array of space IDs rented by the given account ID.
+    function getRentedSpaceIds(uint64 accountId) external view returns (uint64[] memory) {
+        return accounts[accountId].rentedSpaceIds;
     }
 
     /// @notice Authorized to the operator
@@ -163,7 +191,6 @@ contract Account is IAccount, Initializable, OwnableUpgradeable {
 
         AccountData storage account = accounts[accountId];
         account.owner = msg.sender;
-        account.avatarURI = avatarURI;
         account.createdSpaceIds = [spaceId];
 
         emit CreateAccount(accountId, msg.sender, domainName, avatarURI);
@@ -178,31 +205,24 @@ contract Account is IAccount, Initializable, OwnableUpgradeable {
         delete accountIds[msg.sender];
     }
 
-    // TODO: Transfer All to Events
     /// @notice Updates the avatar URI associated with the calling account.
     /// @param avatarURI The new avatar URI to associate with the calling account.
     function updateAvatarURI(string calldata avatarURI) public checkRegistered {
-        accounts[accountIds[msg.sender]].avatarURI = avatarURI;
-
         emit UpdateAvatarURI(accountIds[msg.sender], avatarURI);
     }
 
-    // TODO: Transfer All to Events
     /// @notice Creates a new moment with the given metadata URI.
     /// @param metadataURI The URI of the metadata to associate with the moment.
-    /// @return The ID of the newly created moment.
-    function createMoment(string calldata metadataURI) external payable checkRegistered returns (uint120) {
+    function createMoment(string calldata metadataURI) external payable checkRegistered {
         if (msg.value < mintFee) revert MintFeeNotPaid();
         beneficiary.transfer(msg.value);
 
-        uint120 momentId = moment.createMoment(accountIds[msg.sender], metadataURI);
+        uint120 momentId = moment.createMoment(metadataURI);
         accounts[accountIds[msg.sender]].momentIds.push(momentId);
 
         emit CreateMoment(accountIds[msg.sender], momentId, metadataURI);
-        return momentId;
     }
 
-    // TODO: Transfer All to Events
     /// @notice Removes the moment associated with the given moment ID.
     /// @dev The calling account must be the owner of the moment in order to remove it.
     /// @param momentId The ID of the moment to remove.
@@ -212,7 +232,6 @@ contract Account is IAccount, Initializable, OwnableUpgradeable {
             if (momentIds[i] == momentId) {
                 momentIds[i] = momentIds[momentIds.length - 1];
                 momentIds.pop();
-                moment.removeMoment(momentId);
 
                 emit RemoveMoment(accountIds[msg.sender], momentId);
                 break;
@@ -220,67 +239,36 @@ contract Account is IAccount, Initializable, OwnableUpgradeable {
         }
     }
 
-    // TODO: Transfer All to Events
     /// @notice Adds a like to the moment associated with the given moment ID from the calling account.
     /// @dev The calling account must not have already liked the moment.
     /// @param momentId The ID of the moment to like.
     function likeMoment(uint120 momentId) external checkRegistered {
-        accounts[accountIds[msg.sender]].likedMomentIds.push(momentId);
-        moment.addLike(momentId, accountIds[msg.sender]);
-
         emit LikeMoment(accountIds[msg.sender], momentId);
     }
 
-    // TODO: Transfer All to Events
     /// @notice Cancels the like from the calling account to the moment associated with the given moment ID.
     /// @dev The calling account must have already liked the moment.
     /// @param momentId The ID of the moment to cancel the like for.
     function cancelLikeMoment(uint120 momentId) external checkRegistered {
-        uint120[] storage likedMomentIds = accounts[accountIds[msg.sender]].likedMomentIds;
-        for (uint256 i = 0; i < likedMomentIds.length; i++) {
-            if (likedMomentIds[i] == momentId) {
-                likedMomentIds[i] = likedMomentIds[likedMomentIds.length - 1];
-                likedMomentIds.pop();
-                moment.removeLike(momentId, accountIds[msg.sender]);
-
-                emit CancelLikeMoment(accountIds[msg.sender], momentId);
-                break;
-            }
-        }
+       emit CancelLikeMoment(accountIds[msg.sender], momentId);
     }
 
-    // TODO: Transfer All to Events
     /// @notice Creates a new comment on the moment associated with the given moment ID with the given comment text.
     /// @param momentId The ID of the moment to create the comment on.
     /// @param commentText The text of the comment to create.
-    /// @return The ID of the newly created comment.
     function createComment(
         uint120 momentId,
         string calldata commentText
-    ) external checkRegistered returns (uint128) {
-        uint128 commentId =  moment.createComment(momentId, accountIds[msg.sender], commentText);
-        accounts[accountIds[msg.sender]].commentIds.push(commentId);
-
-        emit CreateComment(accountIds[msg.sender], commentId, commentText);
-        return commentId;
+    ) external checkRegistered {
+        uint128 commentId =  moment.createComment();
+        emit CreateComment(accountIds[msg.sender], momentId, commentId, commentText);
     }
 
-    // TODO: Transfer All to Events
     /// @notice Removes the comment associated with the given comment ID.
     /// @dev The calling account must be the owner of the comment in order to remove it.
     /// @param commentId The ID of the comment to remove.
     function removeComment(uint128 commentId) external {
-        uint128[] storage commentIds = accounts[accountIds[msg.sender]].commentIds;
-        for (uint256 i = 0; i < commentIds.length; i++) {
-            if (commentIds[i] == commentId) {
-                commentIds[i] = commentIds[commentIds.length - 1];
-                commentIds.pop();
-                moment.removeComment(commentId);
-
-                emit RemoveComment(accountIds[msg.sender], commentId);
-                break;
-            }
-        }
+        emit RemoveComment(accountIds[msg.sender], commentId);
     }
 
     /// @notice Creates a new sub space domain with the given domain name and expire time.
