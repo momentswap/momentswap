@@ -112,8 +112,8 @@ describe("SpaceMarket contract", function () {
     await spaceMarket.rentSpace(account.address, 3, 2, { value: 50 });
     expect(await spaceMarket.connect(wallets[1]).getItemPrice(account.address, 3)).to.equal(BigNumber.from(0));
     expect(await spaceFNS.getSpaceDomainUserId(2)).to.equal(BigNumber.from(2));
-    expect((await account.batchGetAccountData([2]))[0][6][0]).to.equal(BigNumber.from(3));
-    // expect((await account.connect(wallets[1]).getRentedSpaceIds([2]))[0]).to.equal(BigNumber.from(3));
+    expect((await account.batchGetAccountData([2]))[0][3][0]).to.equal(BigNumber.from(3));
+    expect((await account.connect(wallets[1]).getRentedSpaceIds([2]))[0]).to.equal(BigNumber.from(3));
   });
 
   it("Should allow setting fee rate", async function () {

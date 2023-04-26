@@ -193,7 +193,7 @@ contract Account is IAccount, Initializable, OwnableUpgradeable {
         account.owner = msg.sender;
         account.createdSpaceIds = [spaceId];
 
-        emit CreateAccount(accountId, msg.sender, domainName, avatarURI);
+        emit CreateAccount(accountId, spaceId, domainName, avatarURI, msg.sender);
         return accountId;
     }
 

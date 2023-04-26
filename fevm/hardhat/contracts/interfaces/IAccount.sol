@@ -25,14 +25,16 @@ interface IAccount {
 
     /// @dev Emitted when a new account is created.
     /// @param accountId The ID of the new account.
-    /// @param wallet The wallet address associated with the account.
+    /// @param primarySpaceId The ID of the space.
     /// @param primaryDomainName The primary domain name of the account.
     /// @param avatarURI The URI of the account's avatar.
+    /// @param wallet The wallet address associated with the account.
     event CreateAccount(
         uint64 indexed accountId,
-        address indexed wallet,
-        string primaryDomainName,
-        string avatarURI
+        uint64 indexed primarySpaceId,
+        string indexed primaryDomainName,
+        string avatarURI,
+        address wallet
     );
 
     /// @dev Emitted when an account is cancelled.
