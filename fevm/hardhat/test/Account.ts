@@ -92,10 +92,10 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
 
       await expect(account.createAccount(domainName, avatarURI))
         .to.emit(account, "CreateAccount")
-        .withArgs(1, wallets[0].address, domainName, avatarURI);
+        .withArgs(1, 1, domainName, avatarURI, wallets[0].address);
       await expect(account.connect(wallets[1]).createAccount("bar", avatarURI))
         .to.emit(account, "CreateAccount")
-        .withArgs(2, wallets[1].address, "bar", avatarURI);
+        .withArgs(2, 2, "bar", avatarURI, wallets[1].address);
 
       expect((await account.batchGetAddress([1, 2]))[0]).to.equal(wallets[0].address);
       expect((await account.batchGetAddress([1, 2]))[1]).to.equal(wallets[1].address);
