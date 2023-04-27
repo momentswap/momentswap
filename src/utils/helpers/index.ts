@@ -1,4 +1,5 @@
 export { isEmptyAddress, sortAddress } from "./address";
+export { collectionToMoments } from "./collection-to-moments";
 export {
   createMomentSwapMetadata,
   fetchNFTStoreStatus,

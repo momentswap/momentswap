@@ -72,3 +72,33 @@ code {
   padding: 0.1em;
   color: #000000;
 }
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0%);
+  }
+}
+
+.animate-slide-in-right {
+  animation-name: slideInRight;
+  animation-duration: 0.5s;
+  animation-timing-function: ease-out;
+  animation-delay: 0s;
+  animation-fill-mode: forwards;
+}
+
+.transform {
+  transition-property: transform;
+  transition-duration: 0.5s;
+  transition-timing-function: ease-out;
+  transition-delay: 0s;
+  animation: slideInRight 1s;
+  animation-fill-mode: forwards;
+}
+
+.translate-x-full {
+  transform: translateX(-100%);
+}

@@ -2,7 +2,7 @@ import { BigNumber, Contract } from "ethers";
 import { useCallback, useMemo } from "react";
 
 import SapceFNS from "@Contracts/SpaceFNS.sol/SpaceFNS.json";
-import { useWalletProvider } from "@hooks";
+import { useNotifyStatus, useWalletProvider } from "@hooks";
 
 const marketContractAddress = process.env.NEXT_PUBLIC_FNS_MARKET_CONTRACT_ADDRESS;
 
@@ -20,6 +20,9 @@ export const useSpaceFNSContract = () => {
   const contractWithSigner = useMemo(() => new Contract(fnsContractAddress, SapceFNS.abi, signer), [signer]);
   const contractWithProvider = useMemo(() => new Contract(fnsContractAddress, SapceFNS.abi, provider), [provider]);
 
+  const setNotifySuccess = useNotifyStatus((state) => state.success);
+  const setNotifyReset = useNotifyStatus((state) => state.resetStatus);
+  const setNotifyFail = useNotifyStatus((state) => state.fail);
   // Read-only contract functions
 
   const getAllDomainByCreator = useCallback(
@@ -113,7 +116,7 @@ export const useSpaceFNSContract = () => {
 
   const getAvatar = useCallback(
     (user: string): Promise<string> => {
-      return contractWithSigner.getAvatar(user);
+      return contractWithProvider.getAvatar(user);
     },
     [contractWithProvider],
   );
@@ -128,8 +131,11 @@ export const useSpaceFNSContract = () => {
   );
 
   const mintSubDomain = useCallback(
-    (mainDomain: string, subDomain: string): Promise<any> => {
-      return contractWithSigner.mintChildDomain(mainDomain, subDomain);
+    async (mainDomain: string, subDomain: string): Promise<any> => {
+       const res = await contractWithSigner.mintChildDomain(mainDomain, subDomain);
+       setNotifySuccess();
+       await res.wait();
+       setNotifyReset();
     },
     [contractWithSigner],
   );
@@ -149,8 +155,11 @@ export const useSpaceFNSContract = () => {
   );
 
   const updateSubDomain = useCallback(
-    (mainDomain: string, oldSubDomain: string, newSubDomain: string): Promise<any> => {
-      return contractWithSigner.updateChildDomain(mainDomain, oldSubDomain, newSubDomain);
+    async(mainDomain: string, oldSubDomain: string, newSubDomain: string): Promise<any> => {
+      const res = await contractWithSigner.updateChildDomain(mainDomain, oldSubDomain, newSubDomain);
+      setNotifySuccess();
+      await res.wait();
+      setNotifyReset();
     },
     [contractWithSigner],
   );

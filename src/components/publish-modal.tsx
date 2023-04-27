@@ -2,7 +2,7 @@ import { XIcon } from "@heroicons/react/outline";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
 
-import { useMomentSwapContract, useWalletProvider } from "@hooks";
+import { useMomentSwapContract, useNotifyStatus, useWalletProvider } from "@hooks";
 import { Media } from "@utils/definitions/interfaces";
 import { createMomentSwapMetadata, storeMediaToIPFS, storeMetadataToIPFS } from "@utils/helpers";
 
@@ -13,6 +13,9 @@ export const PublishModal = () => {
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState("");
   const [media, setMedia] = useState<Media | undefined>(undefined);
+  const setNotifySuccess = useNotifyStatus((state) => state.success);
+  const setNotifyFail = useNotifyStatus((state) => state.fail);
+  const setNotifyReset = useNotifyStatus((state) => state.resetStatus);
   const uploadInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length == 0 || loading) {
       return;
@@ -37,12 +40,16 @@ export const PublishModal = () => {
 
     try {
       const metadataIPFS = await storeMetadataToIPFS(metadata);
-      await mintMomentSwapNFT(metadataIPFS || "");
-      alert("Successfully published moment!");
+      setNotifySuccess();
+      const res = await mintMomentSwapNFT(metadataIPFS.toString());
+      await res.wait();
+      // alert("Successfully published moment!");
+      setNotifyReset();
       router.push("/");
     } catch (err) {
+      setNotifyFail();
       console.error("Failed to publish moment, error:", err);
-      alert("Failed to publish moment.");
+      // alert("Failed to publish moment.");
     }
   };
 

@@ -1,14 +1,16 @@
 import { CommentModal, IdentityModal, PublishModal, Sidebar, Widgets } from "@components";
 import Head from "next/head";
 import { FC, ReactNode } from "react";
+
 import { useSpaceDomain, useWalletProvider } from "src/hooks";
+import { Footbar } from "./footbar";
 
 type Props = {
   children?: ReactNode;
 };
 
 export const Layout: FC<Props> = ({ children }) => {
-  const { address } = useWalletProvider();
+  const { address, disconnect } = useWalletProvider();
   const { mainDomain, loading } = useSpaceDomain();
 
   return (
@@ -28,24 +30,34 @@ export const Layout: FC<Props> = ({ children }) => {
         {mainDomain || address === undefined ? (
           <>
             <Sidebar />
-            {children}
+            <div className="mb-12">{children}</div>
             <Widgets />
+            <Footbar />
           </>
         ) : (
-          <div className="flex flex-col h-screen w-screen justify-center items-center">
+          <div className="flex flex-col h-screen w-screen justify-center items-center px-6 break-all">
             <p>
               Your wallet address: <span className="font-mono">{address}</span>
             </p>
 
             {loading ? (
-              <div>From the chain during data loading...</div>
+              <p>From the chain during data loading...</p>
             ) : (
-              <div>
-                The Space Domain needs to be registered for the first login:
-                <label htmlFor="identity-modal" className="link">
-                  Register
-                </label>
-              </div>
+              <>
+                <p>
+                  The Space Domain needs to be registered for the first login:{" "}
+                  <label htmlFor="identity-modal" className="link">
+                    Register
+                  </label>
+                </p>
+
+                <p>
+                  Or{" "}
+                  <span className="underline cursor-pointer" onClick={disconnect}>
+                    Sign Out
+                  </span>
+                </p>
+              </>
             )}
           </div>
         )}

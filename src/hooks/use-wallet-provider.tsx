@@ -1,9 +1,10 @@
 import detectEthereumProvider from "@metamask/detect-provider";
+import { NETWORK_PARAM } from "@utils/definitions/consts";
 import { addAndSwitchFilecoinChain, isMetaMaskInstalled } from "@utils/helpers";
 import { BigNumber, ethers } from "ethers";
 import React, { ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-export type Provider = ethers.providers.Web3Provider | undefined;
+export type Provider = ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider | undefined;
 export type Signer = ethers.Signer | undefined;
 
 interface WalletProviderContext {
@@ -35,19 +36,21 @@ export const WalletProviderProvider = ({ children }: { children: ReactNode }) =>
 
   useEffect(() => {
     (async () => {
-      if (!isMetaMaskInstalled()) {
-        alert("Please install MetaMask!");
-        throw new Error("MetaMask not installed.");
-      }
       await addAndSwitchFilecoinChain();
-      const detectedProvider = (await detectEthereumProvider()) || window.ethereum;
-      const provider = new ethers.providers.Web3Provider(detectedProvider, "any");
-      provider.send("eth_requestAccounts", []).then(() => {
-        setProviderError(null);
-        setProvider(provider);
-        provider.getNetwork().then((network) => {
-          setChainId(network.chainId);
-        });
+
+      let provider = new ethers.providers.JsonRpcProvider(NETWORK_PARAM.rpcUrls[0]);
+
+      try {
+        const detectedProvider = await detectEthereumProvider();
+        if (detectedProvider) {
+          provider = new ethers.providers.Web3Provider(detectedProvider, "any");
+        }
+      } catch {}
+
+      setProviderError(null);
+      setProvider(provider);
+      provider.getNetwork().then((network) => {
+        setChainId(network.chainId);
       });
       // Force page refresh when network changes.
       provider.on("network", (_, oldNetwork) => {
