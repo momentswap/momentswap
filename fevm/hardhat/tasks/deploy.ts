@@ -5,21 +5,21 @@ task("deploy:SpaceMarket", "Deploy `SpaceMarket` contract").setAction(async (_, 
   await hre.run("compile");
   console.log("\nNetwork:", hre.network.name);
   await deploySpaceMarket(hre);
-  console.log("\n✅ Deployment completed.");
+  console.log("\n✨ Deployment completed.");
 });
 
 task("deploy:SpaceFNS", "Deploy `SpaceFNS` contract").setAction(async (_, hre) => {
   await hre.run("compile");
   console.log("\nNetwork:", hre.network.name);
   await deploySpaceFNS(hre);
-  console.log("\n✅ Deployment completed.");
+  console.log("\n✨ Deployment completed.");
 });
 
 task("deploy:Moment", "Deploy `Moment` contract").setAction(async (_, hre) => {
   await hre.run("compile");
   console.log("\nNetwork:", hre.network.name);
   await deployMoment(hre);
-  console.log("\n✅ Deployment completed.");
+  console.log("\n✨ Deployment completed.");
 });
 
 task("deploy:Account", "Deploy `Account` contract")
@@ -29,7 +29,7 @@ task("deploy:Account", "Deploy `Account` contract")
     await hre.run("compile");
     console.log("\nNetwork:", hre.network.name);
     await deployAccount(hre, moment, spacefns);
-    console.log("\n✅ Deployment completed.");
+    console.log("\n✨ Deployment completed.");
   });
 
 task("deploy:all", "Deploy the entire contract cluster").setAction(async (_, hre) => {
@@ -54,5 +54,5 @@ task("deploy:all", "Deploy the entire contract cluster").setAction(async (_, hre
     callerAddress: accountAddress,
   });
 
-  console.log("\n✅ Deployment completed.");
+  console.log("\n✨ Deployment completed.");
 });

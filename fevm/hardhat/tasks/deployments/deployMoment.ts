@@ -8,6 +8,6 @@ export async function deployMoment(hre: HardhatRuntimeEnvironment) {
   const moment: Moment = <Moment>await hre.upgrades.deployProxy(momentFactory, []);
   await moment.deployed();
 
-  console.log(`✨ Moment deployed to: ${moment.address}\n`);
+  console.log(`✅ Moment deployed to: ${moment.address}\n`);
   return moment.address;
 }

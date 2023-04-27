@@ -7,7 +7,7 @@ task("upgrade:SpaceMarket", "Upgrade `SpaceMarket` contract")
     await hre.run("compile");
     console.log("\nNetwork:", hre.network.name);
     await upgradeSpaceMarket(hre, spacemarket);
-    console.log("\n✅ Upgrade completed.");
+    console.log("\n✨ Upgrade completed.");
   });
 
 task("upgrade:SpaceFNS", "Upgrade `SpaceFNS` contract")
@@ -16,7 +16,7 @@ task("upgrade:SpaceFNS", "Upgrade `SpaceFNS` contract")
     await hre.run("compile");
     console.log("\nNetwork:", hre.network.name);
     await upgradeSpaceFNS(hre, spacefns);
-    console.log("\n✅ Upgrade completed.");
+    console.log("\n✨ Upgrade completed.");
   });
 
 task("upgrade:Moment", "Upgrade `Moment` contract")
@@ -25,7 +25,7 @@ task("upgrade:Moment", "Upgrade `Moment` contract")
     await hre.run("compile");
     console.log("\nNetwork:", hre.network.name);
     await upgradeMoment(hre, moment);
-    console.log("\n✅ Upgrade completed.");
+    console.log("\n✨ Upgrade completed.");
   });
 
 task("upgrade:Account", "Upgrade Account contract")
@@ -34,7 +34,7 @@ task("upgrade:Account", "Upgrade Account contract")
     await hre.run("compile");
     console.log("\nNetwork:", hre.network.name);
     await upgradeAccount(hre, account);
-    console.log("\n✅ Upgrade completed.");
+    console.log("\n✨ Upgrade completed.");
   });
 
 task("upgrade:all", "Upgrade the entire contract cluster")
@@ -51,5 +51,5 @@ task("upgrade:all", "Upgrade the entire contract cluster")
     await upgradeAccount(hre, account);
     await upgradeSpaceMarket(hre, spacemarket);
 
-    console.log("\n✅ Upgrade completed.");
+    console.log("\n✨ Upgrade completed.");
   });

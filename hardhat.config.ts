@@ -41,6 +41,7 @@ const config: HardhatUserConfig = {
       url: "https://api.calibration.node.glif.io/rpc/v1",
       chainId: 314159,
       accounts: accounts,
+      gas: 6000000,
     },
     filecoinWallaby: {
       url: "https://wallaby.node.glif.io/rpc/v0",
@@ -55,8 +56,13 @@ const config: HardhatUserConfig = {
       gasMultiplier: 3,
     },
     ethGoerli: {
-      url: "https://eth-goerli.g.alchemy.com/v2/S4Rrp2eHb-xk5dxnNQygNcv-QfPmzTXX",
+      url: "https://rpc.ankr.com/eth_goerli",
       chainId: 5,
+      accounts: accounts,
+    },
+    ethSepolia: {
+      url: "https://ethereum-sepolia.blockpi.network/v1/rpc/public",
+      chainId: 11155111,
       accounts: accounts,
     },
   },

@@ -8,6 +8,6 @@ export async function deployAccount(hre: HardhatRuntimeEnvironment, momentAddres
   const account: Account = <Account>await hre.upgrades.deployProxy(accountFactory, [momentAddress, spaceFnsAddress]);
   await account.deployed();
 
-  console.log(`✨ Account deployed to: ${account.address}\n`);
+  console.log(`✅ Account deployed to: ${account.address}\n`);
   return account.address;
 }

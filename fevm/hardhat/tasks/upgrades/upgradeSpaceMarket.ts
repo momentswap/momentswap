@@ -11,6 +11,6 @@ export async function upgradeSpaceMarket(hre: HardhatRuntimeEnvironment, spaceMa
   const spaceMarket: SpaceMarket = <SpaceMarket>await hre.upgrades.upgradeProxy(spaceMarketAddress, spaceMarketFactory);
   await spaceMarket.deployed();
 
-  console.log(`✨ SpaceMarket upgraded to: ${spaceMarket.address}\n`);
+  console.log(`✅ SpaceMarket upgraded to: ${spaceMarket.address}\n`);
   return spaceMarket.address;
 }

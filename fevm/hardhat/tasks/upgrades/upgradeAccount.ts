@@ -8,6 +8,6 @@ export async function upgradeAccount(hre: HardhatRuntimeEnvironment, accountAddr
   const account: Account = <Account>await hre.upgrades.upgradeProxy(accountAddress, accountFactory);
   await account.deployed();
 
-  console.log(`✨ Account upgraded to: ${account.address}\n`);
+  console.log(`✅ Account upgraded to: ${account.address}\n`);
   return account.address;
 }

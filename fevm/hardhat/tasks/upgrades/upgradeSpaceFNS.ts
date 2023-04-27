@@ -8,6 +8,6 @@ export async function upgradeSpaceFNS(hre: HardhatRuntimeEnvironment, spaceFnsAd
   const spaceFNS: SpaceFNS = <SpaceFNS>await hre.upgrades.upgradeProxy(spaceFnsAddress, spaceFNSFactory);
   await spaceFNS.deployed();
 
-  console.log(`✨ SpaceFNS upgraded to: ${spaceFNS.address}\n`);
+  console.log(`✅ SpaceFNS upgraded to: ${spaceFNS.address}\n`);
   return spaceFNS.address;
 }
