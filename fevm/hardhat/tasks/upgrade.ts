@@ -1,7 +1,7 @@
 import { task } from "hardhat/config";
 import { upgradeAccount, upgradeMoment, upgradeSpaceFNS, upgradeSpaceMarket } from "./upgrades";
 
-task("upgrade:SpaceMarket", "Deploy `SpaceMarket` contract")
+task("upgrade:SpaceMarket", "Upgrade `SpaceMarket` contract")
   .addParam<string>("spacemarket", "The proxy contract address for the `SpaceMarket` contract")
   .setAction(async ({ spacemarket }, hre) => {
     await hre.run("compile");
@@ -10,7 +10,7 @@ task("upgrade:SpaceMarket", "Deploy `SpaceMarket` contract")
     console.log("\n✅ Upgrade completed.");
   });
 
-task("upgrade:SpaceFNS", "Deploy `SpaceFNS` contract")
+task("upgrade:SpaceFNS", "Upgrade `SpaceFNS` contract")
   .addParam<string>("spacefns", "The proxy contract address for the `SpaceFNS` contract")
   .setAction(async ({ spacefns }, hre) => {
     await hre.run("compile");
@@ -19,7 +19,7 @@ task("upgrade:SpaceFNS", "Deploy `SpaceFNS` contract")
     console.log("\n✅ Upgrade completed.");
   });
 
-task("upgrade:Moment", "Deploy `Moment` contract")
+task("upgrade:Moment", "Upgrade `Moment` contract")
   .addParam<string>("moment", "The proxy contract address for the `Moment` contract")
   .setAction(async ({ moment }, hre) => {
     await hre.run("compile");
@@ -28,7 +28,7 @@ task("upgrade:Moment", "Deploy `Moment` contract")
     console.log("\n✅ Upgrade completed.");
   });
 
-task("upgrade:Account", "Deploy Account contract")
+task("upgrade:Account", "Upgrade Account contract")
   .addParam<string>("account", "The proxy contract address for the `Account` contract")
   .setAction(async ({ account }, hre) => {
     await hre.run("compile");
@@ -37,7 +37,7 @@ task("upgrade:Account", "Deploy Account contract")
     console.log("\n✅ Upgrade completed.");
   });
 
-task("upgrade:all", "Deploy the entire contract cluster")
+task("upgrade:all", "Upgrade the entire contract cluster")
   .addParam<string>("account", "The proxy contract address for the `Account` contract")
   .addParam<string>("moment", "The proxy contract address for the `Moment` contract")
   .addParam<string>("spacefns", "The proxy contract address for the `SpaceFNS` contract")
