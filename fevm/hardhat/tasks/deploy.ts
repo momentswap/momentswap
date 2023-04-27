@@ -1,66 +1,58 @@
 import { task } from "hardhat/config";
-import { TaskArguments } from "hardhat/types";
-import path from "path";
+import { deployAccount, deployMoment, deploySpaceFNS, deploySpaceMarket } from "./deployments";
 
-import type { MomentSwapFRC721 } from "../typechain-types/contracts/MomentSwapFRC721";
-import type { MomentSwapFRC721__factory } from "../typechain-types/factories/contracts/MomentSwapFRC721__factory";
+task("deploy:SpaceMarket", "Deploy `SpaceMarket` contract").setAction(async (_, hre) => {
+  await hre.run("compile");
+  console.log("\nNetwork:", hre.network.name);
+  await deploySpaceMarket(hre);
+  console.log("\n✨ Deployment completed.");
+});
 
-interface networkData {
-  rpc: string;
-  blkexp: string;
-}
+task("deploy:SpaceFNS", "Deploy `SpaceFNS` contract").setAction(async (_, hre) => {
+  await hre.run("compile");
+  console.log("\nNetwork:", hre.network.name);
+  await deploySpaceFNS(hre);
+  console.log("\n✨ Deployment completed.");
+});
 
-const networkMap = {
-  filecoinWallaby: <networkData>{
-    rpc: "https://wallaby.node.glif.io/rpc/v0",
-    blkexp: "https://fvm.starboard.ventures/contracts/",
-  },
-  filecoinHyperspace: <networkData>{
-    rpc: "https://api.hyperspace.node.glif.io/rpc/v1", //'https://hyperspace.filfox.info/rpc/v0',
-    blkexp: "https://explorer.glif.io/address/", // /?network=hyperspace
-  },
-};
+task("deploy:Moment", "Deploy `Moment` contract").setAction(async (_, hre) => {
+  await hre.run("compile");
+  console.log("\nNetwork:", hre.network.name);
+  await deployMoment(hre);
+  console.log("\n✨ Deployment completed.");
+});
 
-// you can also use the --network tag to specify the network to deploy on
-// otherwise this will use the default network
-task("deploy:MomentSwapERC721").setAction(async (taskArgs: TaskArguments, hre) => {
-  console.log("Greetings Fil-der! MomentSwapERC721 deploying....", hre.ethers);
-  console.log("To Network (chainId): ", hre.network.name, hre.network.config.chainId);
-  // ethers.providers.getNetwork('filecoinHyperspace');
-  //ethers.providers.getNetwork(chainId).match(/3141/)
-  // const netw = ethers.providers.getNetwork(hre.network.name);
-  // console.log('netw', typeof netw, netw);
-  const nw = networkMap[hre.network.name as keyof typeof networkMap].rpc;
-  // const owner = await ethers.getSigners();
-  // console.log('owner', owner);
-  // const owner = new ethers.Wallet(
-  //   process.env.WALLET_PRIVATE_KEY || 'undefined',
-  //   ethers.provider
-  // );
-
-  const factory: MomentSwapFRC721__factory = <MomentSwapFRC721__factory>(
-    await hre.ethers.getContractFactory("MomentSwapERC721")
-  );
-
-  // NEED TO MAP THE NETWORK TO PASS THE RPC URL
-  // const priorityFee = await hre.run('callRPC', {
-  //   rpcUrl: nw,
-  //   method: 'eth_maxPriorityFeePerGas',
-  //   params: [],
-  // });
-
-  const momentSwapERC721: MomentSwapFRC721 = <MomentSwapFRC721>await factory
-    .deploy
-    // {
-    //   maxPriorityFeePerGas: priorityFee,
-    // }
-    ();
-  await momentSwapERC721.deployed();
-  console.log("Success! MomentSwapERC721 deployed to ", momentSwapERC721.address);
-
-  //Optional: Log to a file for reference
-  await hre.run("logToFile", {
-    filePath: path.resolve(__dirname, "log.txt"),
-    data: momentSwapERC721,
+task("deploy:Account", "Deploy `Account` contract")
+  .addParam<string>("moment", "Address of `Moment` contract")
+  .addParam<string>("spacefns", "Address of `SpaceFNS` contract")
+  .setAction(async ({ moment, spacefns }, hre) => {
+    await hre.run("compile");
+    console.log("\nNetwork:", hre.network.name);
+    await deployAccount(hre, moment, spacefns);
+    console.log("\n✨ Deployment completed.");
   });
+
+task("deploy:all", "Deploy the entire contract cluster").setAction(async (_, hre) => {
+  await hre.run("compile");
+
+  console.log("\nNetwork:", hre.network.name);
+
+  await deploySpaceMarket(hre);
+  const momentAddress = await deployMoment(hre);
+  const spaceFnsAddress = await deploySpaceFNS(hre);
+  const accountAddress = await deployAccount(hre, momentAddress, spaceFnsAddress);
+
+  await hre.run("setCaller", {
+    contractName: "Moment",
+    contractAddress: momentAddress,
+    callerAddress: accountAddress,
+  });
+
+  await hre.run("setCaller", {
+    contractName: "SpaceFNS",
+    contractAddress: spaceFnsAddress,
+    callerAddress: accountAddress,
+  });
+
+  console.log("\n✨ Deployment completed.");
 });

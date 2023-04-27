@@ -1,398 +1,277 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity 0.8.19;
 
-//import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/utils/Counters.sol";
+import "./interfaces/ISpaceFNS.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
-contract SpaceFNS {
-  ///Up to MAXIMUM_NODES second-level domains under a first-level domain
-  uint256 constant MAXIMUM_NODES = 5;
+contract SpaceFNS is ISpaceFNS, Initializable, OwnableUpgradeable {
+    using CountersUpgradeable for CountersUpgradeable.Counter;
 
-  using Counters for Counters.Counter;
-  Counters.Counter private _registeredCount;
-  Counters.Counter private _registeredChildCount;
+    /// @notice Total count of created space domains.
+    CountersUpgradeable.Counter private totalSpaceCount;
 
-  // Logged when the user of an NFT is changed or expires is changed
-  /// @notice Emitted when the `user` of an NFT or the `expires` of the `user` is changed
-  /// The zero address for user indicates that there is no user address
-  event UpdateUser(uint256 indexed tokenId, address indexed user, uint64 start, uint64 expires);
+    /// @notice Error to be thrown when an unauthorized user tries to access some functions for Account contract.
+    error Unauthorized();
 
-  ///@dev Emitted when `First-Domain` token is  Registered.
-  event DomainRegistered(string indexed label, uint256 indexed tokenId, address indexed owner);
+    /// @notice Error to be thrown when a domain is not yet expired.
+    error NotExpired();
 
-  ///@dev Emitted when `Second-Domain` token is  Registered.
-  event ChildDomainRegistered(string indexed label, uint256 indexed tokenId, address indexed owner);
+    /// @notice Error to be thrown when a function is called by an account that is not the creator.
+    error NotCreator();
 
-  ///@dev Emitted when `Second-Domain` token is  Update.
-  event ChildDomainUpdate(string indexed label, uint256 indexed tokenId, address indexed owner);
+    /// @notice Error to be thrown when a domain is not a subdomain.
+    error NotSubdomain();
 
-  //@dev Emitted when `owner` enables `approved` to setting  the `tokenId` token expires time.
-  event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
+    /// @notice Error to be thrown when a domain name already exists.
+    error DomainAlreadyExists();
 
-  ///@dev Emitted when `avatar` is Update.
-  event SetAvatar(address indexed user, string indexed image);
+    /// @notice Error to be thrown when a domain name is invalid.
+    error DomainNameError();
 
-  constructor() {
-    //The tokenID of both the main domain and the child-domain is incremented from 1
-    _registeredCount.increment();
-    _registeredChildCount.increment();
-  }
+    /// @notice Error to be thrown when a domain is in use.
+    error DomainInUse();
 
-  //tokenID mapped to main domain information
-  mapping(uint256 => FNSToken) public allMainFNSDomain;
+    /// @notice Error to be thrown when a domain is not in use.
+    error DomainNotInUse();
 
-  //tokenID mapped to child domain information
-  mapping(uint256 => childFNSToken) public allChildFNSDomain;
+    /// @notice Address that can call functions with onlyCaller modifier.
+    address public caller;
 
-  //Main domain name mapped to  address
-  mapping(string => address) public mainNames;
+    /// domainName ==> spaceId
+    mapping(string => uint64) public spaceIds;
 
-  //Main domain name mapped to  tokenId
-  mapping(string => uint256) public mainNameId;
+    /// id(spaceId) ==> SpaceDomain struct
+    mapping(uint64 => SpaceDomain) public spaceDomains;
 
-  //Address mapped to Main domain name
-  mapping(address => string) public resMainNames;
-
-  //second-domain name mapped to user address
-  mapping(string => address) public childNames;
-
-  //second-domain name mapped to second-domain tokenId
-  mapping(string => uint256) public childNameId;
-
-  //user address mapped to second-domain tokenId
-  mapping(address => uint256[]) public leasedChildFNSTokens;
-
-  //second-domain tokenId mapped to approval controller address
-  mapping(uint256 => address) private childApprovals;
-
-  // Address mapped to Image URL of the avatar
-  mapping(address => string) public avatar;
-
-  ///@dev main-domain name infromation
-  struct FNSToken {
-    uint256 tokenId;
-    string name;
-    address owner;
-    uint256[] child;
-  }
-
-  ///@dev child-domain name infromation
-  struct childFNSToken {
-    uint256 tokenId;
-    string allName;
-    string childName;
-    uint256 parent;
-    address owner;
-    address user;
-    uint64 start;
-    uint64 expires;
-  }
-
-  /// @dev Returns the account approved for `tokenId` token.
-  function getApproved(uint256 tokenId) public view returns (address) {
-    require(allChildFNSDomain[tokenId].owner != address(0), "tokenId No Minted");
-    return childApprovals[tokenId];
-  }
-
-  /// @dev Gives permission to `to` to setting `tokenId` token expire time
-  function approve(address to, uint256 tokenId) public {
-    address owner = allChildFNSDomain[tokenId].owner;
-    address user = allChildFNSDomain[tokenId].user;
-    require(to != owner, "SpaceFNS: approval to current owner");
-    require(to != user, "SpaceFNS: approval to current user");
-
-    require(msg.sender == owner, "SpaceFNS: approve caller is not token owner ");
-    _approve(to, tokenId);
-  }
-
-  function _approve(address to, uint256 tokenId) internal {
-    childApprovals[tokenId] = to;
-    emit Approval(SpaceFNS.ownerOf(tokenId), to, tokenId);
-  }
-
-  modifier checkLabelLength(string calldata lable) {
-    uint256 lable_length = bytes(lable).length;
-    require(lable_length >= 3 && lable_length <= 10, "Domain name length does not meet the specification");
-    _;
-  }
-
-  modifier checkChildDomain(string calldata parent, string[] calldata childLabel) {
-    for (uint256 i = 0; i < childLabel.length; i++) {
-      uint256 lable_length = bytes(childLabel[i]).length;
-      require(lable_length >= 3 && lable_length <= 10, "Domain name length does not meet the specification");
-      require(childNames[childLabel[i]] == address(0), "Name is already exist");
-    }
-    _;
-  }
-
-  ///@dev Register main domain name
-  ///@dev Limit an address to one first-level domain name
-  function register(string calldata label) external checkLabelLength(label) returns (string memory) {
-    require(mainNames[label] == address(0), "Name is already exist ");
-
-    require(bytes(resMainNames[msg.sender]).length == 0, "an address only own one first-level domain ");
-
-    uint256 index = _registeredCount.current();
-
-    allMainFNSDomain[index] = FNSToken(index, label, msg.sender, new uint256[](0));
-
-    emit DomainRegistered(label, index, msg.sender);
-
-    _registeredCount.increment();
-
-    mainNames[label] = msg.sender;
-
-    mainNameId[label] = index;
-
-    resMainNames[msg.sender] = label;
-
-    return label;
-  }
-
-  modifier onlyOwner(string calldata _node) {
-    require(mainNames[_node] == msg.sender, "Not the owner");
-    _;
-  }
-
-  ///@dev mint second-level domains
-  function mintChildDomain(string calldata parentNode, string calldata childNode)
-    public
-    checkLabelLength(childNode)
-    onlyOwner(parentNode)
-    returns (string memory)
-  {
-    string memory allname = dealwithString(childNode, ".", parentNode);
-    uint256 parentId = mainNameId[parentNode];
-
-    require(childNames[allname] == address(0), "ChildName is already exist");
-    require(childNameId[allname] == uint256(0), "ChildName is already exist");
-    require(allMainFNSDomain[parentId].child.length < MAXIMUM_NODES, "Mint second domain number too many");
-    uint256 childIndex = _registeredChildCount.current();
-    allChildFNSDomain[childIndex] = childFNSToken(childIndex, allname, childNode, parentId, msg.sender, msg.sender, 0, 0);
-    allMainFNSDomain[parentId].child.push(childIndex);
-    emit ChildDomainRegistered(allname, childIndex, msg.sender);
-    _registeredChildCount.increment();
-    childNames[allname] = msg.sender;
-    childNameId[allname] = childIndex;
-    return allname;
-  }
-
-  ///@dev update child-domain
-  function updateChildDomain(
-    string calldata parentNode,
-    string calldata oldChildNode,
-    string calldata newChildNode
-  ) public checkLabelLength(newChildNode) {
-    string memory allname = dealwithString(oldChildNode, ".", parentNode);
-    require(childNames[allname] != address(0), "ChildName is no exist");
-    uint256 index = childNameId[allname];
-    require(allChildFNSDomain[index].user == msg.sender, "Not the owner");
-    delete childNames[allname];
-    delete childNameId[allname];
-    string memory newAllName = dealwithString(newChildNode, ".", parentNode);
-    emit ChildDomainUpdate(newAllName, index, msg.sender);
-    allChildFNSDomain[index].allName = newAllName;
-    allChildFNSDomain[index].childName = newChildNode;
-    childNames[newAllName] = msg.sender;
-    childNameId[newAllName] = index;
-  }
-
-  /// @notice set the user and expires of an NFT
-  /// @dev The zero address indicates there is no user
-  /// Throws if `tokenId` is not valid NFT
-  /// @param user  The new user of the NFT
-  /// @param expires  UNIX timestamp, The new user could use the NFT before expires
-  function setUser(
-    uint256 tokenId,
-    address user,
-    uint64 start,
-    uint64 expires
-  ) external {
-    require(getApproved(tokenId) == msg.sender, "Not  approval account");
-    allChildFNSDomain[tokenId].user = user;
-    allChildFNSDomain[tokenId].start = start;
-    allChildFNSDomain[tokenId].expires = expires;
-    delete childApprovals[tokenId];
-    emit UpdateUser(tokenId, user, start, expires);
-    childNames[allChildFNSDomain[tokenId].allName] = msg.sender;
-    leasedChildFNSTokens[user].push(tokenId);
-  }
-
-  /// @notice Get the user address of an NFT
-  /// @dev The zero address indicates that there is no user or the user is expired
-  /// @param tokenId The NFT to get the user address for
-  /// @return The user address for this NFT
-  function userOf(uint256 tokenId) external view returns (address) {
-    return allChildFNSDomain[tokenId].user;
-  }
-
-  /// @notice Get the user expires of an NFT
-  /// @dev The zero value indicates that there is no user
-  /// @param tokenId The NFT to get the user expires for
-  /// @return The user expires for this NFT
-  function userExpires(uint256 tokenId) public view returns (uint256) {
-    return allChildFNSDomain[tokenId].start + allChildFNSDomain[tokenId].expires;
-  }
-
-  ///@dev Returns the owner of the `tokenId` token.
-  function ownerOf(uint256 tokenId) public view returns (address) {
-    require(allChildFNSDomain[tokenId].owner != address(0), "tokenId No Minted");
-    return allChildFNSDomain[tokenId].owner;
-  }
-
-  function dealwithString(
-    string calldata a,
-    string memory b,
-    string calldata c
-  ) internal pure returns (string memory) {
-    return string(abi.encodePacked(a, b, c));
-  }
-
-  ///@dev Get the tokenId of child-domain name by childAllname
-  ///for example A.B
-  ///B: mainDomain name
-  ///A: childDomain name
-  function getChildDomainId(string calldata childAllName) public view returns (uint256) {
-    require(childNameId[childAllName] != uint256(0), "ChildName is not exist");
-    return childNameId[childAllName];
-  }
-
-  ///@dev Get the user of child-domain name by childAllname
-  ///for example A.B
-  ///B: mainDomain name
-  ///A: childDomain name
-  function getChildDomainUser(string calldata childAllName) external view returns (address) {
-    require(childNames[childAllName] != address(0), "ChildName is not exist");
-    return childNames[childAllName];
-  }
-
-  ///@dev Get the owner of the main domain by the main domain
-  function getMainDomainOwner(string calldata nodeName) external view returns (address) {
-    require(mainNames[nodeName] != address(0), "mainName is not exist");
-    return mainNames[nodeName];
-  }
-
-  ///@dev get child-domains  collection by the main domain
-  function getMainDomainChild(string calldata nodeName) external view returns (address[] memory) {
-    require(mainNames[nodeName] != address(0), "mainName is not exist");
-    uint256 doMainId = mainNameId[nodeName];
-    uint256[] memory childArrayIds = allMainFNSDomain[doMainId].child;
-    address[] memory childArray = new address[](childArrayIds.length);
-    for (uint256 i = 0; i < childArrayIds.length; i = i + 1) {
-      address childAddress = allChildFNSDomain[childArrayIds[i]].user;
-      childArray[i] = childAddress;
-    }
-    return childArray;
-  }
-
-  ///@dev Get the owner of the main domain and child-domains and child-domains by the owner of the main domain
-  function getMainDomainAndChild(address owner)
-    external
-    view
-    returns (
-      string memory,
-      uint256[] memory,
-      string[] memory,
-      address[] memory
-    )
-  {
-    require(bytes(resMainNames[owner]).length != uint256(0), "mainName is not exist");
-    string memory mainNodeName = resMainNames[owner];
-    uint256 doMainId = mainNameId[mainNodeName];
-    uint256[] memory childArrayIds = allMainFNSDomain[doMainId].child;
-    address[] memory childAddressArray = new address[](childArrayIds.length);
-    string[] memory childNameArray = new string[](childArrayIds.length);
-
-    for (uint256 i = 0; i < childArrayIds.length; i = i + 1) {
-      address childAddress = allChildFNSDomain[childArrayIds[i]].user;
-      string memory tmpChildName = allChildFNSDomain[childArrayIds[i]].childName;
-      childAddressArray[i] = childAddress;
-      childNameArray[i] = tmpChildName;
+    struct SpaceDomain {
+        uint64 creatorId;
+        uint64 userId;
+        uint64 expireSeconds;
+        uint64 primarySpaceId;
+        string domainName;
     }
 
-    return (mainNodeName, childArrayIds, childNameArray, childAddressArray);
-  }
-
-  function getChildDomainLeaseTerm(address owner) external view returns(uint256[] memory, string[] memory, uint64[2][] memory) {
-    string memory mainNodeName = resMainNames[owner];
-    uint256[] memory childArrayIds = allMainFNSDomain[mainNameId[mainNodeName]].child;
-    string[] memory childArrayNames = new string[](childArrayIds.length);
-    uint64[2][] memory leaseTerms = new uint64[2][](childArrayIds.length);
-
-    for (uint256 i = 0; i < childArrayIds.length; i = i + 1) {
-      childArrayNames[i] = allChildFNSDomain[childArrayIds[i]].allName;
-      leaseTerms[i] = getLeaseTermByChildId(childArrayIds[i]);
+    /// Check domain length decorator
+    modifier checkDomainNameLength(string calldata domainName) {
+        uint256 domainName_length = bytes(domainName).length;
+        if (domainName_length < 3 || domainName_length > 10) {
+            revert DomainNameError();
+        }
+        _;
     }
 
-    return (childArrayIds, childArrayNames, leaseTerms);
-  }
-
-  function getLeasedDomainLeaseTerm(address owner) external view returns(uint256[] memory, string[] memory, uint64[2][] memory) {
-    uint256[] memory leasedArrayIds = getLeasedArrayIds(owner);
-    string[] memory childArrayNames = new string[](leasedArrayIds.length);
-    uint64[2][] memory leaseTerms = new uint64[2][](leasedArrayIds.length);
-
-    for (uint256 i = 0; i < leasedArrayIds.length; i = i + 1) {
-      childArrayNames[i] = allChildFNSDomain[leasedArrayIds[i]].allName;
-      leaseTerms[i] = getLeaseTermByChildId(leasedArrayIds[i]);
+    /// Must be called by the Account contract
+    modifier onlyCaller() {
+        if (caller != msg.sender) {
+            revert Unauthorized();
+        }
+        _;
     }
 
-    return (leasedArrayIds, childArrayNames, leaseTerms);
-  }
-
-  function getLeaseTermByChildId(uint256 childId) public view returns(uint64[2] memory) {
-    return [allChildFNSDomain[childId].start, allChildFNSDomain[childId].expires];
-  }
-
-  function getLeasedArrayIds(address owner) public view returns(uint256[] memory) {
-    uint256[] memory leasedArrayIds = leasedChildFNSTokens[owner];
-    uint64 realLeasedArrayLength = 0;
-
-    for (uint256 i = 0; i < leasedArrayIds.length; i = i + 1) {
-      if (leasedArrayIds[i] == 0) {
-        continue;
-      }
-      realLeasedArrayLength = realLeasedArrayLength + 1;
+    function initialize() public initializer {
+        __Ownable_init();
     }
 
-    uint256[] memory realLeasedChildIds = new uint256[](realLeasedArrayLength);
-    uint64 leasedArrayIndex = 0;
-    for (uint256 i = 0; i < leasedArrayIds.length; i = i + 1) {
-      if (leasedArrayIds[i] == 0) {
-        continue;
-      }
-      realLeasedChildIds[leasedArrayIndex] = leasedArrayIds[i];
-      leasedArrayIndex = leasedArrayIndex + 1;
+    /// @dev Splicing the parent domain name and subdomain name together
+    function spliceDomainName(
+        string calldata subdomain,
+        string memory primaryDomain
+    ) internal pure returns (string memory) {
+        return string(abi.encodePacked(subdomain, ".", primaryDomain));
     }
 
-    return realLeasedChildIds;
-  }
-
-  ///@dev child-domain expires and is reset
-  function resetChildDomain(string calldata allName) external {
-    uint256 childTokenId = getChildDomainId(allName);
-    require(block.timestamp >=  userExpires(childTokenId), "child domain have not expired ");
-    //require(allChildFNSDomain[childTokenId].owner==msg.sender,"Not Owner");
-    address user = allChildFNSDomain[childTokenId].user;
-    allChildFNSDomain[childTokenId].user = allChildFNSDomain[childTokenId].owner;
-
-    // TODO: Optimize array operations
-    for (uint256 i = 0; i < leasedChildFNSTokens[user].length; i = i + 1) {
-      if (leasedChildFNSTokens[user][i] != childTokenId)  {
-        continue;
-      }
-      delete leasedChildFNSTokens[user][i];
+    /// @notice Checks if a space is expired.
+    /// @param spaceId The ID of the space.
+    /// @return A boolean indicating whether the space is expired.
+    function isExpired(uint64 spaceId) public view override returns (bool) {
+        return spaceDomains[spaceId].expireSeconds < getBlockTimestamp();
     }
-  }
 
-  ///@dev set user's avatar
-  function setAvatar(string calldata image) public {
-    emit SetAvatar(msg.sender, image);
-    avatar[msg.sender] = image;
-  }
+    /// @notice Checks if an array of spaces is expired.
+    /// @param spaceIdArray An array of space IDs.
+    /// @return An array of booleans indicating whether each space is expired.
+    function batchIsExpired(uint64[] calldata spaceIdArray) public view override returns (bool[] memory) {
+        bool[] memory expireds = new bool[](spaceIdArray.length);
 
-  ///@dev get user's avatar
-  function getAvatar(address user) public view returns(string memory) {
-    return avatar[user];
-  }
+        for (uint64 i = 0; i < spaceIdArray.length; i++) {
+            expireds[i] = isExpired(spaceIdArray[i]);
+        }
+
+        return expireds;
+    }
+
+    /// @notice Get the userid of spacedomain
+    /// @param spaceId The ID of the space.
+    /// @return A userid
+    function getSpaceDomainUserId(uint64 spaceId) public view override returns (uint64) {
+        return spaceDomains[spaceId].userId;
+    }
+
+    /// @notice Get the creator ID of spacedomain
+    /// @param spaceId The ID of the space.
+    /// @return A creator ID.
+    function getSpaceDomainCreatorId(uint64 spaceId) public view override returns (uint64) {
+        return spaceDomains[spaceId].creatorId;
+    }
+
+        /// @dev Obtain the domain name through spaceid (domain name id)
+    function getDomainNameById(uint64 spaceId) internal view returns (string memory) {
+        return spaceDomains[spaceId].domainName;
+    }
+
+    /// @dev Get the current blockchain timestamp
+    function getBlockTimestamp() public view returns (uint64) {
+        return uint64(block.timestamp);
+    }
+
+    /// @dev Get SpaceId
+    function getSpaceIdByDomainName(string calldata domainName) public view returns (uint64) {
+        return spaceIds[domainName];
+    }
+
+    /// @dev Get spaceDomain
+    function getSpaceDomainByID(uint64 id) public view returns (SpaceDomain memory) {
+        return spaceDomains[id];
+    }
+
+    /// @dev Get primaryDomain  and subdomain by spaceId
+    function getPrimaryAndSubDomain(uint64 subSpaceId) public view returns (string memory primaryDomain, string memory subdomain) {
+        if (spaceDomains[subSpaceId].primarySpaceId == 0) {
+            revert NotSubdomain();
+        }
+
+        primaryDomain = spaceDomains[spaceDomains[subSpaceId].primarySpaceId].domainName;
+        subdomain = spaceDomains[subSpaceId].domainName;
+    }
+
+    /// @notice Allows the contract owner to set the caller address.
+    /// @param _caller The new caller address to be set.
+    /// @dev Only the contract owner can call this function.
+    function setCaller(address _caller) external onlyOwner() {
+        caller = _caller;
+    }
+
+    /// @notice Creates a new Space Domain.
+    /// @param creatorId The ID of the creator.
+    /// @param primarySpaceId The ID of the parent space.
+    /// @param domainName The name of the domain.
+    /// @param expireSeconds The number of seconds until the domain expires.
+    /// @return The ID of the new Space Domain.
+    /// Requirements:
+    /// - DomainName cannot be less than 3 and greater than 10 characters
+    /// - Domain name cannot already exist
+    function createSpaceDomain(
+        uint64 creatorId,
+        uint64 primarySpaceId,
+        string calldata domainName,
+        uint64 expireSeconds
+    ) public override onlyCaller checkDomainNameLength(domainName) returns (uint64) {
+        totalSpaceCount.increment();
+        uint64 spaceId = uint64(totalSpaceCount.current());
+        string memory fullDomainName = domainName;
+        if (primarySpaceId != 0) {
+            string memory primaryDomain = getDomainNameById(primarySpaceId);
+            fullDomainName = spliceDomainName(domainName, primaryDomain);
+        }
+
+        if (spaceIds[fullDomainName] != 0) {
+            revert DomainAlreadyExists();
+        }
+
+        spaceDomains[spaceId] = SpaceDomain({
+            creatorId: creatorId,
+            userId: creatorId,
+            expireSeconds: expireSeconds,
+            primarySpaceId: primarySpaceId,
+            domainName: fullDomainName
+        });
+
+        spaceIds[fullDomainName] = spaceId;
+
+        return spaceId;
+    }
+
+    /// @notice Updates the name of a child domain.
+    /// @param spaceId The ID of the space.
+    /// Requirements:
+    /// - The caller is the authorized address
+    /// - Not parent domain
+    /// - DomainName cannot be less than 3 and greater than 10 characters
+    /// - Domain name cannot already exist
+    /// - Delete the original domain name mapping
+    function updateSubDomainName(
+        uint64 spaceId,
+        string calldata newDomainName
+    ) public override onlyCaller checkDomainNameLength(newDomainName)  {
+        if (spaceDomains[spaceId].primarySpaceId == 0) {
+            revert NotSubdomain();
+        }
+
+        (string memory primaryDomain, string memory oldDomainName) = getPrimaryAndSubDomain(spaceId);
+        string memory newFullDomainName = spliceDomainName(newDomainName, primaryDomain);
+
+        /// The new full domain name cannot already exist
+        if (spaceIds[newFullDomainName] != 0) {
+            revert DomainAlreadyExists();
+        }
+
+        /// Delete the original domain name
+        delete(spaceIds[oldDomainName]);
+
+        /// change domain name
+        spaceDomains[spaceId].domainName = newFullDomainName;
+        spaceIds[newFullDomainName] = spaceId;
+    }
+
+    /// @notice Update the expiration time of a space with the given space ID
+    /// @param spaceId The ID of the space to update
+    /// @param expireSeconds The new expiration time, in seconds, for the space
+    /// Requirements:
+    /// - The caller must be authorized to update the space
+    function updateExpireSeconds(uint64 spaceId, uint64 expireSeconds) public override onlyCaller {
+        SpaceDomain storage spaceDomain = spaceDomains[spaceId];
+        if (spaceDomain.creatorId != spaceDomain.userId) {
+            revert DomainInUse();
+        }
+
+        spaceDomain.expireSeconds = expireSeconds;
+    }
+
+    /// @notice Rent a space with the given space ID to the user with the given user ID
+    /// @param spaceId The ID of the space to rent
+    /// @param userId The ID of the user renting the space
+    /// Requirements:
+    /// - The caller is the authorized address
+    /// - Change the `userid` of `SpaceDomain` to the renter,
+    /// - Change the authorized address of `SpaceDomain` to the address of the renter
+    function rentSpace(uint64 spaceId, uint64 userId) public override onlyCaller {
+        SpaceDomain storage spaceDomain = spaceDomains[spaceId];
+        if (spaceDomain.creatorId == userId) {
+            revert();
+        }
+
+        spaceDomain.userId = userId;
+        spaceDomain.expireSeconds += getBlockTimestamp();
+    }
+
+    /// @notice Return a space to the creator
+    /// @param spaceId The ID of the space to return
+    /// Requirements:
+    /// - Domain name has expired
+    /// - After returning, the authorization address is changed to the creator
+    function returnSpace(uint64 spaceId) public override {
+        if (!isExpired(spaceId)) {
+            revert NotExpired();
+        }
+
+        SpaceDomain storage spaceDomain = spaceDomains[spaceId];
+
+        if (spaceDomain.creatorId == spaceDomain.userId) {
+            revert DomainNotInUse();
+        }
+
+        spaceDomain.expireSeconds = 0;
+        spaceDomain.userId = spaceDomains[spaceId].creatorId;
+    }
 }
