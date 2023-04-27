@@ -1,0 +1,16 @@
+name: MomentSwap Contracts Test
+on: [push]
+jobs:
+  unit-test:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile --prefer-offline
+      - name: Build artifacts
+        run: yarn compile
+      - name: Run unit tests
+        run: yarn test-local
