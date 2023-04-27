@@ -11,22 +11,35 @@ import { resolve } from "path";
 //Import our customised tasks
 import "./fevm/hardhat/tasks";
 
+
 if (!process.env.WALLET_PRIVATE_KEY) {
-  dotenvConfig({ path: resolve(__dirname, ".env"), override: true });
+  dotenvConfig({ path: resolve(__dirname, process.env.DOT_ENV_PATH || ".env"), override: true });
 }
 
 const walletPrivateKey: string | undefined = process.env.WALLET_PRIVATE_KEY;
 const accounts = walletPrivateKey ? [walletPrivateKey] : [];
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.19",
-  mocha: { timeout: 600000 },
-  defaultNetwork: "filecoinHyperspace",
+  solidity: {
+    version: "0.8.19",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
+  defaultNetwork: "filecoinCalibration",
   networks: {
     hardhat: {},
     filecoinMainnet: {
       url: "https://api.node.glif.io",
       chainId: 314,
+      accounts: accounts,
+    },
+    filecoinCalibration: {
+      url: "https://api.calibration.node.glif.io/rpc/v1",
+      chainId: 314159,
       accounts: accounts,
     },
     filecoinWallaby: {
@@ -52,6 +65,7 @@ const config: HardhatUserConfig = {
     tests: "./fevm/hardhat/test",
     cache: "./fevm/hardhat/cache",
   },
+  mocha: { timeout: 40000 },
 };
 
 export default config;
