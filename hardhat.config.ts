@@ -36,17 +36,22 @@ const config: HardhatUserConfig = {
       url: "https://api.node.glif.io",
       chainId: 314,
       accounts: accounts,
+      gas: 1000000000,
+      timeout: 90000,
     },
     filecoinCalibration: {
       url: "https://api.calibration.node.glif.io/rpc/v1",
       chainId: 314159,
       accounts: accounts,
-      gas: 6000000,
+      gas: 1000000000,
+      timeout: 90000,
     },
     filecoinWallaby: {
       url: "https://wallaby.node.glif.io/rpc/v0",
       chainId: 31415,
       accounts: accounts,
+      gas: 1000000000,
+      timeout: 90000,
       //explorer: https://wallaby.filscan.io/ and starboard
     },
     filecoinHyperspace: {
@@ -54,6 +59,8 @@ const config: HardhatUserConfig = {
       chainId: 3141,
       accounts: accounts,
       gasMultiplier: 3,
+      gas: 1000000000,
+      timeout: 90000,
     },
     ethGoerli: {
       url: "https://rpc.ankr.com/eth_goerli",
