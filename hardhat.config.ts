@@ -11,28 +11,47 @@ import { resolve } from "path";
 //Import our customised tasks
 import "./fevm/hardhat/tasks";
 
+
 if (!process.env.WALLET_PRIVATE_KEY) {
-  dotenvConfig({ path: resolve(__dirname, ".env"), override: true });
+  dotenvConfig({ path: resolve(__dirname, process.env.DOT_ENV_PATH || ".env"), override: true });
 }
 
 const walletPrivateKey: string | undefined = process.env.WALLET_PRIVATE_KEY;
 const accounts = walletPrivateKey ? [walletPrivateKey] : [];
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.19",
-  mocha: { timeout: 600000 },
-  defaultNetwork: "filecoinHyperspace",
+  solidity: {
+    version: "0.8.19",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200,
+      },
+    },
+  },
+  defaultNetwork: "filecoinCalibration",
   networks: {
     hardhat: {},
     filecoinMainnet: {
       url: "https://api.node.glif.io",
       chainId: 314,
       accounts: accounts,
+      gas: 1000000000,
+      timeout: 90000,
+    },
+    filecoinCalibration: {
+      url: "https://api.calibration.node.glif.io/rpc/v1",
+      chainId: 314159,
+      accounts: accounts,
+      gas: 1000000000,
+      timeout: 90000,
     },
     filecoinWallaby: {
       url: "https://wallaby.node.glif.io/rpc/v0",
       chainId: 31415,
       accounts: accounts,
+      gas: 1000000000,
+      timeout: 90000,
       //explorer: https://wallaby.filscan.io/ and starboard
     },
     filecoinHyperspace: {
@@ -40,10 +59,17 @@ const config: HardhatUserConfig = {
       chainId: 3141,
       accounts: accounts,
       gasMultiplier: 3,
+      gas: 1000000000,
+      timeout: 90000,
     },
     ethGoerli: {
-      url: "https://eth-goerli.g.alchemy.com/v2/S4Rrp2eHb-xk5dxnNQygNcv-QfPmzTXX",
+      url: "https://rpc.ankr.com/eth_goerli",
       chainId: 5,
+      accounts: accounts,
+    },
+    ethSepolia: {
+      url: "https://ethereum-sepolia.blockpi.network/v1/rpc/public",
+      chainId: 11155111,
       accounts: accounts,
     },
   },
@@ -52,6 +78,7 @@ const config: HardhatUserConfig = {
     tests: "./fevm/hardhat/test",
     cache: "./fevm/hardhat/cache",
   },
+  mocha: { timeout: 40000 },
 };
 
 export default config;

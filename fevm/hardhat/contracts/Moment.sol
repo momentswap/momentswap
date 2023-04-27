@@ -26,10 +26,10 @@ contract Moment is IMoment, Initializable, OwnableUpgradeable, ERC721URIStorageU
         _;
     }
 
-    /// @notice initialize function that initializes the ERC721 token with the name "Moment NFTs" and the symbol "MMT".
+    /// @notice initialize function that initializes the ERC721 token with the name "MomentSwap NFTs" and the symbol "MST".
     function initialize() public initializer {
         __Ownable_init();
-        __ERC721_init("Moment NFTs", "MMT");
+        __ERC721_init("MomentSwap NFTs", "MST");
     }
 
     /// @notice Creates a new moment and returns its ID.

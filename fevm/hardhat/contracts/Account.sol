@@ -51,10 +51,10 @@ contract Account is IAccount, Initializable, OwnableUpgradeable {
     /// @notice Mapping of account IDs to account data.
     mapping(uint64 => AccountData) public accounts;
 
-    /// @notice The `IMoment` contract that provides the current timestamp.
+    /// @notice The `IMoment` contract that manages the Moment NFT.
     IMoment public moment;
 
-    /// @notice The `ISpaceFNS` contract that manages the Space FNS.
+    /// @notice The `ISpaceFNS` contract that manages the Space Domain.
     ISpaceFNS public spaceFNS;
 
     /// @notice Modifier to check if the caller's address is registered as an account.
