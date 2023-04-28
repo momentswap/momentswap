@@ -92,14 +92,14 @@ interface IAccount {
     /// @param accountId The ID of the account that created the sub space domain.
     /// @param primarySpaceId The ID of the parent space.
     /// @param subSpaceId The ID of the new sub-space.
-    /// @param subDomainName The name of the sub-domain.
     /// @param expireSeconds The number of seconds until the sub-domain expires.
+    /// @param subDomainName The name of the sub-domain.
     event CreateSubSpaceDomain(
         uint64 indexed accountId,
         uint64 indexed primarySpaceId,
         uint64 indexed subSpaceId,
-        string subDomainName,
-        uint64 expireSeconds
+        uint64 expireSeconds,
+        string subDomainName
     );
 
     /// @dev Emitted when a space is rented.
