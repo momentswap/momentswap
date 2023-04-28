@@ -89,11 +89,13 @@ interface IAccount {
     event RemoveComment(uint64 indexed accountId, uint128 indexed commentId);
 
     /// @dev Emitted when a new sub-space domain is created.
+    /// @param accountId The ID of the account that created the sub space domain.
     /// @param primarySpaceId The ID of the parent space.
     /// @param subSpaceId The ID of the new sub-space.
     /// @param subDomainName The name of the sub-domain.
     /// @param expireSeconds The number of seconds until the sub-domain expires.
     event CreateSubSpaceDomain(
+        uint64 indexed accountId,
         uint64 indexed primarySpaceId,
         uint64 indexed subSpaceId,
         string subDomainName,

@@ -175,7 +175,7 @@ describe("Jointly debugging contracts for Account, Domain, and Moment", function
     it("Should allow creating subdomain", async function () {
       await expect(account.createSubSpaceDomain(1, "bar", 1000))
         .to.emit(account, "CreateSubSpaceDomain")
-        .withArgs(1, 2, "bar", 1000);
+        .withArgs(1, 1, 2, "bar", 1000);
       // const createdSpaceIds = await account.getCreatedSpaceIds(1);
       // expect(createdSpaceIds[0]).to.equal(BigNumber.from(1));
       // expect(createdSpaceIds[1]).to.equal(BigNumber.from(2));
