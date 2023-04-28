@@ -289,7 +289,7 @@ contract Account is IAccount, Initializable, OwnableUpgradeable {
         uint64 spaceId = spaceFNS.createSpaceDomain(accountIds[msg.sender], primarySpaceId, domainName, expireSeconds);
         accounts[accountIds[msg.sender]].createdSpaceIds.push(spaceId);
 
-        emit CreateSubSpaceDomain(primarySpaceId, spaceId, domainName, expireSeconds);
+        emit CreateSubSpaceDomain(accountIds[msg.sender], primarySpaceId, spaceId, domainName, expireSeconds);
         return spaceId;
     }
 
