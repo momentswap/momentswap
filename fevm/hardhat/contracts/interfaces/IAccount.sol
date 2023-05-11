@@ -32,7 +32,7 @@ interface IAccount {
     event CreateAccount(
         uint64 indexed accountId,
         uint64 indexed primarySpaceId,
-        string indexed primaryDomainName,
+        string primaryDomainName,
         string avatarURI,
         address wallet
     );
