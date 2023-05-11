@@ -11,7 +11,7 @@ task("setCaller", "Allows the contract owner to set the caller address.")
     console.log(`\nSetting the caller for the ${contractName} contract...`);
 
     try {
-      await contract.setCaller(callerAddress);
+      await(await contract.setCaller(callerAddress)).wait();
     } catch (err) {
       console.log(err);
     }
