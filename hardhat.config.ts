@@ -55,10 +55,9 @@ const config: HardhatUserConfig = {
       //explorer: https://wallaby.filscan.io/ and starboard
     },
     filecoinHyperspace: {
-      url: "https://api.hyperspace.node.glif.io/rpc/v1", //https://beryx.zondax.ch/ //chainstack
+      url: "https://rpc.ankr.com/filecoin_testnet", //https://beryx.zondax.ch/ //chainstack
       chainId: 3141,
       accounts: accounts,
-      gasMultiplier: 3,
       gas: 1000000000,
       timeout: 90000,
     },
