@@ -9,7 +9,7 @@ import { createMomentSwapMetadata, storeMediaToIPFS, storeMetadataToIPFS } from 
 import { useAleoPrivateKey, useAleoRecords, useChainList } from "src/hooks/use-chain-list";
 import { workerHelper } from "@utils/helpers/aleo/worker-helper";
 import { aleoHelper } from "@utils/helpers/aleo/aleo-helper";
-import { base58ToAscii, base58ToInteger, integerToBase58, stringToBase58 } from "@utils/helpers/aleo/aleo-decode";
+import { base58ToAscii, base58ToInteger, integerToBase58, splitAndAddField, stringToBase58 } from "@utils/helpers/aleo/aleo-decode";
 
 
 export const PublishModal = () => {
@@ -110,19 +110,6 @@ export const PublishModal = () => {
           }
       });
         const {remoteProgram,privateKey,url} = aleoHelper();
-
-      function splitAndAddField(str:string, field:string) {
-        const chunkSize = Math.ceil(str.length / 5);
-        const chunks = [];
-      
-        for (let i = 0; i < str.length; i += chunkSize) {
-          const chunk = "1" + str.slice(i, i + chunkSize) + field;
-          chunks.push(chunk);
-        }
-      
-        return chunks;
-      }
-      
       
         workerRef.current?.postMessage({
           type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',

@@ -87,6 +87,7 @@ const generateFakeData = (): MomentMetadata[] => {
       };
       
       fakeData.push(moment);
+      setMoments(fakeData);
       setRefresh(!refresh)
     }); 
   })

@@ -41,9 +41,27 @@ export function stringToBase58(str) {
     return asciiString;
   }
 
-  export const ToDecodeBase58=(x)=>{
+  export const ToDecodeBase58=(x:any[])=>{
     console.log(integerToBase58(x[1]));
     console.log(base58ToAscii(integerToBase58(x[1])));
     
     return x.map(t=>base58ToAscii(integerToBase58(t)))
+  }
+  export const ToEncode=(x:any[])=>{
+    console.log(stringToBase58(x[1]));
+    console.log(base58ToInteger(stringToBase58(x[1])));
+    
+    return x.map(t=>base58ToInteger(stringToBase58(t)))
+  }
+
+  export function splitAndAddField(str:string, field:string, c:number=5) {
+    const chunkSize = Math.ceil(str.length / c);
+    const chunks = [];
+  
+    for (let i = 0; i < str.length; i += chunkSize) {
+      const chunk = "1" + str.slice(i, i + chunkSize) + field;
+      chunks.push(chunk);
+    }
+  
+    return chunks;
   }

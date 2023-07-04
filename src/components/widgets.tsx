@@ -67,7 +67,7 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
       typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string)&&typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string).forEach((t,i) => {
         const s = aleo?.PrivateKey?.from_string(x1).decryptrecords(JSON.stringify([{record_ciphertext:t.record_ciphertext,sn_id:t.sn_id}]))
         
-        axios.get('https://vm.aleo.org/api/testnet3/find/transitionID/'+JSON.parse(s)[0].sn_id).then(e=>{
+        s&&axios.get('https://vm.aleo.org/api/testnet3/find/transitionID/'+ (JSON.parse(s)[0].sn_id)).then(e=>{
           console.log(e,"is used");
           var request = indexedDB.open('aleoDB', 1);
 
@@ -121,7 +121,8 @@ console.log(aleo);
     console.log(viewKey);
     console.log(privateKey?.to_string());
     console.log(privateKey?.to_address().to_string());
-    setAleoAddress(address);
+    address&&setAleoAddress(address)
+    address&&window.localStorage.setItem("aleoAddress",address)
     
     
     let page 
@@ -190,17 +191,21 @@ console.log(aleo);
 
   function AleoWalletCard(){
     const aleoAddress = useAleoPrivateKey(s=>s.Address)    
+    const [aleoAddressPub,setAleoAddressPub] = useState("")
 
     const { Panel } = Collapse;
    
-
-    const x1 = useAleoPrivateKey(s=>s.PK)    
-      
-
+    
+    
+    console.log(aleoAddress);
+    
       useEffect(()=>{
           handleGetRecords()
           // setAleoRecords(JSON.parse(window.localStorage.getItem("aleoRecords") as string??"[]"))
       },[rqPage])
+      useEffect(()=>{
+        handleAddr()
+      },[])
 
 
       const handleGetRecords = useCallback(()=>{
@@ -239,14 +244,11 @@ console.log(aleo);
       
 
     
-    const handleLogin = async () => {
-      await aleo.default()
-      spawnWorker()
-      
-      
+    const handleAddr = async () => {
+      aleo&&await aleo.default()
+      const privateKey = (aleo?.PrivateKey?.from_string(x1));
 
-      
-      handleRecords();
+      setAleoAddressPub(privateKey?.to_address().to_string());
       
     }
 
@@ -261,7 +263,7 @@ console.log(aleo);
       }
 
 
-      console.log(aleoRecords );
+      console.log(aleoAddressPub );
       
     return (
       <>
@@ -269,7 +271,7 @@ console.log(aleo);
         <figure><img src="https://bafkreia2nqgrm63pca2l7aagznrbd466qy4dker4wevcrfxmsr7algkiie.ipfs.dweb.link/" alt="Shoes" /></figure>
         <div className="card-body">
           <h2 className="card-title">Aleo!</h2>
-          <p>Addr: {aleoAddress===""?"": aleoAddress?.slice(0,12)+"..."+aleoAddress?.slice(-12)}</p>
+          <p>Addr: {aleoAddressPub===""?"": aleoAddressPub?.slice(0,12)+"..."+aleoAddressPub?.slice(-12)}</p>
           <div className="card-actions justify-end">
             <Link href={"/user"}> <button className="btn btn-primary">Profile</button></Link>
             {isLogin?typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string)?.filter(t=>t.result.indexOf("nick_name")>-1)[0]?<button className="btn btn-primary">Refresh</button>:<><label

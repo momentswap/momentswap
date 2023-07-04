@@ -8,6 +8,7 @@ import { useAleoPrivateKey, useAleoRecords, useChainList } from "src/hooks/use-c
 import { workerHelper } from "@utils/helpers/aleo/worker-helper";
 import axios from "axios";
 import { aleoHelper } from "@utils/helpers/aleo/aleo-helper";
+import { ToEncode, base58ToInteger, splitAndAddField, stringToBase58 } from "@utils/helpers/aleo/aleo-decode";
 
 export const IdentityModal = () => {
   const { address } = useWalletProvider();
@@ -25,6 +26,7 @@ export const IdentityModal = () => {
   const workerExecRef = useRef<Worker>();
   const aleoPrivateKey = useAleoPrivateKey(s=>s.PK)    
   const aleoRecords = useAleoRecords(s=>s.records)
+  const aleoAddress = useAleoPrivateKey(s=>s.Address)   
 
   useEffect(() => {
     avatarRef.current?.addEventListener("input", async () => {
@@ -39,23 +41,7 @@ export const IdentityModal = () => {
 
   useEffect(() => {
     workerExecRef.current = workerHelper();
-    workerExecRef.current.addEventListener("message", ev => {
-      if (ev.data.type == 'EXECUTION_TRANSACTION_COMPLETED') {
-          axios.post("https://vm.aleo.org/api" + "/testnet3/transaction/broadcast", ev.data.executeTransaction, {
-              headers: {
-                  'Content-Type': 'application/json',
-              }
-          }).then(
-              (response:any) => {
-                  setNotifySuccess();
-                  console.log(response.data);
-              }
-          )
-      } else if (ev.data.type == 'ERROR') {
-          alert(ev.data.errorMessage);
-          console.log(ev.data.errorMessage);
-        }
-  });
+    
     (async () => {
       if (!address) {
         return;
@@ -104,16 +90,61 @@ export const IdentityModal = () => {
       }
       // const aleoMainDmmain = aleoRecords.filter(t=>t?.result?.indexOf("identification_number")>-1)[0].result
       if (chainList==="ALEO") {
-        
+        console.log(avatarSetting,"avatarSetting");
+        console.log(text,"text");
+      const feeRecord = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("microcredits")>-1)[0];
+      workerExecRef.current?.addEventListener("message", ev => {
+        if (ev.data.type == 'EXECUTION_TRANSACTION_COMPLETED') {
+            axios.post("https://vm.aleo.org/api" + "/testnet3/transaction/broadcast", ev.data.executeTransaction, {
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }).then(
+                (response:any) => {
+                    setNotifySuccess();
+                    console.log(response.data);
+                    var request = indexedDB.open('aleoDB', 1);
+  
+                      request.onsuccess = function(event:any) {
+                        var db = event.target.result;
+  
+                        var transaction = db.transaction(['AleoStore'], 'readwrite');
+                        var store = transaction.objectStore('AleoStore');
+  
+                        var deleteRequest = store.delete(feeRecord.id);
+  
+                        deleteRequest.onsuccess = function(event) {
+                          console.log('success');
+                        };
+  
+                        deleteRequest.onerror = function(event) {
+                          console.log('fail');
+                        };
+  
+                        transaction.oncomplete = function() {
+                          db.close();
+                        };
+                      };
+  
+                      request.onerror = function(event) {
+                        console.log('open db error');
+                      };
+                }
+            )
+        } else if (ev.data.type == 'ERROR') {
+            alert(ev.data.errorMessage);
+            console.log(ev.data.errorMessage);
+          }
+    });
       const {remoteProgram,url} = aleoHelper()
         workerExecRef.current?.postMessage({
           type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
           remoteProgram,
           aleoFunction:"create_public_identifier",
-          inputs:[avatarSetting],
+          inputs:[aleoAddress,...splitAndAddField(base58ToInteger(stringToBase58(avatarSetting)),"field",4),base58ToInteger(stringToBase58(text))+"field"],
           privateKey:aleoPrivateKey,
           fee: 0.1,
-          feeRecord:aleoRecords.filter(t=>t?.result?.indexOf("microcredits")>-1)[0]?.result,
+          feeRecord:feeRecord.result,
           url
         });      
       }
