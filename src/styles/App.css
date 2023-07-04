@@ -102,3 +102,8 @@ code {
 .translate-x-full {
   transform: translateX(-100%);
 }
+
+/* antd */
+.ant-form-item-label > label {
+  color: white !important;
+}

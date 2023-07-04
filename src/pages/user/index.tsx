@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import momenttools from "moment";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { Avatar, Layout, Loading, Moment, PriceButton, Tab, ThemeToggle } from "@components";
 import {
@@ -17,6 +17,11 @@ import {
 } from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { collectionToMoments, isEmptyAddress, secondsToYears, yearsToSeconds } from "@utils/helpers";
+import { useAleoLoading, useAleoPrivateKey, useAleoRecords, useChainList } from "src/hooks/use-chain-list";
+import { workerHelper } from "@utils/helpers/aleo/worker-helper";
+import axios from "axios";
+import { aleoHelper } from "@utils/helpers/aleo/aleo-helper";
+import faker from 'faker';
 
 interface SpaceSlot {
   id: string;
@@ -54,6 +59,11 @@ export default function UserPage() {
   const setNotifySuccess = useNotifyStatus((state) => state.success);
   const setNotifyReset = useNotifyStatus((state) => state.resetStatus);
   const setNotifyFail = useNotifyStatus((state) => state.fail);
+  const aleoRecords = useAleoRecords(s=>s.records)
+  const aleoPrivateKey = useAleoPrivateKey(s=>s.PK)    
+  const {remoteProgram,url} = aleoHelper()
+
+
   const {
     approve,
     mintSubDomain,
@@ -68,7 +78,31 @@ export default function UserPage() {
   } = useSpaceFNSContract();
   const { getListedDomainsByDomainID, listDomain, lendDomain, updateListDomain, cancelListDomain, withdrawProceeds } =
     useFNSMarketContract();
+    const chainList = useChainList(s=>s.TYPE)
+    const workerExecRef = useRef<Worker>();
 
+
+    useEffect(()=>{
+      workerExecRef.current = workerHelper();
+      workerExecRef.current.addEventListener("message", ev => {
+        if (ev.data.type == 'EXECUTION_TRANSACTION_COMPLETED') {
+            axios.post("https://vm.aleo.org/api" + "/testnet3/transaction/broadcast", ev.data.executeTransaction, {
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }).then(
+                (response:any) => {
+                    setNotifySuccess();
+                    console.log(response.data);
+                }
+            )
+        } else if (ev.data.type == 'ERROR') {
+            alert(ev.data.errorMessage);
+            console.log(ev.data.errorMessage);
+            setNotifyFail();
+          }
+    });
+    },[])
   useEffect(() => {
     (async () => {
       setCreatorSlots([]);
@@ -76,7 +110,7 @@ export default function UserPage() {
       const _creatorSlots: Array<SpaceSlot | undefined> = [];
       const _userSlots: Array<SpaceSlot> = [];
       const [_mainDomain, _subDomainIDs, _subDomainNames, _subDomainUsers] = await getAllDomainByCreator(queryAddress);
-      setMainDomain(_mainDomain);
+      chainList==="FIL"? setMainDomain(_mainDomain):setMainDomain(aleoRecords.filter(t=>t.result.indexOf("identification_number")>-1)[0].result);
 
       // Get all domain names created by user
       const [, , _creatorLeaseTerms] = await getDomainLeaseTermsByCreator(queryAddress);
@@ -170,19 +204,30 @@ export default function UserPage() {
   const handleMint = async () => {
     let readyMintIndex;
     for (let i in creatorSlots) {
-      if (creatorSlots[i] == undefined) {
+      if (creatorSlots[i] === undefined) {
         readyMintIndex = i;
         break;
       }
     }
-
-    if (readyMintIndex == undefined) {
+     
+    if (readyMintIndex === undefined) {
       alert("Only 5 subdomain can be mint at most");
       return;
     }
 
     try {
-      mintSubDomain(mainDomain, `space${parseInt(readyMintIndex) + 1}`);
+      
+
+      chainList==="FIL"? mintSubDomain(mainDomain, `space${parseInt(readyMintIndex) + 1}`):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"mintSubDomain",
+        inputs:[mainDomain,`space${parseInt(readyMintIndex) + 1}`],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
     } catch {
       setNotifyFail();
     }
@@ -200,7 +245,16 @@ export default function UserPage() {
       if (isEmptyAddress(_marketAddress)) {
         await (await approve(selectedSlot.id)).wait();
       }
-      listDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears));
+      chainList==="FIL"? listDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears)):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"listDomain",
+        inputs:[selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears)],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
     } catch {
       setNotifyFail();
     }
@@ -217,7 +271,16 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      cancelListDomain(selectedSlot.id);
+      chainList==="FIL"? cancelListDomain(selectedSlot.id):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"cancelListDomain",
+        inputs:[selectedSlot.id],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
       // alert("Cancel list success !");
     } catch {
       setNotifyFail();
@@ -236,7 +299,16 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      updateListDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears));
+      chainList==="FIL"?updateListDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears)):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"updateListDomain",
+        inputs:[selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears)],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
       // alert("Update success !");
     } catch {
       setNotifyFail();
@@ -252,7 +324,16 @@ export default function UserPage() {
     }
 
     try {
-      lendDomain(selectedSlot.id, ethers.utils.parseEther(price).toString());
+      chainList==="FIL"?lendDomain(selectedSlot.id, ethers.utils.parseEther(price).toString()):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"lendDomain",
+        inputs:[selectedSlot.id, ethers.utils.parseEther(price).toString()],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
       // alert("Buy success !");
     } catch {
       setNotifyFail();
@@ -273,7 +354,16 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      updateSubDomain(selectedSlot.mainDomain, selectedSlot.subDomain, leaseName);
+      chainList==="FIL"?updateSubDomain(selectedSlot.mainDomain, selectedSlot.subDomain, leaseName):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"updateSubDomain",
+        inputs:[selectedSlot.mainDomain, selectedSlot.subDomain, leaseName],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
       // alert("Rename success !");
     } catch {
       setNotifyFail();
@@ -284,9 +374,25 @@ export default function UserPage() {
   };
 
   const renderMomentsPage = useCallback(() => {
+    function generateMomentMetadata() {
+      const moment = {
+        id: faker.random.uuid(),
+        address: faker.address.streetAddress(),
+        timestamp: faker.date.recent().getTime(),
+        metadataURL: faker.internet.url(),
+        contentText: faker.lorem.sentence(),
+        username: faker.internet.userName(),
+        userImg: faker.internet.avatar(),
+        media: faker.image.imageUrl(),
+        mediaType: faker.random.arrayElement(["video", "image"])
+      };
+    
+      return moment;
+    }
+    
     const _tabPage = (
       <AnimatePresence>
-        {moments?.map((moment) => (
+        {[1]?.map((moment) => (
           <motion.div
             key={moment.id}
             initial={{ opacity: 0 }}
@@ -294,7 +400,7 @@ export default function UserPage() {
             exit={{ opacity: 0 }}
             transition={{ duration: 1 }}
           >
-            <Moment key={moment.id} moment={moment} />
+            <Moment key={moment.id} moment={generateMomentMetadata()} />
           </motion.div>
         ))}
       </AnimatePresence>
@@ -797,7 +903,7 @@ export default function UserPage() {
           </label>
 
           <div className="px-4 py-2">
-            <p className="text-2xl font-semibold">{mainDomain || "---"}.fil</p>
+            <p className="text-2xl font-semibold">{mainDomain || "---"}{chainList==="FIL"? ".fil":".aleo"}</p>
             <p className="text-sm">{queryAddress}</p>
           </div>
 

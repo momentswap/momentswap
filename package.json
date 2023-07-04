@@ -15,20 +15,33 @@
     "test": "npx hardhat test test/*.ts"
   },
   "dependencies": {
+    "@aleohq/sdk": "^0.4.2",
     "@ant-design/icons": "^5.0.1",
+    "@babel/core": "^7.22.5",
+    "@babel/preset-react": "^7.22.5",
     "@heroicons/react": "v1",
     "@metamask/detect-provider": "^2.0.0",
     "@tailwindcss/typography": "^0.5.9",
     "@types/react-modal": "^3.13.1",
+    "aleo-wasm-swift": "0.0.14",
+    "aleo-wasm-swift-decrypt-record": "0.0.3",
     "antd": "^5.4.0",
+    "axios": "^1.4.0",
+    "babel-cli": "^6.26.0",
+    "base58": "^2.0.1",
+    "base58-js": "^2.0.0",
+    "big-integer": "^1.6.51",
     "bs58": "^5.0.0",
     "classnames": "^2.3.2",
-    "daisyui": "^2.46.1",
+    "crypto-js": "^4.1.1",
+    "daisyui": "3.0.0",
     "dotenv": "^16.0.3",
     "ethers": "^5.7.2",
+    "faker": "^6.6.6",
     "framer-motion": "^8.5.5",
     "hover.css": "^2.3.2",
-    "next": "^13.2.4",
+    "js-sha256": "^0.9.0",
+    "next": "13.4.4",
     "nft.storage": "^7.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
@@ -44,9 +57,11 @@
     "theme-change": "^2.3.0",
     "tweetnacl": "^1.0.3",
     "video-react": "^0.16.0",
+    "worker-loader": "^3.0.8",
     "zustand": "^4.3.7"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.22.5",
     "@nomicfoundation/hardhat-chai-matchers": "^1.0.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^2.0.1",
@@ -56,6 +71,7 @@
     "@typechain/ethers-v5": "^10.1.0",
     "@typechain/hardhat": "^6.1.2",
     "@types/chai": "^4.2.0",
+    "@types/faker": "^6.6.9",
     "@types/mocha": ">=9.1.0",
     "@types/node": "18.11.18",
     "@types/react": "^18.0.26",
@@ -73,6 +89,6 @@
     "tailwindcss": "^3.2.4",
     "ts-node": "^10.9.1",
     "typechain": "^8.1.0",
-    "typescript": "4.9.5"
+    "typescript": "5.1.3"
   }
 }
