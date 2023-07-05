@@ -26,8 +26,8 @@ export const Moment = ({ moment }: Props) => {
   const router = useRouter();
 
   useEffect(() => {
-    setComments(getCommentsByMomentId(moment.id) || []);
-    const localLikes = getLikesByMomentId(moment.id);
+    setComments(getCommentsByMomentId(moment?.id) || []);
+    const localLikes = getLikesByMomentId(moment?.id);
     setLikes(localLikes);
     setHasLiked(localLikes?.includes(moment?.username || ""));
   }, [moment]);
@@ -59,8 +59,8 @@ export const Moment = ({ moment }: Props) => {
       {/* user image */}
 
       <Avatar
-        seed={moment.address}
-        image={moment.userImg}
+        seed={moment?.address}
+        image={moment?.userImg}
         diameter={38}
         className="items-center mr-4 cursor-pointer"
         onClick={() => router.push(`/user?address=${moment.address}`)}
@@ -78,9 +78,9 @@ export const Moment = ({ moment }: Props) => {
                 className="hover:underline cursor-pointer"
                 onClick={() => router.push(`/user?address=${moment.address}`)}
               >
-                {sortAddress(moment.address, 6)}{" "}
+                {sortAddress(moment?.address, 6)}{" "}
               </span>
-              - <RMoment fromNow>{momenttools.unix(moment.timestamp)}</RMoment>
+              - <RMoment fromNow>{momenttools.unix(moment?.timestamp)}</RMoment>
             </p>
           </div>
 

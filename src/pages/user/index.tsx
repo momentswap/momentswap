@@ -398,40 +398,65 @@ export default function UserPage() {
     // router.reload();
   };
 
-  const renderMomentsPage = useCallback(() => {
-    function generateMomentMetadata() {
-      const moment = {
-        id: faker.random.uuid(),
-        address: faker.address.streetAddress(),
-        timestamp: faker.date.recent().getTime(),
-        metadataURL: faker.internet.url(),
-        contentText: faker.lorem.sentence(),
-        username: faker.internet.userName(),
-        userImg: faker.internet.avatar(),
-        media: faker.image.imageUrl(),
-        mediaType: faker.random.arrayElement(["video", "image"])
-      };
-    
-      return moment;
+  const renderMomentsPage = useCallback(async() => {
+  const fakeData: MomentMetadata[] = [];
+    const metadata_uri = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter(t=>t.result.indexOf("metadata_uri1")>-1)
+  // const metadata = metadata_uri?.map((t:any)=>t.result.split("metadata_uri1:")[1]?.split(".private")[0].split("field")[0])
+  const handledUri = ToDecodeBase58(metadata_uri.map(t=>{
+    const regex = /metadata_uri[1-5]: (\d+)[a-z.]+/g;
+    let match;
+    const values = [];
+
+    while ((match = regex.exec(t.result)) !== null) {
+      const value = match[1].substring(1); // Remove the first digit
+      values.push(value);
     }
+
+    const result = values.join('');
+
+  return result;
+  })).map(t=>t.replace("ipfs://","https://ipfs.io/ipfs/"))
+  const requests = handledUri.map((address:any) => axios.get(address));
+
+  await Promise.all(requests)
+  .then((results) => {
+    results.forEach((response) => {
+      
+      const moment: MomentMetadata = {
+        id: faker.random.uuid(),
+        address: response.data.name,
+        timestamp: faker.date.recent().getTime(),
+        metadataURL:"https://ipfs.io/ipfs/"+response.data.properties.media.cid,
+        contentText: response.data.description,
+        username: response.data.description,
+        userImg: "https://ipfs.io/ipfs/"+response.data.properties.media.cid,
+        media: "https://ipfs.io/ipfs/"+response.data.properties.media.cid,
+        mediaType: response.data.properties.media.type,
+      };
+      
+      fakeData.push(moment);
+      
+      // setMoments(fakeData);
+    }); 
+  });
     
     const _tabPage = (
       <AnimatePresence>
-        {[1]?.map((moment) => (
-          <motion.div
+        {fakeData?.map((moment) => {
+          return <motion.div
             key={moment.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1 }}
           >
-            <Moment key={moment.id} moment={generateMomentMetadata()} />
+            <Moment key={moment.id} moment={moment} />
           </motion.div>
-        ))}
+  })}
       </AnimatePresence>
     );
     setTabPage(_tabPage);
-  }, [moments, userImg]);
+  }, [ moments,userImg]);
 
   const renderLikesPage = useCallback(() => {
     const _tabPage = <p>coming soon...</p>;
@@ -850,7 +875,7 @@ export default function UserPage() {
         m.username = mainDomain;
         m.userImg = userImg;
       }
-      setMoments(_moments);
+      // setMoments(_moments);
     })();
   }, [getNFTCollectionByOwner, queryAddress, mainDomain, userImg]);
 
