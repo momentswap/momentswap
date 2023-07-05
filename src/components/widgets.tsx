@@ -105,12 +105,10 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
     workerRef.current = workerRecordHelper();
     workerExecRef.current = workerHelper();
   },[])
-console.log(aleo);
 
 
   const handleRecords = async (now?:string) => {
     if(started.current){return}
-    console.log(aleo);
     
     await aleo.default() 
     const privateKey = (aleo?.PrivateKey.from_string(x1));
@@ -118,9 +116,6 @@ console.log(aleo);
     const viewKey = privateKey?.to_view_key().to_string();
     const v = aleo?.ViewKey.from_string(viewKey);
     const address = privateKey?.to_address().to_string();
-    console.log(viewKey);
-    console.log(privateKey?.to_string());
-    console.log(privateKey?.to_address().to_string());
     address&&setAleoAddress(address)
     address&&window.localStorage.setItem("aleoAddress",address)
     
@@ -197,7 +192,6 @@ console.log(aleo);
    
     
     
-    console.log(aleoAddress);
     
       useEffect(()=>{
           handleGetRecords()
@@ -263,7 +257,6 @@ console.log(aleo);
       }
 
 
-      console.log(aleoAddressPub );
       
     return (
       <>
@@ -311,8 +304,6 @@ console.log(aleo);
       wrapperCol: { span: 16 },
     };
     
-    
-    console.log(records);
     const handleChange = (value: string | string[]) => {
       setFeeRecords(value)
       console.log(`Selected: ${value}`);

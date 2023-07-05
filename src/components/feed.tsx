@@ -66,13 +66,11 @@ const generateFakeData = (): MomentMetadata[] => {
 
   return result;
   })).map(t=>t.replace("ipfs://","https://ipfs.io/ipfs/"))
-  console.log(handledUri);
   const requests = handledUri.map((address:any) => axios.get(address));
 
   Promise.all(requests)
   .then((results) => {
     results.forEach((response) => {
-      console.log(response);
       
       const moment: MomentMetadata = {
         id: faker.random.uuid(),

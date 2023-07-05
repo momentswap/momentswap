@@ -33,7 +33,6 @@ export const Sidebar = () => {
       setUserImg(_avatarUrl);
     })();
   }, []);
-  console.log(privateKey);
   useEffect(() => {
     handleClick();
     spawnWorker();
@@ -50,11 +49,7 @@ const handleClick = async () => {
 function postMessagePromise(worker:any, message:any) {
 
   return new Promise((resolve, reject) => {
-      console.log(worker);
-      console.log(message);
       worker.onmessage = (event:any) => {
-        console.log("event");
-        console.log(event);
         
           resolve(event.data);
       };

@@ -60,6 +60,8 @@ export const IdentityModal = () => {
   };
 
   const saveIdentity = async () => {
+    const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1)[0];
+    if(aleoIdentity.result.indexOf("nick_name")>-1){return alert("You have already registered your identity")}
     if (!validateName(text)) {
       alert("The name is between 3 and 10 characters");
       return;
@@ -90,8 +92,6 @@ export const IdentityModal = () => {
       }
       // const aleoMainDmmain = aleoRecords.filter(t=>t?.result?.indexOf("identification_number")>-1)[0].result
       if (chainList==="ALEO") {
-        console.log(avatarSetting,"avatarSetting");
-        console.log(text,"text");
       const feeRecord = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("microcredits")>-1)[0];
       workerExecRef.current?.addEventListener("message", ev => {
         if (ev.data.type == 'EXECUTION_TRANSACTION_COMPLETED') {
@@ -102,7 +102,6 @@ export const IdentityModal = () => {
             }).then(
                 (response:any) => {
                     setNotifySuccess();
-                    console.log(response.data);
                     var request = indexedDB.open('aleoDB', 1);
   
                       request.onsuccess = function(event:any) {

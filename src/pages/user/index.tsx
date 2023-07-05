@@ -22,6 +22,7 @@ import { workerHelper } from "@utils/helpers/aleo/worker-helper";
 import axios from "axios";
 import { aleoHelper } from "@utils/helpers/aleo/aleo-helper";
 import faker from 'faker';
+import { ToDecodeBase58 } from "@utils/helpers/aleo/aleo-decode";
 
 interface SpaceSlot {
   id: string;
@@ -103,6 +104,21 @@ export default function UserPage() {
           }
     });
     },[])
+    useEffect(()=>{
+      const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1)[0];
+      const name = aleoIdentity.result.match(/name: (\d+)(field.private)/)[1].substring(1);
+      const nick_name = aleoIdentity.result.match(/nick_name: (\d+)(field.private)/)[1].substring(1);
+      const phone_number = aleoIdentity.result.match(/phone_number: (\d+)(field.private)/)[1].substring(1);
+      const identification_number = aleoIdentity.result.match(/identification_number: (\d+)(field.private)/)[1].substring(1);
+      const nation = aleoIdentity.result.match(/nation: (\d+)(field.private)/)[1].substring(1);
+       
+      // 合并提取的值
+      const result = name + nick_name + phone_number + identification_number;
+      
+      setUserImg(ToDecodeBase58([result])[0]);
+      setMainDomain(ToDecodeBase58([nation])[0]); 
+    },[])
+    
   useEffect(() => {
     (async () => {
       setCreatorSlots([]);
@@ -110,7 +126,16 @@ export default function UserPage() {
       const _creatorSlots: Array<SpaceSlot | undefined> = [];
       const _userSlots: Array<SpaceSlot> = [];
       const [_mainDomain, _subDomainIDs, _subDomainNames, _subDomainUsers] = await getAllDomainByCreator(queryAddress);
-      chainList==="FIL"? setMainDomain(_mainDomain):setMainDomain(aleoRecords.filter(t=>t.result.indexOf("identification_number")>-1)[0].result);
+      const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1)[0];
+      const name = aleoIdentity.result.match(/name: (\d+)(field.private)/)[1].substring(1);
+      const nick_name = aleoIdentity.result.match(/nick_name: (\d+)(field.private)/)[1].substring(1);
+      const phone_number = aleoIdentity.result.match(/phone_number: (\d+)(field.private)/)[1].substring(1);
+      const identification_number = aleoIdentity.result.match(/identification_number: (\d+)(field.private)/)[1].substring(1);
+       
+      // 合并提取的值
+      const result = name + nick_name + phone_number + identification_number;
+      
+      chainList==="FIL"? setMainDomain(_mainDomain):setMainDomain(aleoIdentity.filter(t=>t.result.indexOf("identification_number")>-1)[0].result);
 
       // Get all domain names created by user
       const [, , _creatorLeaseTerms] = await getDomainLeaseTermsByCreator(queryAddress);
