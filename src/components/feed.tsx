@@ -73,19 +73,15 @@ const generateFakeData = (): MomentMetadata[] => {
   Promise.all(requests)
   .then((results) => {
     results.forEach((response,i) => {
-      console.log(metadata_uri[i]);
       const timeIndex = metadata_uri[i].result.indexOf("time:");
-const u64Index = metadata_uri[i].result.indexOf("u64", timeIndex);
-const timeValue = metadata_uri[i].result.slice(timeIndex + 5, u64Index).trim();
-
-console.log(timeValue); 
-console.log(TimeAgoAgo.format(Number(timeValue)));
-
+      const u64Index = metadata_uri[i].result.indexOf("u64", timeIndex);
+      const timeValue = metadata_uri[i].result.slice(timeIndex + 5, u64Index).trim();
 
       const moment: MomentMetadata = {
         id: faker.random.uuid(),
         address: response.data.name,
         timestamp: TimeAgoAgo.format(Number(timeValue)),
+        timestamp_n: timeValue,
         metadataURL:"https://ipfs.io/ipfs/"+response.data.properties.media.cid,
         contentText: response.data.description,
         username: window.localStorage.getItem("aleoAvatarName")??"",
@@ -96,6 +92,8 @@ console.log(TimeAgoAgo.format(Number(timeValue)));
       };
       
       fakeData.push(moment);
+      fakeData.sort((a,b)=>(b?.timestamp_n??0) - (a?.timestamp_n??0))
+      
       setMoments(fakeData);
       setRefresh(!refresh)
     }); 

@@ -15,6 +15,7 @@ export interface MomentMetadata {
   id: string;
   address: string;
   timestamp: number;
+  timestamp_n?: number;
   metadataURL: string;
   contentText?: string;
   username?: string;

@@ -23,6 +23,7 @@ import axios from "axios";
 import { aleoHelper } from "@utils/helpers/aleo/aleo-helper";
 import faker from 'faker';
 import { ToDecodeBase58 } from "@utils/helpers/aleo/aleo-decode";
+import { TimeAgoAgo } from "@utils/helpers/aleo/time";
 
 interface SpaceSlot {
   id: string;
@@ -421,13 +422,15 @@ export default function UserPage() {
 
   await Promise.all(requests)
   .then((results) => {
-    results.forEach((response) => {
-      console.log(response.data);
-      
+    results.forEach((response,i) => {
+      const timeIndex = metadata_uri[i].result.indexOf("time:");
+      const u64Index = metadata_uri[i].result.indexOf("u64", timeIndex);
+      const timeValue = metadata_uri[i].result.slice(timeIndex + 5, u64Index).trim();
       const moment: MomentMetadata = {
         id: faker.random.uuid(),
         address: response.data.name,
-        timestamp: faker.date.recent().getTime(),
+        timestamp: TimeAgoAgo.format(Number(timeValue)),
+        timestamp_n: timeValue,
         metadataURL:"https://ipfs.io/ipfs/"+response.data.properties.media.cid,
         contentText: response.data.description, 
         username: window.localStorage.getItem("aleoAvatarName")??"",
@@ -441,6 +444,7 @@ export default function UserPage() {
       // setMoments(fakeData);
     }); 
   });
+  fakeData.sort((a,b)=>(b?.timestamp_n??0) - (a?.timestamp_n??0))
     
     const _tabPage = (
       <AnimatePresence>
