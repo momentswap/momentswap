@@ -78,9 +78,10 @@ function postMessagePromise(worker:any, message:any) {
 }
 
   const onClickAleoLogin = async () => {
-    if(!x1){
+    if(!aleoPK){
       return alert("please input private key")
     }
+    x3(aleoPK)
     setIsLogin(true)
     // const {remoteProgram,aleoFunction,inputs,fee,privateKey,feeRecord,url} = aleoHelper();
     // await aleo.default();
@@ -105,7 +106,7 @@ function postMessagePromise(worker:any, message:any) {
   const x3 = useAleoPrivateKey(s=>s.setAleoPrivateKey)    
   const isLogin = useAleoPrivateKey(s=>s.login)    
   const setIsLogin = useAleoPrivateKey(s=>s.setLogin)    
-
+  const [aleoPK,setAleoPK] = useState<any>(null)
   const onClk = (x: string) => {
     if (x === "ALEO") {
       ccc();
@@ -145,7 +146,11 @@ function postMessagePromise(worker:any, message:any) {
             </>
           )}
         </div>
-
+        <select onChange={(e) => onClk(e.target.value)} className="select font-bold text-sm	 select-primary w-full max-w-xs mt-2">
+          <option selected>ALEO TESTNET3</option>
+          <option>FIL</option>
+        </select>
+        <br />
         {address ? (
           <>
             <PublishButton />
@@ -226,7 +231,7 @@ function postMessagePromise(worker:any, message:any) {
             :
             <>
             <label htmlFor="my-modal" className="btn w-[100%] mb-2 mt-2">
-              SIGNATURY ALEO
+              Connect Wallet
             </label>
             
             </>
@@ -234,10 +239,7 @@ function postMessagePromise(worker:any, message:any) {
             </>
           )
         )}
-        <select onChange={(e) => onClk(e.target.value)} className="select select-primary w-full max-w-xs mt-2">
-          <option selected>ALEO</option>
-          <option>FIL</option>
-        </select>
+        
       </div>
       <input type="checkbox" id="my-modal" className="modal-toggle" />
             <div className="modal">
@@ -248,7 +250,7 @@ function postMessagePromise(worker:any, message:any) {
                   type="text"
                   placeholder="Private key"
                   className="input w-full max-w-xs"
-                  onChange={(e) => x3(e.target.value)}
+                  onChange={(e) =>setAleoPK(e.target.value)}
                 />
                 <div className="modal-action">
                   <label htmlFor="my-modal" onClick={onClickAleoLogin} className="btn">

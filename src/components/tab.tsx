@@ -29,7 +29,7 @@ export const Tab: FC<Props> = ({ tabs, activeTab, setActiveTab }) => {
   if (tabs.findIndex((t) => t === activeTab) === -1) activeTab = tabs[0];
   return (
     <div className="tabs font-semibold">
-      {tabs.map((tab) => (
+      {tabs?.map((tab) => (
         <a
           key={tab}
           className={`tab tab-bordered ${tabWidth} ${activeTab === tab ? "tab-active" : ""}`}

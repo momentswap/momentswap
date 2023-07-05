@@ -105,7 +105,7 @@ export default function UserPage() {
     });
     },[])
     useEffect(()=>{
-      const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1)[0];
+      const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1).sort((a,b)=>b.height-a.height)[0];
       const name = aleoIdentity.result.match(/name: (\d+)(field.private)/)[1].substring(1);
       const nick_name = aleoIdentity.result.match(/nick_name: (\d+)(field.private)/)[1].substring(1);
       const phone_number = aleoIdentity.result.match(/phone_number: (\d+)(field.private)/)[1].substring(1);
@@ -126,7 +126,7 @@ export default function UserPage() {
       const _creatorSlots: Array<SpaceSlot | undefined> = [];
       const _userSlots: Array<SpaceSlot> = [];
       const [_mainDomain, _subDomainIDs, _subDomainNames, _subDomainUsers] = await getAllDomainByCreator(queryAddress);
-      const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1)[0];
+      const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1).sort((a,b)=>b.height-a.height)[0];
       const name = aleoIdentity.result.match(/name: (\d+)(field.private)/)[1].substring(1);
       const nick_name = aleoIdentity.result.match(/nick_name: (\d+)(field.private)/)[1].substring(1);
       const phone_number = aleoIdentity.result.match(/phone_number: (\d+)(field.private)/)[1].substring(1);
@@ -402,7 +402,7 @@ export default function UserPage() {
   const fakeData: MomentMetadata[] = [];
     const metadata_uri = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter(t=>t.result.indexOf("metadata_uri1")>-1)
   // const metadata = metadata_uri?.map((t:any)=>t.result.split("metadata_uri1:")[1]?.split(".private")[0].split("field")[0])
-  const handledUri = ToDecodeBase58(metadata_uri.map(t=>{
+  const handledUri = ToDecodeBase58(metadata_uri?.map(t=>{
     const regex = /metadata_uri[1-5]: (\d+)[a-z.]+/g;
     let match;
     const values = [];
@@ -415,21 +415,22 @@ export default function UserPage() {
     const result = values.join('');
 
   return result;
-  })).map(t=>t.replace("ipfs://","https://ipfs.io/ipfs/"))
-  const requests = handledUri.map((address:any) => axios.get(address));
+  }))?.map(t=>t.replace("ipfs://","https://ipfs.io/ipfs/"))
+  const requests = handledUri?.map((address:any) => axios.get(address));
 
   await Promise.all(requests)
   .then((results) => {
     results.forEach((response) => {
+      console.log(response.data);
       
       const moment: MomentMetadata = {
         id: faker.random.uuid(),
         address: response.data.name,
         timestamp: faker.date.recent().getTime(),
         metadataURL:"https://ipfs.io/ipfs/"+response.data.properties.media.cid,
-        contentText: response.data.description,
-        username: response.data.description,
-        userImg: "https://ipfs.io/ipfs/"+response.data.properties.media.cid,
+        contentText: response.data.description, 
+        username: window.localStorage.getItem("aleoAvatarName")??"",
+        userImg: "https://i.seadn.io/gcs/files/06a9042df571917b3904517e89baca76.png?auto=format&dpr=1&w=640",
         media: "https://ipfs.io/ipfs/"+response.data.properties.media.cid,
         mediaType: response.data.properties.media.type,
       };
@@ -653,7 +654,7 @@ export default function UserPage() {
         </div>
         <div className="border-t-[1px] border-base-content/25">
           <AnimatePresence>
-            {creatorSlots.map((slot, index) => (
+            {creatorSlots?.map((slot, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0 }}
@@ -782,7 +783,7 @@ export default function UserPage() {
                 </div>
               ) : (
                 <AnimatePresence>
-                  {userSlots.map((slot, index) => (
+                  {userSlots?.map((slot, index) => (
                     <motion.div
                       key={index}
                       initial={{ opacity: 0 }}
@@ -925,7 +926,8 @@ export default function UserPage() {
           {/* Head  */}
           <div className="w-full h-[160px] bg-gradient-to-r from-secondary to-neutral mb-16">
             <div className="rounded-full relative top-28 left-8 w-[100px] h-[100px] bg-base-100 flex">
-              <Avatar image={userImg} seed={queryAddress} diameter={90} className="m-auto" />
+              {/* <Avatar image={userImg} seed={queryAddress} diameter={90} className="m-auto" /> */}
+              <Avatar image={"https://i.seadn.io/gcs/files/06a9042df571917b3904517e89baca76.png?auto=format&dpr=1&w=640"} seed={queryAddress} diameter={90} className="m-auto" />
             </div>
           </div>
 

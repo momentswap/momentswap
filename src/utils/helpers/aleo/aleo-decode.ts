@@ -42,10 +42,10 @@ export function stringToBase58(str) {
   }
 
   export const ToDecodeBase58=(x:any[])=>{    
-    return x.map(t=>base58ToAscii(integerToBase58(t)))
+    return x?.map(t=>base58ToAscii(integerToBase58(t)))
   }
   export const ToEncode=(x:any[])=>{    
-    return x.map(t=>base58ToInteger(stringToBase58(t)))
+    return x?.map(t=>base58ToInteger(stringToBase58(t)))
   }
 
   export function splitAndAddField(str:string, field:string, c:number=5) {

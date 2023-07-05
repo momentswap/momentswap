@@ -26,6 +26,7 @@ export const PublishModal = () => {
   const workerRef = useRef<Worker>();
   const aleoAddress = useAleoPrivateKey(s=>s.Address)
   const aleoRecords = useAleoRecords(s=>s.records)
+  const x1 = useAleoPrivateKey(s=>s.PK)    
 
   
   
@@ -62,7 +63,7 @@ export const PublishModal = () => {
 
     try {
       const metadataIPFS = await storeMetadataToIPFS(metadata);
-      const feeRecord = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("microcredits")>-1)[0];
+      const feeRecord = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("microcredits")>-1).sort((a,b)=>b.height-a.height)[0];
 
       setNotifySuccess();
       if(currentNet==="ALEO"){
@@ -116,7 +117,7 @@ export const PublishModal = () => {
           remoteProgram,
           aleoFunction:"create_public_moment",
           inputs:[...splitAndAddField(base58ToInteger(stringToBase58(metadataIPFS.toString())), "field"),new Date().getTime().toString()+"u64"],
-          privateKey,
+          privateKey:x1,
           fee: 0.1,
           feeRecord:feeRecord.result,
           url

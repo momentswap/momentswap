@@ -12,6 +12,8 @@ import { useChainList } from "src/hooks/use-chain-list";
 import { AleoLayout } from "./AleoLayout";
 import { ToDecodeBase58 } from "@utils/helpers/aleo/aleo-decode";
 import axios from "axios";
+import { TimeAgoAgo } from "@utils/helpers/aleo/time";
+
 
 export const Feed = () => {
   const [loading, setLoading] = useState<boolean>(false);
@@ -52,7 +54,7 @@ const generateFakeData = (): MomentMetadata[] => {
   const fakeData: MomentMetadata[] = [];
   const metadata_uri = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter(t=>t.result.indexOf("metadata_uri1")>-1)
   // const metadata = metadata_uri?.map((t:any)=>t.result.split("metadata_uri1:")[1]?.split(".private")[0].split("field")[0])
-  const handledUri = ToDecodeBase58(metadata_uri.map(t=>{
+  const handledUri = ToDecodeBase58(metadata_uri?.map(t=>{
     const regex = /metadata_uri[1-5]: (\d+)[a-z.]+/g;
     let match;
     const values = [];
@@ -65,21 +67,30 @@ const generateFakeData = (): MomentMetadata[] => {
     const result = values.join('');
 
   return result;
-  })).map(t=>t.replace("ipfs://","https://ipfs.io/ipfs/"))
-  const requests = handledUri.map((address:any) => axios.get(address));
+  }))?.map(t=>t.replace("ipfs://","https://ipfs.io/ipfs/"))
+  const requests = handledUri?.map((address:any) => axios.get(address));
 
   Promise.all(requests)
   .then((results) => {
-    results.forEach((response) => {
-      
+    results.forEach((response,i) => {
+      console.log(metadata_uri[i]);
+      const timeIndex = metadata_uri[i].result.indexOf("time:");
+const u64Index = metadata_uri[i].result.indexOf("u64", timeIndex);
+const timeValue = metadata_uri[i].result.slice(timeIndex + 5, u64Index).trim();
+
+console.log(timeValue); 
+console.log(TimeAgoAgo.format(Number(timeValue)));
+
+
       const moment: MomentMetadata = {
         id: faker.random.uuid(),
         address: response.data.name,
-        timestamp: faker.date.recent().getTime(),
+        timestamp: TimeAgoAgo.format(Number(timeValue)),
         metadataURL:"https://ipfs.io/ipfs/"+response.data.properties.media.cid,
         contentText: response.data.description,
-        username: response.data.description,
-        userImg: "https://ipfs.io/ipfs/"+response.data.properties.media.cid,
+        username: window.localStorage.getItem("aleoAvatarName")??"",
+        // userImg: window.localStorage.getItem("aleoAvatar") as string??"",
+        userImg: "https://i.seadn.io/gcs/files/06a9042df571917b3904517e89baca76.png?auto=format&dpr=1&w=640",
         media: "https://ipfs.io/ipfs/"+response.data.properties.media.cid,
         mediaType: response.data.properties.media.type,
       };
@@ -127,7 +138,7 @@ useEffect(()=>{
         </div>
       ) : chainNet==="FIL"?moments.length > 0 ? (
         <AnimatePresence>
-          {moments.map((moment) => (
+          {moments?.map((moment) => (
             <motion.div
               key={moment.id}
               initial={{ opacity: 0 }}

@@ -82,7 +82,8 @@ export const Moment = ({ moment }: Props) => {
               >
                 {sortAddress(moment?.address, 6)}{" "}
               </span>
-              - <RMoment fromNow>{momenttools.unix(moment?.timestamp)}</RMoment>
+              {chainList==="FIL"&& <> - <RMoment fromNow>{momenttools.unix(moment?.timestamp)}</RMoment></>}
+              {chainList==="ALEO"&& <> - {moment?.timestamp}</>}
             </p>
           </div>
 

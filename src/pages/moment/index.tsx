@@ -64,7 +64,7 @@ export default function MomentPage() {
           {moment && <Moment moment={moment} />}
           {comments.length > 0 && (
             <AnimatePresence>
-              {comments.map((comment) => (
+              {comments?.map((comment) => (
                 <motion.div
                   key={comment.id}
                   initial={{ opacity: 0 }}

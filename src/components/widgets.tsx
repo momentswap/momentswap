@@ -13,6 +13,7 @@ import axios from "axios";
 import { workerHelper, workerRecordHelper } from "@utils/helpers/aleo/worker-helper";
 import ReactDOM from "react-dom";
 import { aleoHelper } from "@utils/helpers/aleo/aleo-helper";
+import { ToDecodeBase58 } from "@utils/helpers/aleo/aleo-decode";
 
 //@ts-ignore
 
@@ -57,8 +58,9 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
 
   },[])
     useEffect(()=>{
-      
-      handleRecords()
+      if(typeof window!=="undefined"){
+        handleRecords()
+      }
     },[isLogin])
 
     useEffect(()=>{
@@ -109,6 +111,7 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
 
   const handleRecords = async (now?:string) => {
     if(started.current){return}
+    if(aleo!==null){
     
     await aleo.default() 
     const privateKey = (aleo?.PrivateKey.from_string(x1));
@@ -180,7 +183,7 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
 
       await new Promise((resolve) => setTimeout(resolve, 3000));
     }
-    
+  }
   }
 
 
@@ -255,13 +258,28 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
         }
         return x
       }
+      const imgUrl = useRef(null)
+      if(typeof window !== "undefined"){
 
-
+      const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1).sort((a,b)=>b.height-a.height)[0];
+      const name = aleoIdentity?.result.match(/name: (\d+)(field.private)/)[1].substring(1);
+      const nick_name = aleoIdentity?.result.match(/nick_name: (\d+)(field.private)/)[1].substring(1);
+      const phone_number = aleoIdentity?.result.match(/phone_number: (\d+)(field.private)/)[1].substring(1);
+      const identification_number = aleoIdentity?.result.match(/identification_number: (\d+)(field.private)/)[1].substring(1);
+      const nation = aleoIdentity?.result.match(/nation: (\d+)(field.private)/)[1].substring(1);
+       
+      // 
+      const img = name + nick_name + phone_number + identification_number;
+      imgUrl.current = img
+      window.localStorage.setItem("aleoAvatar",ToDecodeBase58([img])[0])
+      window.localStorage.setItem("aleoAvatarName",ToDecodeBase58([nation])[0])
+    }
       
     return (
       <>
       <div className="card w-96 bg-base-100 shadow-xl">
-        <figure><img src="https://bafkreia2nqgrm63pca2l7aagznrbd466qy4dker4wevcrfxmsr7algkiie.ipfs.dweb.link/" alt="Shoes" /></figure>
+        {/* <figure><img src={imgUrl.current&&ToDecodeBase58([imgUrl.current])[0].indexOf("https://")>-1?ToDecodeBase58([imgUrl.current])[0]:"https://media4.giphy.com/media/feN0YJbVs0fwA/200w.webp?cid=ecf05e4730pekuvowwjwcypkqu4a0el2bpntkw0ae7e0jvus&ep=v1_gifs_search&rid=200w.webp&ct=g"} alt="Sync loading..." /></figure> */}
+        <figure><img src={imgUrl.current&&ToDecodeBase58([imgUrl.current])[0].indexOf("https://")>-1?"https://i.seadn.io/gcs/files/06a9042df571917b3904517e89baca76.png?auto=format&dpr=1&w=640":"https://media4.giphy.com/media/feN0YJbVs0fwA/200w.webp?cid=ecf05e4730pekuvowwjwcypkqu4a0el2bpntkw0ae7e0jvus&ep=v1_gifs_search&rid=200w.webp&ct=g"} alt="Sync loading..." /></figure>
         <div className="card-body">
           <h2 className="card-title">Aleo!</h2>
           <p>Addr: {aleoAddressPub===""?"": aleoAddressPub?.slice(0,12)+"..."+aleoAddressPub?.slice(-12)}</p>
@@ -270,7 +288,7 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
             {isLogin?typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string)?.filter(t=>t.result.indexOf("nick_name")>-1)[0]?<button className="btn btn-primary">Refresh</button>:<><label
             htmlFor="identity-modal"
             className={`btn btn-primary`}
-          >
+          > 
             Register
           </label></>:<button className="btn btn-primary">SET PRIVATEKEY</button>}
           </div>
@@ -278,10 +296,10 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
 
       <Collapse className="overflow-hidden" defaultActiveKey={['1']} onChange={onChange}>
       <Panel header="Domain" key="1"> 
-      <p>{typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string)?.filter(t=>t.result.indexOf("nick_name")>-1)[0]?.result}</p>
+      <p>{typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string)?.filter(t=>t.result.indexOf("nick_name")>-1).sort((a,b)=>b.height-a.height)[0]?.result}</p>
 
       </Panel>
-      <Panel header="Aleo Record" key="2">
+      <Panel header="Assets" key="2">
         <p>{typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string)?.map(t=><div>{t.result}</div>)}</p>
       </Panel>
     </Collapse>
@@ -309,7 +327,7 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
       console.log(`Selected: ${value}`);
     };
     
-    const options = records.map(t=>({label:t.id,value:t.result}))
+    const options = records?.map(t=>({label:t.id,value:t.result}))
     const onFinish = (values: any) => {
       console.log(values);
       
@@ -475,13 +493,13 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
           />
         </div>
       </div>
-      {chainList==="ALEO"&&<AleoWalletCard/>}
+      {chainList==="ALEO"&&x1&&<AleoWalletCard/>}
       {aleoLoading&&<LoadingCard/>}
       {/* <LoadingCard/> */}
       <div className="text-gray-700 space-y-3 bg-gray-100 rounded-xl pt-2 w-[90%]">
         <h4 className="font-bold text-xl px-4">Whats happening</h4>
         <AnimatePresence>
-          {newsResults?.slice(0, articleNum).map((article: { title: Key | null | undefined }) => (
+          {newsResults?.slice(0, articleNum)?.map((article: { title: Key | null | undefined }) => (
             <motion.div
               key={article.title}
               initial={{ opacity: 0 }}
@@ -500,7 +518,7 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
       <div className="sticky top-16 text-gray-700 space-y-3 bg-gray-100 pt-2 rounded-xl w-[90%]">
         <h4 className="font-bold text-xl px-4">Who to follow</h4>
         <AnimatePresence>
-          {randomUsersResults?.slice(0, randomUserNum).map((randomUser: any) => (
+          {randomUsersResults?.slice(0, randomUserNum)?.map((randomUser: any) => (
             <motion.div
               key={randomUser.login.username}
               initial={{ opacity: 0 }}

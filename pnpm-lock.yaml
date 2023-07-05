@@ -32,8 +32,6 @@ specifiers:
   axios: ^1.4.0
   babel-cli: ^6.26.0
   babel-plugin-styled-components: ^2.0.7
-  base58: ^2.0.1
-  base58-js: ^2.0.0
   big-integer: ^1.6.51
   bs58: ^5.0.0
   chai: ^4.2.0
@@ -49,6 +47,7 @@ specifiers:
   hardhat: ^2.12.7
   hardhat-gas-reporter: ^1.0.8
   hover.css: ^2.3.2
+  javascript-time-ago: ^2.5.9
   js-sha256: ^0.9.0
   next: 13.4.4
   nft.storage: ^7.0.0
@@ -89,8 +88,6 @@ dependencies:
   antd: 5.5.1_biqbaboplfbrettd7655fr4n2y
   axios: 1.4.0
   babel-cli: 6.26.0
-  base58: 2.0.1
-  base58-js: 2.0.0
   big-integer: 1.6.51
   bs58: 5.0.0
   classnames: 2.3.2
@@ -101,6 +98,7 @@ dependencies:
   faker: 6.6.6
   framer-motion: 8.5.5_biqbaboplfbrettd7655fr4n2y
   hover.css: 2.3.2
+  javascript-time-ago: 2.5.9
   js-sha256: 0.9.0
   next: 13.4.4_d4ezbskvszbz55cyacmqoxg7ey
   nft.storage: 7.1.0
@@ -3982,16 +3980,6 @@ packages:
     dev: false
     optional: true
 
-  /base58-js/2.0.0:
-    resolution: {integrity: sha512-nAV5d32QXuGcGptSApkKpC1gGakWBnfJMNjKrYTBh4tb0szfZF+ooueFLy8T4VrY+o4SrE/TyrtUnRZcwZchaA==}
-    engines: {node: '>= 8'}
-    dev: false
-
-  /base58/2.0.1:
-    resolution: {integrity: sha512-qK6gt2fMSxN2xGOi+btI5oAnXL+vEq0AsHWHhf5jfm2hE6MwmW+2414qF96utV3Xfg3En8hEA9Q4lif4lbXcgw==}
-    engines: {node: '>= 6'}
-    dev: false
-
   /base64-js/1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
 
@@ -7765,6 +7753,12 @@ packages:
       readable-stream: 3.6.2
     dev: false
 
+  /javascript-time-ago/2.5.9:
+    resolution: {integrity: sha512-pQ8mNco/9g9TqWXWWjP0EWl6i/lAQScOyEeXy5AB+f7MfLSdgyV9BJhiOD1zrIac/lrxPYOWNbyl/IW8CW5n0A==}
+    dependencies:
+      relative-time-format: 1.1.6
+    dev: false
+
   /jiti/1.18.2:
     resolution: {integrity: sha512-QAdOptna2NYiSSpv0O/BwoHBSmz4YhpzJHyi+fnMRTXFjp7B8i/YG5Z8IfusxB1ufjcD2Sre1F3R+nX3fvy7gg==}
     hasBin: true
@@ -10510,6 +10504,10 @@ packages:
     dependencies:
       jsesc: 0.5.0
     dev: true
+
+  /relative-time-format/1.1.6:
+    resolution: {integrity: sha512-aCv3juQw4hT1/P/OrVltKWLlp15eW1GRcwP1XdxHrPdZE9MtgqFpegjnTjLhi2m2WI9MT/hQQtE+tjEWG1hgkQ==}
+    dev: false
 
   /remove-trailing-separator/1.1.0:
     resolution: {integrity: sha512-/hS+Y0u3aOfIETiaiirUFwDBDzmXPvO+jAfKTitUngIPzdKc6Z0LoFjM/CK5PL4C+eKwHohlHAb6H0VFfmmUsw==}
