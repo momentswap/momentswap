@@ -115,8 +115,8 @@ export default function UserPage() {
       // 合并提取的值
       const result = name + nick_name + phone_number + identification_number;
       
-      setUserImg(ToDecodeBase58([result])[0]);
-      setMainDomain(ToDecodeBase58([nation])[0]); 
+      result && setUserImg(ToDecodeBase58([result])[0]);
+      nation && setMainDomain(ToDecodeBase58([nation])[0]); 
     },[])
     
   useEffect(() => {
@@ -402,6 +402,7 @@ export default function UserPage() {
   const fakeData: MomentMetadata[] = [];
     const metadata_uri = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter(t=>t.result.indexOf("metadata_uri1")>-1)
   // const metadata = metadata_uri?.map((t:any)=>t.result.split("metadata_uri1:")[1]?.split(".private")[0].split("field")[0])
+  if(metadata_uri.length===0){return}
   const handledUri = ToDecodeBase58(metadata_uri?.map(t=>{
     const regex = /metadata_uri[1-5]: (\d+)[a-z.]+/g;
     let match;

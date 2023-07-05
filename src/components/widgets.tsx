@@ -271,8 +271,8 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
       // 
       const img = name + nick_name + phone_number + identification_number;
       imgUrl.current = img
-      window.localStorage.setItem("aleoAvatar",ToDecodeBase58([img])[0])
-      window.localStorage.setItem("aleoAvatarName",ToDecodeBase58([nation])[0])
+      img&&window.localStorage.setItem("aleoAvatar",ToDecodeBase58([img])[0])
+      nation&&window.localStorage.setItem("aleoAvatarName",ToDecodeBase58([nation])[0])
     }
       
     return (
