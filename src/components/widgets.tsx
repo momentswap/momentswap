@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { Footer, News } from "@components";
 import { searchKeyState } from "src/atom";
 import { useAleoLoading, useAleoPrivateKey, useAleoRecords, useChainList } from "src/hooks/use-chain-list";
-import { Collapse,Button, Form, Input, InputNumber,Select,Option } from "antd";
+import { Collapse, Button, Form, Input, InputNumber, Select, Option } from "antd";
 import axios from "axios";
 import { workerHelper, workerRecordHelper } from "@utils/helpers/aleo/worker-helper";
 import ReactDOM from "react-dom";
@@ -22,58 +22,58 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
   const [_searchKey, _setSearchKey] = useState("");
   const [randomUserNum, setRandomUserNum] = useState(3);
   const [searchKey, setSearchKey] = useRecoilState(searchKeyState);
-  const [aleo,setAleo] = useState<any>(null)
-  const [records,setRecords] = useState<any>(null)
-  const [loadingRegister,setLoadingRegister] = useState(true)
+  const [aleo, setAleo] = useState<any>(null)
+  const [records, setRecords] = useState<any>(null)
+  const [loadingRegister, setLoadingRegister] = useState(true)
   const started = useRef(false);
-  const isLogin = useAleoPrivateKey(s=>s.login)    
-  useEffect(()=>{
+  const isLogin = useAleoPrivateKey(s => s.login)
+  useEffect(() => {
     setAleoRecords(records)
-  },[records])
+  }, [records])
   useEffect(() => {
     _setSearchKey(searchKey);
   }, [searchKey]);
 
-  const chainList = useChainList(s=>s.TYPE)
-  const setIsLogin = useAleoPrivateKey(s=>s.setLogin)    
-  const setAleoLoading = useAleoLoading(s=>s.setLoading)
-  const aleoLoading = useAleoLoading(s=>s.loading)
-  const setAleoRecords = useAleoRecords(s=>s.setRecords)
-  const aleoRecords = useAleoRecords(s=>s.records)
+  const chainList = useChainList(s => s.TYPE)
+  const setIsLogin = useAleoPrivateKey(s => s.setLogin)
+  const setAleoLoading = useAleoLoading(s => s.setLoading)
+  const aleoLoading = useAleoLoading(s => s.loading)
+  const setAleoRecords = useAleoRecords(s => s.setRecords)
+  const aleoRecords = useAleoRecords(s => s.records)
 
   const workerRef = useRef<Worker>();
   const workerExecRef = useRef<Worker>();
-  const x1 = useAleoPrivateKey(s=>s.PK)    
-  const setAleoAddress = useAleoPrivateKey(s=>s.setAleoAddress)   
-  const [rqPage,setRqPage] = useState(1)
-  
+  const x1 = useAleoPrivateKey(s => s.PK)
+  const setAleoAddress = useAleoPrivateKey(s => s.setAleoAddress)
+  const [rqPage, setRqPage] = useState(1)
+
   console.log("---------------------------------------------------");
-  const handleClick =  () => {
+  const handleClick = () => {
     //@ts-ignore
-    import('aleo-wasm-swift-decrypt-record').then(module =>  setAleo(module));
+    import('aleo-wasm-swift-decrypt-record').then(module => setAleo(module));
   };
-  useEffect(()=>{
+  useEffect(() => {
     handleClick()
     spawnWorker()
 
-  },[])
-    useEffect(()=>{
-      if(typeof window!=="undefined"){
-        handleRecords()
-      }
-    },[isLogin])
+  }, [])
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      handleRecords()
+    }
+  }, [isLogin])
 
-    useEffect(()=>{
-      (async function() {
-      aleo&&await aleo.default()
-      typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string)&&typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string).forEach((t,i) => {
-        const s = aleo?.PrivateKey?.from_string(x1).decryptrecords(JSON.stringify([{record_ciphertext:t.record_ciphertext,sn_id:t.sn_id}]))
-        
-        s&&axios.get('https://vm.aleo.org/api/testnet3/find/transitionID/'+ (JSON.parse(s)[0].sn_id)).then(e=>{
-          console.log(e,"is used");
+  useEffect(() => {
+    (async function () {
+      aleo && await aleo.default()
+      typeof window !== "undefined" && JSON.parse(window?.localStorage.getItem("aleoRecords") as string) && typeof window !== "undefined" && JSON.parse(window?.localStorage.getItem("aleoRecords") as string).forEach((t, i) => {
+        const s = aleo?.PrivateKey?.from_string(x1).decryptrecords(JSON.stringify([{ record_ciphertext: t.record_ciphertext, sn_id: t.sn_id }]))
+
+        s && axios.get('https://vm.aleo.org/api/testnet3/find/transitionID/' + (JSON.parse(s)[0].sn_id)).then(e => {
+          console.log(e, "is used");
           var request = indexedDB.open('aleoDB', 1);
 
-          request.onsuccess = function(event:any) {
+          request.onsuccess = function (event: any) {
             var db = event.target.result;
 
             var transaction = db.transaction(['AleoStore'], 'readwrite');
@@ -81,394 +81,375 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
 
             var deleteRequest = store.delete(t.id);
 
-            deleteRequest.onsuccess = function(event) {
+            deleteRequest.onsuccess = function (event) {
               console.log('success');
             };
 
-            deleteRequest.onerror = function(event) {
+            deleteRequest.onerror = function (event) {
               console.log('fail');
             };
 
-            transaction.oncomplete = function() {
+            transaction.oncomplete = function () {
               db.close();
             };
           };
 
-          request.onerror = function(event) {
+          request.onerror = function (event) {
             console.log('open db error');
           };
         })
       });
     }())
 
-    })
+  })
 
-  const spawnWorker = useCallback(()=> {
+  const spawnWorker = useCallback(() => {
     workerRef.current = workerRecordHelper();
     workerExecRef.current = workerHelper();
-  },[])
+  }, [])
 
 
-  const handleRecords = async (now?:string) => {
-    if(started.current){return}
-    if(aleo!==null){
-    
-    await aleo.default() 
-    const privateKey = (aleo?.PrivateKey.from_string(x1));
+  const handleRecords = async (now?: string) => {
+    if (started.current) { return }
+    if (aleo !== null) {
 
-    const viewKey = privateKey?.to_view_key().to_string();
-    const v = aleo?.ViewKey.from_string(viewKey);
-    const address = privateKey?.to_address().to_string();
-    address&&setAleoAddress(address)
-    address&&window.localStorage.setItem("aleoAddress",address)
-    
-    
-    let page 
-    if(window.localStorage.getItem("aleoHeight")){
-      page = parseInt(window.localStorage.getItem("aleoHeight") as string)
-    }else{
-      page = 0
-    }
-    // setAleoLoading(true)
+      await aleo.default()
+      const privateKey = (aleo?.PrivateKey.from_string(x1));
 
-    while (true) {
-      started.current = true;
-      const height = await axios.get('https://vm.aleo.org/api/testnet3/latest/height').then(e=>(e.data))
-      console.log("current height: "+height);
-      const response:any = await axios.get('http://localhost:8080/records', {
-        params: {
-          start_block: page,
-          end_block: page+1000,
+      const viewKey = privateKey?.to_view_key().to_string();
+      const v = aleo?.ViewKey.from_string(viewKey);
+      const address = privateKey?.to_address().to_string();
+      address && setAleoAddress(address)
+      address && window.localStorage.setItem("aleoAddress", address)
+
+
+      let page
+      if (window.localStorage.getItem("aleoHeight")) {
+        page = parseInt(window.localStorage.getItem("aleoHeight") as string)
+      } else {
+        page = 0
+      }
+      // setAleoLoading(true)
+
+      while (true) {
+        started.current = true;
+        const height = await axios.get('https://vm.aleo.org/api/testnet3/latest/height').then(e => (e.data))
+        console.log("current height: " + height);
+        const response: any = await axios.get('http://58.246.225.150:38015/records', {
+          params: {
+            start_block: page,
+            end_block: page + 1000,
+          }
+        });
+        if (response.data.length === 0) {
+
+          page > height ? window.localStorage.setItem("aleoHeight", height.toString()) : window.localStorage.setItem("aleoHeight", page.toString())
+
         }
-      });
-      if(response.data.length===0){
-
-        page>height? window.localStorage.setItem("aleoHeight",height.toString()): window.localStorage.setItem("aleoHeight",page.toString())
-        // const regex = /(\w+)\s*:\s*([^\s,]+)/g;
-        // const dominNFT:any = []
-        // records.forEach(t => {
-
-        //   let match;
-        //   const parsedObject:any = {};
-
-        //   while ((match = regex.exec(t.result)) !== null) {
-        //     const propertyName = match[1];
-        //     const propertyValue = match[2];
-        //     parsedObject[propertyName] = propertyValue;
-        //   }
-        //   parsedObject?.name&&dominNFT.push(parsedObject.name)
-
-        // });
-        // if(dominNFT.length===0){
-        //   setLoadingRegister(false)
-        // }else{
-        //   setAleoLoading(false)
-        // }
-
-      }
-        window.localStorage.setItem("aleoHeight",page.toString())
-        response.data.length>1?page = response.data[response.data.length-1].height:page
+        window.localStorage.setItem("aleoHeight", page.toString())
+        response.data.length > 1 ? page = response.data[response.data.length - 1].height : page
         setRqPage(page)
-      try {
-        const task = {viewKey,address,response:response.data,privateKey:x1};      
-        workerRef.current?.postMessage(task);
-      } catch (error) {
-        return;
-      }
-  
-      console.log(page);
-      // page+1000>height?page:page += 1000;
-      
-      delete response.data 
+        try {
+          const task = { viewKey, address, response: response.data, privateKey: x1 };
+          workerRef.current?.postMessage(task);
+        } catch (error) {
+          return;
+        }
 
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+        console.log(page);
+        // page+1000>height?page:page += 1000;
+
+        delete response.data
+
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+      }
     }
   }
-  }
 
 
-  function AleoWalletCard(){
-    const aleoAddress = useAleoPrivateKey(s=>s.Address)    
-    const [aleoAddressPub,setAleoAddressPub] = useState("")
+  function AleoWalletCard() {
+    const aleoAddress = useAleoPrivateKey(s => s.Address)
+    const [aleoAddressPub, setAleoAddressPub] = useState("")
 
     const { Panel } = Collapse;
-   
-    
-    
-    
-      useEffect(()=>{
-          handleGetRecords()
-          // setAleoRecords(JSON.parse(window.localStorage.getItem("aleoRecords") as string??"[]"))
-      },[rqPage])
-      useEffect(()=>{
-        handleAddr()
-      },[])
 
 
-      const handleGetRecords = useCallback(()=>{
-        var request = indexedDB.open('aleoDB', 1);
 
-        request.onupgradeneeded = function(event:any) {
-          const db = event.target?.result;
-        
-          if (!db.objectStoreNames.contains("AleoStore")) {
-              db.createObjectStore("AleoStore", { keyPath: "id" });
-          }
-        };
-        request.onsuccess = function(event:any) {
-          var db = event.target.result;
 
-          var transaction = db.transaction(['AleoStore'], 'readonly');
-          var objectStore = transaction.objectStore('AleoStore');
-    
+    useEffect(() => {
+      handleGetRecords()
+      // setAleoRecords(JSON.parse(window.localStorage.getItem("aleoRecords") as string??"[]"))
+    }, [rqPage])
+    useEffect(() => {
+      handleAddr()
+    }, [])
 
-          var getDataRequest = objectStore.getAll();
-          
-          getDataRequest.onsuccess = function(event:any) {
-            var data = event.target.result;
-            window.localStorage.setItem("aleoRecords",JSON.stringify(data))
-            setTimeout(()=>{
+
+    const handleGetRecords = useCallback(() => {
+      var request = indexedDB.open('aleoDB', 1);
+
+      request.onupgradeneeded = function (event: any) {
+        const db = event.target?.result;
+
+        if (!db.objectStoreNames.contains("AleoStore")) {
+          db.createObjectStore("AleoStore", { keyPath: "id" });
+        }
+      };
+      request.onsuccess = function (event: any) {
+        var db = event.target.result;
+
+        var transaction = db.transaction(['AleoStore'], 'readonly');
+        var objectStore = transaction.objectStore('AleoStore');
+
+
+        var getDataRequest = objectStore.getAll();
+
+        getDataRequest.onsuccess = function (event: any) {
+          var data = event.target.result;
+          window.localStorage.setItem("aleoRecords", JSON.stringify(data))
+          setTimeout(() => {
 
             // setRecords(data);
 
-            },5000)
-          };
-          transaction.oncomplete = function(event:any) {
-            db.close(); 
-          };
+          }, 5000)
         };
-      },[])
-      
+        transaction.oncomplete = function (event: any) {
+          db.close();
+        };
+      };
+    }, [])
 
-    
+
+
     const handleAddr = async () => {
-      aleo&&await aleo.default()
+      aleo && await aleo.default()
       const privateKey = (aleo?.PrivateKey?.from_string(x1));
 
       setAleoAddressPub(privateKey?.to_address().to_string());
-      
+
     }
 
-      const onChange = (key: string | string[]) => {
-        console.log(key);
-      };
-      const longWord=(x:string)=>{
-        if(x.length>30){
-          return x.slice(0,15)+"..."+x.slice(-15)
-        }
-        return x
+    const onChange = (key: string | string[]) => {
+      console.log(key);
+    };
+    const longWord = (x: string) => {
+      if (x.length > 30) {
+        return x.slice(0, 15) + "..." + x.slice(-15)
       }
-      const imgUrl = useRef(null)
-      if(typeof window !== "undefined"){
+      return x
+    }
+    const imgUrl = useRef(null)
+    if (typeof window !== "undefined") {
 
-      const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1).sort((a,b)=>b.height-a.height)[0];
+      const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t: any) => t.result.indexOf("nick_name") > -1).sort((a, b) => b.height - a.height)[0];
       const name = aleoIdentity?.result.match(/name: (\d+)(field.private)/)[1].substring(1);
       const nick_name = aleoIdentity?.result.match(/nick_name: (\d+)(field.private)/)[1].substring(1);
       const phone_number = aleoIdentity?.result.match(/phone_number: (\d+)(field.private)/)[1].substring(1);
       const identification_number = aleoIdentity?.result.match(/identification_number: (\d+)(field.private)/)[1].substring(1);
       const nation = aleoIdentity?.result.match(/nation: (\d+)(field.private)/)[1].substring(1);
-       
+
       // 
       const img = name + nick_name + phone_number + identification_number;
       imgUrl.current = img
-      img&&window.localStorage.setItem("aleoAvatar",ToDecodeBase58([img])[0])
-      nation&&window.localStorage.setItem("aleoAvatarName",ToDecodeBase58([nation])[0])
+      img && window.localStorage.setItem("aleoAvatar", ToDecodeBase58([img])[0])
+      nation && window.localStorage.setItem("aleoAvatarName", ToDecodeBase58([nation])[0])
     }
-      
+
     return (
       <>
-      <div className="card w-96 bg-base-100 shadow-xl">
-        {/* <figure><img src={imgUrl.current&&ToDecodeBase58([imgUrl.current])[0].indexOf("https://")>-1?ToDecodeBase58([imgUrl.current])[0]:"https://media4.giphy.com/media/feN0YJbVs0fwA/200w.webp?cid=ecf05e4730pekuvowwjwcypkqu4a0el2bpntkw0ae7e0jvus&ep=v1_gifs_search&rid=200w.webp&ct=g"} alt="Sync loading..." /></figure> */}
-        <figure><img src={imgUrl.current&&ToDecodeBase58([imgUrl.current])[0].indexOf("https://")>-1?"https://i.seadn.io/gcs/files/06a9042df571917b3904517e89baca76.png?auto=format&dpr=1&w=640":"https://media4.giphy.com/media/feN0YJbVs0fwA/200w.webp?cid=ecf05e4730pekuvowwjwcypkqu4a0el2bpntkw0ae7e0jvus&ep=v1_gifs_search&rid=200w.webp&ct=g"} alt="Sync loading..." /></figure>
-        <div className="card-body">
-          <h2 className="card-title">Aleo!</h2>
-          <p>Addr: {aleoAddressPub===""?"": aleoAddressPub?.slice(0,12)+"..."+aleoAddressPub?.slice(-12)}</p>
-          <div className="card-actions justify-end">
-            <Link href={"/user"}> <button className="btn btn-primary">Profile</button></Link>
-            {isLogin?typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string)?.filter(t=>t.result.indexOf("nick_name")>-1)[0]?<button className="btn btn-primary">Refresh</button>:<><label
-            htmlFor="identity-modal"
-            className={`btn btn-primary`}
-          > 
-            Register
-          </label></>:<button className="btn btn-primary">SET PRIVATEKEY</button>}
+        <div className="card w-96 bg-base-100 shadow-xl">
+          {/* <figure><img src={imgUrl.current&&ToDecodeBase58([imgUrl.current])[0].indexOf("https://")>-1?ToDecodeBase58([imgUrl.current])[0]:"https://media4.giphy.com/media/feN0YJbVs0fwA/200w.webp?cid=ecf05e4730pekuvowwjwcypkqu4a0el2bpntkw0ae7e0jvus&ep=v1_gifs_search&rid=200w.webp&ct=g"} alt="Sync loading..." /></figure> */}
+          <figure><img src={imgUrl.current && ToDecodeBase58([imgUrl.current])[0].indexOf("https://") > -1 ? "https://i.seadn.io/gcs/files/06a9042df571917b3904517e89baca76.png?auto=format&dpr=1&w=640" : "https://media4.giphy.com/media/feN0YJbVs0fwA/200w.webp?cid=ecf05e4730pekuvowwjwcypkqu4a0el2bpntkw0ae7e0jvus&ep=v1_gifs_search&rid=200w.webp&ct=g"} alt="Sync loading..." /></figure>
+          <div className="card-body">
+            <h2 className="card-title">Aleo!</h2>
+            <p>Addr: {aleoAddressPub === "" ? "" : aleoAddressPub?.slice(0, 12) + "..." + aleoAddressPub?.slice(-12)}</p>
+            <div className="card-actions justify-end">
+              <Link href={"/user"}> <button className="btn btn-primary">Profile</button></Link>
+              {isLogin ? typeof window !== "undefined" && JSON.parse(window?.localStorage.getItem("aleoRecords") as string)?.filter(t => t.result.indexOf("nick_name") > -1)[0] ? <button className="btn btn-primary">Refresh</button> : <><label
+                htmlFor="identity-modal"
+                className={`btn btn-primary`}
+              >
+                Register
+              </label></> : <button className="btn btn-primary">SET PRIVATEKEY</button>}
+            </div>
           </div>
+
+          <Collapse className="overflow-hidden" defaultActiveKey={['1']} onChange={onChange}>
+            <Panel header="Domain" key="1">
+              <p>{typeof window !== "undefined" && JSON.parse(window?.localStorage.getItem("aleoRecords") as string)?.filter(t => t.result.indexOf("nick_name") > -1).sort((a, b) => b.height - a.height)[0]?.result}</p>
+
+            </Panel>
+            <Panel header="Assets" key="2">
+              <p>{typeof window !== "undefined" && JSON.parse(window?.localStorage.getItem("aleoRecords") as string)?.map(t => <div>{t.result}</div>)}</p>
+            </Panel>
+          </Collapse>
         </div>
-
-      <Collapse className="overflow-hidden" defaultActiveKey={['1']} onChange={onChange}>
-      <Panel header="Domain" key="1"> 
-      <p>{typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string)?.filter(t=>t.result.indexOf("nick_name")>-1).sort((a,b)=>b.height-a.height)[0]?.result}</p>
-
-      </Panel>
-      <Panel header="Assets" key="2">
-        <p>{typeof window !== "undefined"&&JSON.parse(window?.localStorage.getItem("aleoRecords") as string)?.map(t=><div>{t.result}</div>)}</p>
-      </Panel>
-    </Collapse>
-      </div>
       </>
 
     )
   }
 
-  const LoadingCard=()=>{
-    const [feeRecords,setFeeRecords] = useState<any>([])
+  const LoadingCard = () => {
+    const [feeRecords, setFeeRecords] = useState<any>([])
     const workerExecRef = useRef<Worker>();
 
-    const x1 = useAleoPrivateKey(s=>s.PK)    
+    const x1 = useAleoPrivateKey(s => s.PK)
 
 
-   
+
     const layout = {
       labelCol: { span: 8 },
       wrapperCol: { span: 16 },
     };
-    
+
     const handleChange = (value: string | string[]) => {
       setFeeRecords(value)
       console.log(`Selected: ${value}`);
     };
-    
-    const options = records?.map(t=>({label:t.id,value:t.result}))
+
+    const options = records?.map(t => ({ label: t.id, value: t.result }))
     const onFinish = (values: any) => {
       console.log(values);
-      
+
       setLoadingRegister(true)
       let selectedRecord = values.record
 
       workerExecRef.current = workerHelper();
       workerExecRef.current.addEventListener("message", ev => {
         if (ev.data.type == 'EXECUTION_TRANSACTION_COMPLETED') {
-            axios.post("https://vm.aleo.org/api" + "/testnet3/transaction/broadcast", ev.data.executeTransaction, {
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            }).then(
-                (response:any) => {
-                  options.forEach((t:any)=>{t.value===selectedRecord&&
-                    console.log(t.id);
-                    var request = indexedDB.open('aleoDB', 1);
+          axios.post("https://vm.aleo.org/api" + "/testnet3/transaction/broadcast", ev.data.executeTransaction, {
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          }).then(
+            (response: any) => {
+              options.forEach((t: any) => {
+                t.value === selectedRecord &&
+                  console.log(t.id);
+                var request = indexedDB.open('aleoDB', 1);
 
-                    request.onsuccess = function(event:any) {
-                      var db = event.target.result;
+                request.onsuccess = function (event: any) {
+                  var db = event.target.result;
 
-                      var transaction = db.transaction(['AleoStore'], 'readwrite');
-                      var store = transaction.objectStore('AleoStore');
+                  var transaction = db.transaction(['AleoStore'], 'readwrite');
+                  var store = transaction.objectStore('AleoStore');
 
-                      var deleteRequest = store.delete(t.id);
+                  var deleteRequest = store.delete(t.id);
 
-                      deleteRequest.onsuccess = function(event) {
-                        console.log('success');
-                      };
+                  deleteRequest.onsuccess = function (event) {
+                    console.log('success');
+                  };
 
-                      deleteRequest.onerror = function(event) {
-                        console.log('fail');
-                      };
+                  deleteRequest.onerror = function (event) {
+                    console.log('fail');
+                  };
 
-                      transaction.oncomplete = function() {
-                        db.close();
-                      };
-                    };
+                  transaction.oncomplete = function () {
+                    db.close();
+                  };
+                };
 
-                    request.onerror = function(event) {
-                      console.log('open db error');
-                    };
-                    
-                  })
-                    setAleoLoading(false)
-                    console.log(response.data);
-                }
-            )
+                request.onerror = function (event) {
+                  console.log('open db error');
+                };
+
+              })
+              setAleoLoading(false)
+              console.log(response.data);
+            }
+          )
         } else if (ev.data.type == 'ERROR') {
-            alert(ev.data.errorMessage);
-            console.log(ev.data.errorMessage);
-            setAleoLoading(false)
+          alert(ev.data.errorMessage);
+          console.log(ev.data.errorMessage);
+          setAleoLoading(false)
         }
-    });
+      });
       const privateKey = (aleo.PrivateKey.from_string(x1));
 
-      const {remoteProgram,aleoFunction,inputs,feeRecord,url} = aleoHelper()
-      const formInputs =  Object.values({
-        creator: values.aleo.creator, 
-          name: values.aleo.name+"field",
-          nick_name: values.aleo.nick_name+"field", 
-          phone_number: values.aleo.phone_number+"field",
-          identification_number: values.aleo.identification_number+"field", 
-          nation: values.aleo.nation+"field",
+      const { remoteProgram, aleoFunction, inputs, feeRecord, url } = aleoHelper()
+      const formInputs = Object.values({
+        creator: values.aleo.creator,
+        name: values.aleo.name + "field",
+        nick_name: values.aleo.nick_name + "field",
+        phone_number: values.aleo.phone_number + "field",
+        identification_number: values.aleo.identification_number + "field",
+        nation: values.aleo.nation + "field",
 
       })
-     
+
       workerExecRef.current?.postMessage({
-          type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
-          remoteProgram,
-          aleoFunction,
-          inputs:formInputs,
-          privateKey:x1,
-          fee: 0.1,
-          feeRecord:selectedRecord,
-          url
-        });
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction,
+        inputs: formInputs,
+        privateKey: x1,
+        fee: 0.1,
+        feeRecord: selectedRecord,
+        url
+      });
     };
 
 
 
     if (typeof window === 'object') {
-    return ReactDOM.createPortal(<>
-      <div className="fixed inset-0 bg-gray-900/90  fixed z-10 flex justify-center items-center flex-col	">
-        {!loadingRegister?
-      // <Form
-      //   {...layout}
-      //   name="nest-messages"
-      //   onFinish={onFinish}
-      //   style={{ maxWidth: 600 ,color:"white"}}
-      //   validateMessages={{}}
-      // >
-      //     <Form.Item name={['aleo', 'creator']} style={{color:"white"}} label="Creator" rules={[{ required: true }]}>
-      //       <Input />
-      //     </Form.Item>
-      //     <Form.Item name={['aleo', 'name']} label="Name" rules={[{ required: true }]}>
-      //       <Input />
-      //     </Form.Item>
-      //     <Form.Item name={['aleo', 'nick_name']} label="Nick Name" rules={[{ required: true }]}>
-      //       <Input />
-      //     </Form.Item>
-      //     <Form.Item name={['aleo', 'phone_number']} label="Phone Number" rules={[{ required: true }]}>
-      //       <Input />
-      //     </Form.Item>
-      //     <Form.Item name={['aleo', 'identification_number']} label="Identification Number" rules={[{ required: true }]}>
-      //     <Input />
-      //     </Form.Item>
-      //     <Form.Item name={['aleo', 'nation']} label="Nation" rules={[{ required: true }]}>
-      //     <Input />
-      //     </Form.Item>
-      //     <Form.Item name={['aleo', 'fee']} placeholder="s" label="Fee" rules={[{ required: true }]}>
-      //     <InputNumber />
-      //     </Form.Item>
-      //     <Form.Item name="record" label="Record" rules={[{ required: true }]}>
-      //     <Select
-      //     size={"middle"}
-      //     defaultValue="Select a Record"
-      //     onChange={handleChange}
-      //     style={{ width: 200 }}
-      //     options={options}
-      //   />
-      //     </Form.Item>
-      //     <Form.Item wrapperCol={{ ...layout.wrapperCol, offset: 8 }}>
-      //       <Button style={{background:"lightblue"}} type="primary" htmlType="submit">
-      //         Register
-      //       </Button>
-      //     </Form.Item>
-      //  </Form>
-      <></>
-        :
-      <div role="status">
-      <svg aria-hidden="true" className="w-8 h-8 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
-          <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
-      </svg>
-        <span className="sr-only">Loading...</span>
-    </div>}
-      </div>
-    </>,document?.getElementById("__next") as HTMLElement)
-    }else{
+      return ReactDOM.createPortal(<>
+        <div className="fixed inset-0 bg-gray-900/90  fixed z-10 flex justify-center items-center flex-col	">
+          {!loadingRegister ?
+            // <Form
+            //   {...layout}
+            //   name="nest-messages"
+            //   onFinish={onFinish}
+            //   style={{ maxWidth: 600 ,color:"white"}}
+            //   validateMessages={{}}
+            // >
+            //     <Form.Item name={['aleo', 'creator']} style={{color:"white"}} label="Creator" rules={[{ required: true }]}>
+            //       <Input />
+            //     </Form.Item>
+            //     <Form.Item name={['aleo', 'name']} label="Name" rules={[{ required: true }]}>
+            //       <Input />
+            //     </Form.Item>
+            //     <Form.Item name={['aleo', 'nick_name']} label="Nick Name" rules={[{ required: true }]}>
+            //       <Input />
+            //     </Form.Item>
+            //     <Form.Item name={['aleo', 'phone_number']} label="Phone Number" rules={[{ required: true }]}>
+            //       <Input />
+            //     </Form.Item>
+            //     <Form.Item name={['aleo', 'identification_number']} label="Identification Number" rules={[{ required: true }]}>
+            //     <Input />
+            //     </Form.Item>
+            //     <Form.Item name={['aleo', 'nation']} label="Nation" rules={[{ required: true }]}>
+            //     <Input />
+            //     </Form.Item>
+            //     <Form.Item name={['aleo', 'fee']} placeholder="s" label="Fee" rules={[{ required: true }]}>
+            //     <InputNumber />
+            //     </Form.Item>
+            //     <Form.Item name="record" label="Record" rules={[{ required: true }]}>
+            //     <Select
+            //     size={"middle"}
+            //     defaultValue="Select a Record"
+            //     onChange={handleChange}
+            //     style={{ width: 200 }}
+            //     options={options}
+            //   />
+            //     </Form.Item>
+            //     <Form.Item wrapperCol={{ ...layout.wrapperCol, offset: 8 }}>
+            //       <Button style={{background:"lightblue"}} type="primary" htmlType="submit">
+            //         Register
+            //       </Button>
+            //     </Form.Item>
+            //  </Form>
+            <></>
+            :
+            <div role="status">
+              <svg aria-hidden="true" className="w-8 h-8 mr-2 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor" />
+                <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill" />
+              </svg>
+              <span className="sr-only">Loading...</span>
+            </div>}
+        </div>
+      </>, document?.getElementById("__next") as HTMLElement)
+    } else {
       return <></>
     }
   }
@@ -493,8 +474,8 @@ export const Widgets = ({ newsResults, randomUsersResults }: any) => {
           />
         </div>
       </div>
-      {chainList==="ALEO"&&x1&&<AleoWalletCard/>}
-      {aleoLoading&&<LoadingCard/>}
+      {chainList === "ALEO" && x1 && <AleoWalletCard />}
+      {aleoLoading && <LoadingCard />}
       {/* <LoadingCard/> */}
       <div className="text-gray-700 space-y-3 bg-gray-100 rounded-xl pt-2 w-[90%]">
         <h4 className="font-bold text-xl px-4">Whats happening</h4>

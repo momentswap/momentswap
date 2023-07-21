@@ -1,12 +1,6 @@
 import init, * as aleo from 'aleo-wasm-swift-decrypt-record';
 import axios from "axios";
 
-// init().then(async () => {
-//   // aleo.initThreadPool(2);
-//   console.log(22);
-
-//   console.log(33);
-// })
   const handleDecrypt = async(response,viewKey,address,privateKey) => {
     let sn = 0;
     await aleo.default()
@@ -84,80 +78,4 @@ import axios from "axios";
     handleDecrypt(response,viewKey,address,privateKey) 
   })
 
-    
-    // a(response)
-    // for (let r of response) {
-    //   s+=1;
-      
-    //   try {
-    //     console.log("worker.js",s);
-    //     // const sb = privateKey.decryptrecords(r.records[0]);
-    //     const sb = aleo.ViewKey.from_string(viewKey).decrypt(r.records[0])
-    //     alert(sb)
-    //     console.log(sb);
-    //   } catch {
-    //     continue;
-    //   }
-      
-    // }
-// const a = () => self.addEventListener("message",  _ => {
-//   const { viewKey,address,response } = event.data; 
-//     let result
-//     response.forEach((t,i)=>{
-//     console.log("decrypt key ");
-//       t.records.forEach(tx => {
-//         try {
-
-//           result = aleo.ViewKey.from_string(viewKey).decrypt(tx);
-
-//           if(result){
-
-//           console.log(result);
-        
-//           // console.log("insert into indexedDB");
-
-//           // const request = indexedDB.open('aleoDB', 1);
-
-//           // request.onupgradeneeded = function(event) {
-//           //   const db = event.target?.result;
-          
-//           //   if (!db.objectStoreNames.contains("AleoStore")) {
-//           //       db.createObjectStore("AleoStore", { keyPath: "id" });
-//           //   }
-//           // };
-//           // request.onsuccess = event => {
-//           //   const db = event.target.result;
-
-//           //   const transaction = db.transaction(['AleoStore'], 'readwrite');
-//           //   const store = transaction.objectStore('AleoStore');
-//           //   if (result.indexOf(address)>-1){
-
-//           //   const data = { id: t.height, result: result };
-//           //   const addRequest = store.add(data);
-//           //   addRequest.onsuccess = event => {
-//           //     console.log('Data stored successfully in IndexedDB', event.target);
-//           //   };
-
-//           //   addRequest.onerror = event => {
-//           //     console.error('Failed to store data in IndexedDB:', event.target.error);
-//           //   };
-//           //   }
-//           //   transaction.oncomplete = event => {
-//           //     self.postMessage(result);
-//           //   };
-//           // };
-
-//           // request.onerror = event => {
-//           //   console.error('Failed to open database:', event.target.error);
-//           // };
-//         }
-
-//         } catch (e) {
-//           return;
-//         }
-//     })
-
-//   });
- 
-// });
-// })
+   

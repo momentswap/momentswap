@@ -6,7 +6,6 @@ self.addEventListener("message",async ev => {
 
     await init();
     await aleo.default();
-    // await aleo.initThreadPool(8);
     
     const aleoProgramManager = new aleo.ProgramManager();
 
