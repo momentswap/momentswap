@@ -28,3 +28,16 @@ On a decentralized social platform like Moments Swap, each Moment posted generat
 | 2023-01-20  |  Moments Swap frontend Development |
 | 2023-02-2   |  Release beta version |
 
+# ALEO
+first run nexus-dao-indexer
+```bash
+git clone https://github.com/NexusDAO/nexus-dao-indexer.git
+```
+then 
+```bash
+git clone -b adapt-to-aleo https://github.com/momentswap/momentswap.git
+```
+run npm dependencies
+```bash
+npm i && npm run compile-contract && npm run start
+```

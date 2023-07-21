@@ -12,6 +12,7 @@ import { sortAddress } from "@utils/helpers";
 import { momentIdState } from "src/atom";
 import { getCommentsByMomentId, getLikesByMomentId, storeLikes } from "src/mock/data";
 import { Avatar } from "./avatar";
+import { useChainList } from "src/hooks/use-chain-list";
 
 type Props = {
   moment: MomentMetadata;
@@ -24,10 +25,11 @@ export const Moment = ({ moment }: Props) => {
   const [hasLiked, setHasLiked] = useState(false);
   const [momentId, setMomentId] = useRecoilState(momentIdState);
   const router = useRouter();
+  const chainList = useChainList(s=>s.TYPE)
 
   useEffect(() => {
-    setComments(getCommentsByMomentId(moment.id) || []);
-    const localLikes = getLikesByMomentId(moment.id);
+    setComments(getCommentsByMomentId(moment?.id) || []);
+    const localLikes = getLikesByMomentId(moment?.id);
     setLikes(localLikes);
     setHasLiked(localLikes?.includes(moment?.username || ""));
   }, [moment]);
@@ -59,8 +61,8 @@ export const Moment = ({ moment }: Props) => {
       {/* user image */}
 
       <Avatar
-        seed={moment.address}
-        image={moment.userImg}
+        seed={moment?.address}
+        image={moment?.userImg}
         diameter={38}
         className="items-center mr-4 cursor-pointer"
         onClick={() => router.push(`/user?address=${moment.address}`)}
@@ -72,15 +74,16 @@ export const Moment = ({ moment }: Props) => {
         <div className="flex items-center justify-between">
           {/* moment user info */}
           <div className="flex items-center space-x-1 whitespace-nowrap">
-            <h4 className="font-bold text-[15px] sm:text-[16px]">{moment?.username || "---"}.fil</h4>
+            <h4 className="font-bold text-[15px] sm:text-[16px]">{moment?.username || "---"}{chainList==="FIL"? ".fil":".aleo"}</h4>
             <p className="text-sm sm:text-[15px] text-gray-500">
               <span
                 className="hover:underline cursor-pointer"
                 onClick={() => router.push(`/user?address=${moment.address}`)}
               >
-                {sortAddress(moment.address, 6)}{" "}
+                {sortAddress(moment?.address, 6)}{" "}
               </span>
-              - <RMoment fromNow>{momenttools.unix(moment.timestamp)}</RMoment>
+              {chainList==="FIL"&& <> - <RMoment fromNow>{momenttools.unix(moment?.timestamp)}</RMoment></>}
+              {chainList==="ALEO"&& <> - {moment?.timestamp}</>}
             </p>
           </div>
 

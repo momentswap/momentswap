@@ -4,6 +4,11 @@ import { Avatar } from "@components";
 import { useNotifyStatus, useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { ipfsCidToHttpUrl, storeMediaToIPFS } from "@utils/helpers";
 import { useRouter } from "next/router";
+import { useAleoPrivateKey, useAleoRecords, useChainList } from "src/hooks/use-chain-list";
+import { workerHelper } from "@utils/helpers/aleo/worker-helper";
+import axios from "axios";
+import { aleoHelper } from "@utils/helpers/aleo/aleo-helper";
+import { ToEncode, base58ToInteger, splitAndAddField, stringToBase58 } from "@utils/helpers/aleo/aleo-decode";
 
 export const IdentityModal = () => {
   const { address } = useWalletProvider();
@@ -17,6 +22,11 @@ export const IdentityModal = () => {
   const router = useRouter();
   const setNotifySuccess = useNotifyStatus((state) => state.success);
   const setNotifyReset = useNotifyStatus((state) => state.resetStatus);
+  const chainList = useChainList(s=>s.TYPE)
+  const workerExecRef = useRef<Worker>();
+  const aleoPrivateKey = useAleoPrivateKey(s=>s.PK)    
+  const aleoRecords = useAleoRecords(s=>s.records)
+  const aleoAddress = useAleoPrivateKey(s=>s.Address)   
 
   useEffect(() => {
     avatarRef.current?.addEventListener("input", async () => {
@@ -30,6 +40,8 @@ export const IdentityModal = () => {
   }, []);
 
   useEffect(() => {
+    workerExecRef.current = workerHelper();
+    
     (async () => {
       if (!address) {
         return;
@@ -48,30 +60,97 @@ export const IdentityModal = () => {
   };
 
   const saveIdentity = async () => {
+    const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1).sort((a,b)=>b.height-a.height)[0];
+    if(aleoIdentity.result.indexOf("nick_name")>-1){return alert("You have already registered your identity")}
     if (!validateName(text)) {
       alert("The name is between 3 and 10 characters");
       return;
     }
-
+    
     setLoading(true);
 
-    try {
+
       setNotifySuccess();
-      if (avatarSetting) {
-        await setAvatar(avatarSetting);
+      if (chainList==="FIL"&&avatarSetting) {
+        
+      const {remoteProgram,aleoFunction,feeRecord,url} = aleoHelper()
+
+        chainList==="FIL"? await setAvatar(avatarSetting):workerExecRef.current?.postMessage({
+          type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+          remoteProgram,
+          aleoFunction:"setAvatar",
+          inputs:[avatarSetting],
+          privateKey:aleoPrivateKey,
+          fee: 0.1,
+          feeRecord:aleoRecords.filter(t=>t.result.indexOf("microcredits")>-1)[0].result,
+          url
+        });
       }
-      if (!mainDomain) {
+      if (chainList==="FIL"&&!mainDomain) {
+
         await (await registerMainDomain(text)).wait();
       }
-      setNotifyReset();
-    } catch (err: any) {
-      if (err.code === -32603) {
-        alert("Insufficient gas.");
+      // const aleoMainDmmain = aleoRecords.filter(t=>t?.result?.indexOf("identification_number")>-1)[0].result
+      if (chainList==="ALEO") {
+      const feeRecord = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("microcredits")>-1).sort((a,b)=>b.height-a.height)[0];
+      workerExecRef.current?.addEventListener("message", ev => {
+        if (ev.data.type == 'EXECUTION_TRANSACTION_COMPLETED') {
+            axios.post("https://vm.aleo.org/api" + "/testnet3/transaction/broadcast", ev.data.executeTransaction, {
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }).then(
+                (response:any) => {
+                    setNotifySuccess();
+                    var request = indexedDB.open('aleoDB', 1);
+  
+                      request.onsuccess = function(event:any) {
+                        var db = event.target.result;
+  
+                        var transaction = db.transaction(['AleoStore'], 'readwrite');
+                        var store = transaction.objectStore('AleoStore');
+  
+                        var deleteRequest = store.delete(feeRecord.id);
+  
+                        deleteRequest.onsuccess = function(event) {
+                          console.log('success');
+                        };
+  
+                        deleteRequest.onerror = function(event) {
+                          console.log('fail');
+                        };
+  
+                        transaction.oncomplete = function() {
+                          db.close();
+                        };
+                      };
+  
+                      request.onerror = function(event) {
+                        console.log('open db error');
+                      };
+                }
+            )
+        } else if (ev.data.type == 'ERROR') {
+            alert(ev.data.errorMessage);
+            console.log(ev.data.errorMessage);
+          }
+    });
+      const {remoteProgram,url} = aleoHelper()
+        workerExecRef.current?.postMessage({
+          type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+          remoteProgram,
+          aleoFunction:"create_public_identifier",
+          inputs:[aleoAddress,...splitAndAddField(base58ToInteger(stringToBase58(avatarSetting)),"field",4),base58ToInteger(stringToBase58(text))+"field"],
+          privateKey:aleoPrivateKey,
+          fee: 0.1,
+          feeRecord:feeRecord.result,
+          url
+        });      
       }
-    }
+      setNotifyReset();
 
     setLoading(false);
-    router.reload();
+    // router.reload();
   };
 
   return (
@@ -123,7 +202,7 @@ export const IdentityModal = () => {
               onChange={(e) => setText(e.target.value)}
               className="input input-bordered w-1/2"
             />
-            <span className="font-semibold">.fil</span>
+            <span className="font-semibold">{chainList==="FIL"? ".fil":".aleo"}</span>
           </div>
           <div className="divider" />
           <div className="modal-action">

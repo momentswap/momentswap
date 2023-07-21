@@ -3,6 +3,7 @@ import { NETWORK_PARAM } from "@utils/definitions/consts";
 import { addAndSwitchFilecoinChain, isMetaMaskInstalled } from "@utils/helpers";
 import { BigNumber, ethers } from "ethers";
 import React, { ReactNode, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useChainList } from "./use-chain-list";
 
 export type Provider = ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider | undefined;
 export type Signer = ethers.Signer | undefined;
@@ -33,10 +34,11 @@ export const WalletProviderProvider = ({ children }: { children: ReactNode }) =>
   const [chainId, setChainId] = useState<number | undefined>(undefined);
   const [address, setAddress] = useState<string | undefined>(undefined);
   const [providerError, setProviderError] = useState<string | null>(null);
+  const chainList = useChainList(s=>s.TYPE)
 
   useEffect(() => {
     (async () => {
-      await addAndSwitchFilecoinChain();
+      chainList==="FIL"&& await addAndSwitchFilecoinChain();
 
       let provider = new ethers.providers.JsonRpcProvider(NETWORK_PARAM.rpcUrls[0]);
 

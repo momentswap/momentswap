@@ -1,10 +1,16 @@
 import { XIcon } from "@heroicons/react/outline";
 import { useRouter } from "next/router";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
+import axios from "axios";
 
 import { useMomentSwapContract, useNotifyStatus, useWalletProvider } from "@hooks";
 import { Media } from "@utils/definitions/interfaces";
 import { createMomentSwapMetadata, storeMediaToIPFS, storeMetadataToIPFS } from "@utils/helpers";
+import { useAleoPrivateKey, useAleoRecords, useChainList } from "src/hooks/use-chain-list";
+import { workerHelper } from "@utils/helpers/aleo/worker-helper";
+import { aleoHelper } from "@utils/helpers/aleo/aleo-helper";
+import { base58ToAscii, base58ToInteger, integerToBase58, splitAndAddField, stringToBase58 } from "@utils/helpers/aleo/aleo-decode";
+
 
 export const PublishModal = () => {
   const router = useRouter();
@@ -16,6 +22,23 @@ export const PublishModal = () => {
   const setNotifySuccess = useNotifyStatus((state) => state.success);
   const setNotifyFail = useNotifyStatus((state) => state.fail);
   const setNotifyReset = useNotifyStatus((state) => state.resetStatus);
+  const currentNet = useChainList((s) => s.TYPE);
+  const workerRef = useRef<Worker>();
+  const aleoAddress = useAleoPrivateKey(s=>s.Address)
+  const aleoRecords = useAleoRecords(s=>s.records)
+  const x1 = useAleoPrivateKey(s=>s.PK)    
+
+  
+  
+  
+  // const inputString = 'aleo1nhhxn6j9eepa83yhyzu9zsm37axygm9d2ds6z4yft4et63kt7y8qt23hmw';
+  // const base58String = stringToBase58(inputString);
+  // console.log(base58ToInteger(base58String));
+  // console.log(integerToBase58(base58ToInteger(base58String)));
+  // console.log(base58ToAscii(integerToBase58(base58ToInteger(base58String))));
+  
+
+
   const uploadInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length == 0 || loading) {
       return;
@@ -35,14 +58,76 @@ export const PublishModal = () => {
   };
 
   const publishHandler = async () => {
-    if (!address) return;
-    const metadata = createMomentSwapMetadata(address, text, media);
+    if (currentNet==="FIL"&&!address) return;
+    const metadata = currentNet==="FIL"? createMomentSwapMetadata(address as string, text, media):currentNet==="ALEO"&&createMomentSwapMetadata(aleoAddress, text, media);
 
     try {
       const metadataIPFS = await storeMetadataToIPFS(metadata);
+      const feeRecord = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("microcredits")>-1).sort((a,b)=>b.height-a.height)[0];
+
       setNotifySuccess();
-      const res = await mintMomentSwapNFT(metadataIPFS.toString());
-      await res.wait();
+      if(currentNet==="ALEO"){
+        workerRef.current = workerHelper();
+        workerRef.current.addEventListener("message", ev => {
+          if (ev.data.type == 'EXECUTION_TRANSACTION_COMPLETED') {
+              axios.post("https://vm.aleo.org/api" + "/testnet3/transaction/broadcast", ev.data.executeTransaction, {
+                  headers: {
+                      'Content-Type': 'application/json',
+                  }
+              }).then(
+                  (response:any) => {
+                      console.log(response.data);
+                      var request = indexedDB.open('aleoDB', 1);
+
+                    request.onsuccess = function(event:any) {
+                      var db = event.target.result;
+
+                      var transaction = db.transaction(['AleoStore'], 'readwrite');
+                      var store = transaction.objectStore('AleoStore');
+
+                      var deleteRequest = store.delete(feeRecord.id);
+
+                      deleteRequest.onsuccess = function(event) {
+                        console.log('success');
+                      };
+
+                      deleteRequest.onerror = function(event) {
+                        console.log('fail');
+                      };
+
+                      transaction.oncomplete = function() {
+                        db.close();
+                      };
+                    };
+
+                    request.onerror = function(event) {
+                      console.log('open db error');
+                    };
+                  }
+              )
+          } else if (ev.data.type == 'ERROR') {
+              alert(ev.data.errorMessage);
+              console.log(ev.data.errorMessage);
+          }
+      });
+        const {remoteProgram,privateKey,url} = aleoHelper();
+      
+        workerRef.current?.postMessage({
+          type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+          remoteProgram,
+          aleoFunction:"create_public_moment",
+          inputs:[...splitAndAddField(base58ToInteger(stringToBase58(metadataIPFS.toString())), "field"),new Date().getTime().toString()+"u64"],
+          privateKey:x1,
+          fee: 0.1,
+          feeRecord:feeRecord.result,
+          url
+        });
+      }
+      if(currentNet==="FIL"){
+        const res = await mintMomentSwapNFT(metadataIPFS.toString());
+        await res.wait();
+      }
+     
       // alert("Successfully published moment!");
       setNotifyReset();
       router.push("/");

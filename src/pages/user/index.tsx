@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import momenttools from "moment";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { Avatar, Layout, Loading, Moment, PriceButton, Tab, ThemeToggle } from "@components";
 import {
@@ -17,6 +17,13 @@ import {
 } from "@hooks";
 import { MomentMetadata } from "@utils/definitions/interfaces";
 import { collectionToMoments, isEmptyAddress, secondsToYears, yearsToSeconds } from "@utils/helpers";
+import { useAleoLoading, useAleoPrivateKey, useAleoRecords, useChainList } from "src/hooks/use-chain-list";
+import { workerHelper } from "@utils/helpers/aleo/worker-helper";
+import axios from "axios";
+import { aleoHelper } from "@utils/helpers/aleo/aleo-helper";
+import faker from 'faker';
+import { ToDecodeBase58 } from "@utils/helpers/aleo/aleo-decode";
+import { TimeAgoAgo } from "@utils/helpers/aleo/time";
 
 interface SpaceSlot {
   id: string;
@@ -54,6 +61,11 @@ export default function UserPage() {
   const setNotifySuccess = useNotifyStatus((state) => state.success);
   const setNotifyReset = useNotifyStatus((state) => state.resetStatus);
   const setNotifyFail = useNotifyStatus((state) => state.fail);
+  const aleoRecords = useAleoRecords(s=>s.records)
+  const aleoPrivateKey = useAleoPrivateKey(s=>s.PK)    
+  const {remoteProgram,url} = aleoHelper()
+
+
   const {
     approve,
     mintSubDomain,
@@ -68,7 +80,46 @@ export default function UserPage() {
   } = useSpaceFNSContract();
   const { getListedDomainsByDomainID, listDomain, lendDomain, updateListDomain, cancelListDomain, withdrawProceeds } =
     useFNSMarketContract();
+    const chainList = useChainList(s=>s.TYPE)
+    const workerExecRef = useRef<Worker>();
 
+
+    useEffect(()=>{
+      workerExecRef.current = workerHelper();
+      workerExecRef.current.addEventListener("message", ev => {
+        if (ev.data.type == 'EXECUTION_TRANSACTION_COMPLETED') {
+            axios.post("https://vm.aleo.org/api" + "/testnet3/transaction/broadcast", ev.data.executeTransaction, {
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            }).then(
+                (response:any) => {
+                    setNotifySuccess();
+                    console.log(response.data);
+                }
+            )
+        } else if (ev.data.type == 'ERROR') {
+            alert(ev.data.errorMessage);
+            console.log(ev.data.errorMessage);
+            setNotifyFail();
+          }
+    });
+    },[])
+    useEffect(()=>{
+      const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1).sort((a,b)=>b.height-a.height)[0];
+      const name = aleoIdentity.result.match(/name: (\d+)(field.private)/)[1].substring(1);
+      const nick_name = aleoIdentity.result.match(/nick_name: (\d+)(field.private)/)[1].substring(1);
+      const phone_number = aleoIdentity.result.match(/phone_number: (\d+)(field.private)/)[1].substring(1);
+      const identification_number = aleoIdentity.result.match(/identification_number: (\d+)(field.private)/)[1].substring(1);
+      const nation = aleoIdentity.result.match(/nation: (\d+)(field.private)/)[1].substring(1);
+       
+      // 合并提取的值
+      const result = name + nick_name + phone_number + identification_number;
+      
+      result && setUserImg(ToDecodeBase58([result])[0]);
+      nation && setMainDomain(ToDecodeBase58([nation])[0]); 
+    },[])
+    
   useEffect(() => {
     (async () => {
       setCreatorSlots([]);
@@ -76,7 +127,16 @@ export default function UserPage() {
       const _creatorSlots: Array<SpaceSlot | undefined> = [];
       const _userSlots: Array<SpaceSlot> = [];
       const [_mainDomain, _subDomainIDs, _subDomainNames, _subDomainUsers] = await getAllDomainByCreator(queryAddress);
-      setMainDomain(_mainDomain);
+      const aleoIdentity = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter((t:any)=>t.result.indexOf("nick_name")>-1).sort((a,b)=>b.height-a.height)[0];
+      const name = aleoIdentity.result.match(/name: (\d+)(field.private)/)[1].substring(1);
+      const nick_name = aleoIdentity.result.match(/nick_name: (\d+)(field.private)/)[1].substring(1);
+      const phone_number = aleoIdentity.result.match(/phone_number: (\d+)(field.private)/)[1].substring(1);
+      const identification_number = aleoIdentity.result.match(/identification_number: (\d+)(field.private)/)[1].substring(1);
+       
+      // 合并提取的值
+      const result = name + nick_name + phone_number + identification_number;
+      
+      chainList==="FIL"? setMainDomain(_mainDomain):setMainDomain(aleoIdentity.filter(t=>t.result.indexOf("identification_number")>-1)[0].result);
 
       // Get all domain names created by user
       const [, , _creatorLeaseTerms] = await getDomainLeaseTermsByCreator(queryAddress);
@@ -170,19 +230,30 @@ export default function UserPage() {
   const handleMint = async () => {
     let readyMintIndex;
     for (let i in creatorSlots) {
-      if (creatorSlots[i] == undefined) {
+      if (creatorSlots[i] === undefined) {
         readyMintIndex = i;
         break;
       }
     }
-
-    if (readyMintIndex == undefined) {
+     
+    if (readyMintIndex === undefined) {
       alert("Only 5 subdomain can be mint at most");
       return;
     }
 
     try {
-      mintSubDomain(mainDomain, `space${parseInt(readyMintIndex) + 1}`);
+      
+
+      chainList==="FIL"? mintSubDomain(mainDomain, `space${parseInt(readyMintIndex) + 1}`):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"mintSubDomain",
+        inputs:[mainDomain,`space${parseInt(readyMintIndex) + 1}`],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
     } catch {
       setNotifyFail();
     }
@@ -200,7 +271,16 @@ export default function UserPage() {
       if (isEmptyAddress(_marketAddress)) {
         await (await approve(selectedSlot.id)).wait();
       }
-      listDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears));
+      chainList==="FIL"? listDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears)):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"listDomain",
+        inputs:[selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears)],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
     } catch {
       setNotifyFail();
     }
@@ -217,7 +297,16 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      cancelListDomain(selectedSlot.id);
+      chainList==="FIL"? cancelListDomain(selectedSlot.id):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"cancelListDomain",
+        inputs:[selectedSlot.id],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
       // alert("Cancel list success !");
     } catch {
       setNotifyFail();
@@ -236,7 +325,16 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      updateListDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears));
+      chainList==="FIL"?updateListDomain(selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears)):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"updateListDomain",
+        inputs:[selectedSlot.id, ethers.utils.parseEther(price).toString(), yearsToSeconds(leaseTermYears)],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
       // alert("Update success !");
     } catch {
       setNotifyFail();
@@ -252,7 +350,16 @@ export default function UserPage() {
     }
 
     try {
-      lendDomain(selectedSlot.id, ethers.utils.parseEther(price).toString());
+      chainList==="FIL"?lendDomain(selectedSlot.id, ethers.utils.parseEther(price).toString()):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"lendDomain",
+        inputs:[selectedSlot.id, ethers.utils.parseEther(price).toString()],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
       // alert("Buy success !");
     } catch {
       setNotifyFail();
@@ -273,7 +380,16 @@ export default function UserPage() {
 
     setLoading(true);
     try {
-      updateSubDomain(selectedSlot.mainDomain, selectedSlot.subDomain, leaseName);
+      chainList==="FIL"?updateSubDomain(selectedSlot.mainDomain, selectedSlot.subDomain, leaseName):chainList==="ALEO"&&workerExecRef.current?.postMessage({
+        type: 'ALEO_EXECUTE_PROGRAM_ON_CHAIN',
+        remoteProgram,
+        aleoFunction:"updateSubDomain",
+        inputs:[selectedSlot.mainDomain, selectedSlot.subDomain, leaseName],
+        privateKey:aleoPrivateKey,
+        fee: 0.1,
+        feeRecord:aleoRecords.filter(t=>t.microcredits.length>5)[0],
+        url
+      });
       // alert("Rename success !");
     } catch {
       setNotifyFail();
@@ -283,11 +399,57 @@ export default function UserPage() {
     // router.reload();
   };
 
-  const renderMomentsPage = useCallback(() => {
+  const renderMomentsPage = useCallback(async() => {
+  const fakeData: MomentMetadata[] = [];
+    const metadata_uri = JSON.parse(window.localStorage.getItem("aleoRecords") as string)?.filter(t=>t.result.indexOf("metadata_uri1")>-1)
+  // const metadata = metadata_uri?.map((t:any)=>t.result.split("metadata_uri1:")[1]?.split(".private")[0].split("field")[0])
+  if(metadata_uri.length===0){return}
+  const handledUri = ToDecodeBase58(metadata_uri?.map(t=>{
+    const regex = /metadata_uri[1-5]: (\d+)[a-z.]+/g;
+    let match;
+    const values = [];
+
+    while ((match = regex.exec(t.result)) !== null) {
+      const value = match[1].substring(1); // Remove the first digit
+      values.push(value);
+    }
+
+    const result = values.join('');
+
+  return result;
+  }))?.map(t=>t.replace("ipfs://","https://ipfs.io/ipfs/"))
+  const requests = handledUri?.map((address:any) => axios.get(address));
+
+  await Promise.all(requests)
+  .then((results) => {
+    results.forEach((response,i) => {
+      const timeIndex = metadata_uri[i].result.indexOf("time:");
+      const u64Index = metadata_uri[i].result.indexOf("u64", timeIndex);
+      const timeValue = metadata_uri[i].result.slice(timeIndex + 5, u64Index).trim();
+      const moment: MomentMetadata = {
+        id: faker.random.uuid(),
+        address: response.data.name,
+        timestamp: TimeAgoAgo.format(Number(timeValue)),
+        timestamp_n: timeValue,
+        metadataURL:"https://ipfs.io/ipfs/"+response.data.properties.media.cid,
+        contentText: response.data.description, 
+        username: window.localStorage.getItem("aleoAvatarName")??"",
+        userImg: "https://i.seadn.io/gcs/files/06a9042df571917b3904517e89baca76.png?auto=format&dpr=1&w=640",
+        media: "https://ipfs.io/ipfs/"+response.data.properties.media.cid,
+        mediaType: response.data.properties.media.type,
+      };
+      
+      fakeData.push(moment);
+      
+      // setMoments(fakeData);
+    }); 
+  });
+  fakeData.sort((a,b)=>(b?.timestamp_n??0) - (a?.timestamp_n??0))
+    
     const _tabPage = (
       <AnimatePresence>
-        {moments?.map((moment) => (
-          <motion.div
+        {fakeData?.map((moment) => {
+          return <motion.div
             key={moment.id}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -296,11 +458,11 @@ export default function UserPage() {
           >
             <Moment key={moment.id} moment={moment} />
           </motion.div>
-        ))}
+  })}
       </AnimatePresence>
     );
     setTabPage(_tabPage);
-  }, [moments, userImg]);
+  }, [ moments,userImg]);
 
   const renderLikesPage = useCallback(() => {
     const _tabPage = <p>coming soon...</p>;
@@ -497,7 +659,7 @@ export default function UserPage() {
         </div>
         <div className="border-t-[1px] border-base-content/25">
           <AnimatePresence>
-            {creatorSlots.map((slot, index) => (
+            {creatorSlots?.map((slot, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0 }}
@@ -626,7 +788,7 @@ export default function UserPage() {
                 </div>
               ) : (
                 <AnimatePresence>
-                  {userSlots.map((slot, index) => (
+                  {userSlots?.map((slot, index) => (
                     <motion.div
                       key={index}
                       initial={{ opacity: 0 }}
@@ -719,7 +881,7 @@ export default function UserPage() {
         m.username = mainDomain;
         m.userImg = userImg;
       }
-      setMoments(_moments);
+      // setMoments(_moments);
     })();
   }, [getNFTCollectionByOwner, queryAddress, mainDomain, userImg]);
 
@@ -769,7 +931,8 @@ export default function UserPage() {
           {/* Head  */}
           <div className="w-full h-[160px] bg-gradient-to-r from-secondary to-neutral mb-16">
             <div className="rounded-full relative top-28 left-8 w-[100px] h-[100px] bg-base-100 flex">
-              <Avatar image={userImg} seed={queryAddress} diameter={90} className="m-auto" />
+              {/* <Avatar image={userImg} seed={queryAddress} diameter={90} className="m-auto" /> */}
+              <Avatar image={"https://i.seadn.io/gcs/files/06a9042df571917b3904517e89baca76.png?auto=format&dpr=1&w=640"} seed={queryAddress} diameter={90} className="m-auto" />
             </div>
           </div>
 
@@ -797,7 +960,7 @@ export default function UserPage() {
           </label>
 
           <div className="px-4 py-2">
-            <p className="text-2xl font-semibold">{mainDomain || "---"}.fil</p>
+            <p className="text-2xl font-semibold">{mainDomain || "---"}{chainList==="FIL"? ".fil":".aleo"}</p>
             <p className="text-sm">{queryAddress}</p>
           </div>
 

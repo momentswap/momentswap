@@ -2,7 +2,7 @@ export const PublishButton = () => {
   return (
     <label
       htmlFor="publish-modal"
-      className="flex text-center bg-primary rounded-full w-12 xl:w-56 h-12 font-bold shadow-md hover:bg-primary-focus text-lg mx-auto"
+      className="flex text-center bg-primary rounded-full w-12 xl:w-56 h-12 font-bold shadow-md hover:bg-primary-focus text-lg mx-auto mb-2"
     >
       <p className="hidden xl:inline m-auto">Publish</p>
       <svg
