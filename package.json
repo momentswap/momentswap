@@ -10,6 +10,8 @@
     "start": "next start",
     "lint": "next lint",
     "compile-contract": "npx hardhat compile",
+    "deploy": "hardhat deploy:all",
+    "deploy:hyperevm": "hardhat deploy:all --network hyperevm",
     "deploy-contract": "npx hardhat run ./fevm/hardhat/deploy/deployMomentSwapFRC721.ts",
     "test-local": "npx hardhat test test/*.ts --network hardhat",
     "test": "npx hardhat test test/*.ts"
@@ -17,7 +19,6 @@
   "dependencies": {
     "@ant-design/icons": "^5.0.1",
     "@heroicons/react": "v1",
-    "@metamask/detect-provider": "^2.0.0",
     "@tailwindcss/typography": "^0.5.9",
     "@types/react-modal": "^3.13.1",
     "antd": "^5.4.0",
@@ -30,6 +31,7 @@
     "hover.css": "^2.3.2",
     "next": "^13.2.4",
     "nft.storage": "^7.0.0",
+    "pinata": "^2.4.9",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-ethersjs": "^0.1.14",

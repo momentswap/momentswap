@@ -1,10 +1,10 @@
 import { XIcon } from "@heroicons/react/outline";
 import { useRouter } from "next/router";
 import React, { useState } from "react";
-
 import { useMomentSwapContract, useNotifyStatus, useWalletProvider } from "@hooks";
 import { Media } from "@utils/definitions/interfaces";
-import { createMomentSwapMetadata, storeMediaToIPFS, storeMetadataToIPFS } from "@utils/helpers";
+import { createMomentSwapMetadata, ipfsCidToHttpUrl, storeMediaToIPFS, storeMetadataToIPFS } from "@utils/helpers";
+import { extractCidFromMedia } from "@utils/helpers/media-utils";
 
 export const PublishModal = () => {
   const router = useRouter();
@@ -25,7 +25,15 @@ export const PublishModal = () => {
     if (file) {
       try {
         const { mediaCID, mediaType } = await storeMediaToIPFS(file);
-        setMedia({ url: `https://${mediaCID}.ipfs.dweb.link`, type: mediaType, cid: mediaCID });
+        try {
+          const actualCid = extractCidFromMedia(mediaCID);
+          if (actualCid) {
+            const mediaUrl = await ipfsCidToHttpUrl(actualCid);
+            setMedia({ url: mediaUrl, type: mediaType, cid: actualCid });
+          }
+        } catch (error) {
+          console.error('Failed to convert media CID to URL:', error);
+        }
       } catch (err) {
         console.error("Failed to store media, error:", err);
         alert("Failed to store media, please try again.");

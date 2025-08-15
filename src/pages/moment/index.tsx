@@ -2,10 +2,11 @@ import { ArrowLeftIcon } from "@heroicons/react/outline";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-
 import { Comment, Layout, Moment, ThemeToggle } from "@components";
 import { useMomentSwapContract, useSpaceFNSContract } from "@hooks";
 import { CommentData, MomentMetadata } from "@utils/definitions/interfaces";
+import { ipfsCidToHttpUrl } from "@utils/helpers/nftstorage";
+import { extractCidFromMedia } from "@utils/helpers/media-utils";
 import { getCommentsByMomentId } from "src/mock/data";
 
 export default function MomentPage() {
@@ -22,30 +23,48 @@ export default function MomentPage() {
 
   useEffect(() => {
     (async () => {
-      const collection = await getNFTCollection();
+      try {
+        const collection = await getNFTCollection();
 
-      if (!collection) {
-        return;
+        if (!collection) {
+          return;
+        }
+
+        const itemIndex = collection.findIndex((item) => item[2].toString() === momentId);
+        const item = collection[itemIndex];
+
+        if (!item) {
+          console.error('Moment not found');
+          return;
+        }
+
+        const [mainDomain] = await getAllDomainByCreator(item[0]);
+        const avatar = await getAvatar(item[0]);
+
+        const _moment: MomentMetadata = {
+          address: item[0],
+          id: item[2].toString(),
+          timestamp: item[3].toNumber(),
+          username: mainDomain,
+          userImg: avatar,
+          metadataURL: item[1],
+        };
+
+        const metadata = await fetch(_moment.metadataURL).then((res) => res.json());
+        _moment.contentText = metadata.properties.content["text/markdown"];
+
+        const actualCid = extractCidFromMedia(metadata.properties.media?.cid);
+        if (actualCid) {
+          _moment.media = await ipfsCidToHttpUrl(actualCid);
+          _moment.mediaType = metadata.properties.media.type;
+        }
+
+        setMoment(_moment);
+      } catch (error) {
+        console.error('Failed to load moment:', error);
       }
-      const itemIndex = collection.findIndex((item) => item[2].toString() === momentId);
-      const item = collection[itemIndex];
-      const [mainDomain] = await getAllDomainByCreator(item[0]);
-      const avatar = await getAvatar(item[0]);
-      const _moment: MomentMetadata = {
-        address: item[0],
-        id: item[2].toString(),
-        timestamp: item[3].toNumber(),
-        username: mainDomain,
-        userImg: avatar,
-        metadataURL: `https://${item[1].split("/")[2]}.ipfs.dweb.link/metadata.json`,
-      };
-      const metadata = await fetch(_moment.metadataURL).then((res) => res.json());
-      _moment.contentText = metadata.properties.content["text/markdown"];
-      _moment.media = `https://${metadata.properties.media.cid}.ipfs.dweb.link`;
-      _moment.mediaType = metadata.properties.media.type;
-      setMoment(_moment);
     })();
-  }, [getNFTCollection, momentId]);
+  }, [getNFTCollection, momentId, getAllDomainByCreator, getAvatar]);
 
   return (
     <>
@@ -57,7 +76,6 @@ export default function MomentPage() {
             </div>
             <h2 className="text-lg sm:text-xl font-bold my-auto">Moment</h2>
             <div className="flex items-center justify-center px-0 ml-auto w-9 h-9">
-              {/* <SparklesIcon className="h-5" /> */}
               <ThemeToggle />
             </div>
           </div>

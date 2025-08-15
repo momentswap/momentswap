@@ -1,20 +1,41 @@
 import { NETWORK_PARAM } from "@utils/definitions/consts";
 
-const network = process.env.NEXT_PUBLIC_FILECOIN_NETWORK;
-export const addAndSwitchFilecoinChain = async () => {
-  console.log(NETWORK_PARAM);
-
-  try {
-    window.ethereum.request({
-      method: "wallet_addEthereumChain",
-      params: [NETWORK_PARAM],
-    });
-  } catch {}
+export const isWalletInstalled = (): boolean => {
+  return typeof window !== "undefined" && !!window.ethereum;
 };
 
-//Created check function to see if the MetaMask extension is installed
-export const isMetaMaskInstalled = () => {
-  //Have to check the ethereum binding on the window object to see if it's installed
-  const { ethereum } = window;
-  return Boolean(ethereum && ethereum.isMetaMask);
+export const detectWallet = () => {
+  if (typeof window !== "undefined" && window.ethereum) {
+    return window.ethereum;
+  }
+  return null;
+};
+
+export const addAndSwitchHyperEvmChain = async (): Promise<void> => {
+  if (!window.ethereum) {
+    throw new Error("Please install a wallet");
+  }
+
+  try {
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: NETWORK_PARAM.chainId }],
+    });
+  } catch (switchError: any) {
+    // If network doesn't exist (4902), add the network
+    if (switchError.code === 4902) {
+      try {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [NETWORK_PARAM],
+        });
+      } catch (addError) {
+        console.error("Failed to add network:", addError);
+        throw addError;
+      }
+    } else {
+      console.error("Failed to switch network:", switchError);
+      throw switchError;
+    }
+  }
 };

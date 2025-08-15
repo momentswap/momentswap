@@ -11,20 +11,39 @@ if (!contractAddress) {
 }
 
 export const useMomentSwapContract = () => {
-  const { signer, provider } = useWalletProvider();
+  const { signer, provider, address } = useWalletProvider(); // 添加 address
   const contractWithSigner = useMemo(() => new Contract(contractAddress, MomentSwapFRC721.abi, signer), [signer]);
   const contractWithProvider = useMemo(() => new Contract(contractAddress, MomentSwapFRC721.abi, provider), [provider]);
 
   // Read-only contract functions
-  const getNFTCollection = useCallback((): Promise<Array<MomentSwapFRC721NFT>> => {
-    return contractWithProvider.getNFTCollection();
-  }, [contractWithProvider]);
+  const getNFTCollection = useCallback(async (): Promise<Array<MomentSwapFRC721NFT>> => {
+    if (!provider) {
+      throw new Error("Provider unconnect");
+    }
+
+    if (!address) {
+      throw new Error("wallet unconnect");
+    }
+
+    try {
+      const network = await provider.getNetwork();
+      console.log("network:", network);
+
+      return await contractWithProvider.getNFTCollection();
+    } catch (error) {
+      console.error("contract call failed:", error);
+      throw error;
+    }
+  }, [contractWithProvider, provider, address]);
 
   const getNFTCollectionByOwner = useCallback(
     (owner: string): Promise<Array<MomentSwapFRC721NFT>> => {
+      if (!address) {
+        throw new Error("wallet unconnect");
+      }
       return contractWithProvider.getNFTCollectionByOwner(owner);
     },
-    [contractWithProvider],
+    [contractWithProvider, address],
   );
 
   const getMintFee = useCallback((): Promise<BigNumber> => {
@@ -35,18 +54,24 @@ export const useMomentSwapContract = () => {
 
   const mintMomentSwapNFT = useCallback(
     async (ipfsURL: string): Promise<any> => {
+      if (!address) {
+        throw new Error("wallet unconnect，cannot be mint");
+      }
       const mintFee = await getMintFee();
       return await contractWithSigner.mintMomentSwapNFT(ipfsURL, { value: mintFee });
     },
-    [getMintFee, contractWithSigner],
+    [getMintFee, contractWithSigner, address],
   );
 
   const mintMultipleMomentSwapNFTs = useCallback(
     async (ipfsURLs: Array<string>): Promise<any> => {
+      if (!address) {
+        throw new Error("wallet unconnect，cannot be mint");
+      }
       const mintFee = await getMintFee();
       return await contractWithSigner.mintMultipleMomentSwapNFTs(ipfsURLs, { value: mintFee.mul(ipfsURLs.length) });
     },
-    [getMintFee, contractWithSigner],
+    [getMintFee, contractWithSigner, address],
   );
 
   return {
@@ -55,5 +80,6 @@ export const useMomentSwapContract = () => {
     getNFTCollectionByOwner,
     mintMomentSwapNFT,
     mintMultipleMomentSwapNFTs,
+    address,
   };
 };

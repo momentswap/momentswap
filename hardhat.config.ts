@@ -22,31 +22,39 @@ const walletPrivateKey: string | undefined = process.env.WALLET_PRIVATE_KEY;
 
 const config: HardhatUserConfig = {
   solidity: "0.8.17",
-  mocha:{ timeout: 600000 },
+  mocha: { timeout: 600000 },
   defaultNetwork: "filecoinHyperspace",
   networks: {
     hardhat: {},
     filecoinMainnet: {
       url: "https://api.node.glif.io",
       chainId: 314,
-      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined"],
+      accounts: walletPrivateKey ? [walletPrivateKey] : [process.env.TEST_ACCOUNT1 ?? "undefined"],
     },
     filecoinWallaby: {
       url: "https://wallaby.node.glif.io/rpc/v0",
       chainId: 31415,
-      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined"],
+      accounts: walletPrivateKey ? [walletPrivateKey] : [process.env.TEST_ACCOUNT1 ?? "undefined"],
       //explorer: https://wallaby.filscan.io/ and starboard
     },
     filecoinHyperspace: {
       url: "https://api.hyperspace.node.glif.io/rpc/v1", //https://beryx.zondax.ch/ //chainstack
       chainId: 3141,
-      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined", process.env.TEST_ACCOUNT2 ?? "undefined"],
-      gasMultiplier:3    
+      accounts: walletPrivateKey ? [walletPrivateKey] : [process.env.TEST_ACCOUNT1 ?? "undefined", process.env.TEST_ACCOUNT2 ?? "undefined"],
+      gasMultiplier: 3,
     },
     ethGoerli: {
       url: "https://eth-goerli.g.alchemy.com/v2/S4Rrp2eHb-xk5dxnNQygNcv-QfPmzTXX",
       chainId: 5,
-      accounts: walletPrivateKey ?[walletPrivateKey]: [process.env.TEST_ACCOUNT1 ?? "undefined"],
+      accounts: walletPrivateKey ? [walletPrivateKey] : [process.env.TEST_ACCOUNT1 ?? "undefined"],
+    },
+    hyperevm: {
+      url: "https://rpc.hyperliquid-testnet.xyz/evm",
+      accounts: walletPrivateKey ? [walletPrivateKey] : [],
+      chainId: 998,
+      gasPrice: 5000000000,
+      gas: 29000000,
+      timeout: 120000,
     },
   },
   paths: {
