@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Avatar } from "@components";
 import { useNotifyStatus, useSpaceDomain, useSpaceFNSContract, useWalletProvider } from "@hooks";
 import { ipfsCidToHttpUrl, storeMediaToIPFS } from "@utils/helpers";
+import { extractCidFromMedia } from "@utils/helpers/media-utils";
 import { useRouter } from "next/router";
 
 export const IdentityModal = () => {
@@ -17,16 +18,39 @@ export const IdentityModal = () => {
   const router = useRouter();
   const setNotifySuccess = useNotifyStatus((state) => state.success);
   const setNotifyReset = useNotifyStatus((state) => state.resetStatus);
+  const setNotifyFail = useNotifyStatus((state) => state.fail); // 添加失败通知
 
   useEffect(() => {
-    avatarRef.current?.addEventListener("input", async () => {
+    const handleAvatarInput = async () => {
       if (!avatarRef.current?.files || avatarRef.current.files.length === 0) return;
+
       const file = avatarRef.current.files[0];
       setLoading(true);
-      const { mediaCID } = await storeMediaToIPFS(file);
-      setAvatarSetting(ipfsCidToHttpUrl(mediaCID));
-      setLoading(false);
-    });
+
+      try {
+        const { mediaCID } = await storeMediaToIPFS(file);
+
+        const actualCid = extractCidFromMedia(mediaCID);
+        if (actualCid) {
+          const avatarUrl = await ipfsCidToHttpUrl(actualCid);
+          setAvatarSetting(avatarUrl);
+        } else {
+          console.error("Invalid CID format:", mediaCID);
+          alert("Failed to process avatar image");
+        }
+      } catch (error) {
+        console.error("Failed to upload avatar:", error);
+        alert("Failed to upload avatar. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    avatarRef.current?.addEventListener("input", handleAvatarInput);
+
+    return () => {
+      avatarRef.current?.removeEventListener("input", handleAvatarInput);
+    };
   }, []);
 
   useEffect(() => {
@@ -34,13 +58,17 @@ export const IdentityModal = () => {
       if (!address) {
         return;
       }
-      const _avatarUrl = await getAvatar(address);
 
-      setAvatarUrl(_avatarUrl);
+      try {
+        const _avatarUrl = await getAvatar(address);
+        setAvatarUrl(_avatarUrl);
+      } catch (error) {
+        console.error("Failed to get avatar:", error);
+      }
     })();
 
     setText(mainDomain);
-  }, [mainDomain, getAvatar]);
+  }, [mainDomain, getAvatar, address]);
 
   const validateName = (value: string) => {
     const pattern = /^[a-zA-Z0-9_-]{3,10}$/;
@@ -53,25 +81,57 @@ export const IdentityModal = () => {
       return;
     }
 
+    if (!address) {
+      alert("Wallet not connected");
+      return;
+    }
+
     setLoading(true);
 
     try {
       setNotifySuccess();
-      if (avatarSetting) {
-        await setAvatar(avatarSetting);
-      }
-      if (!mainDomain) {
-        await (await registerMainDomain(text)).wait();
-      }
-      setNotifyReset();
-    } catch (err: any) {
-      if (err.code === -32603) {
-        alert("Insufficient gas.");
-      }
-    }
 
-    setLoading(false);
-    router.reload();
+      if (avatarSetting) {
+        console.log("Setting avatar...");
+        const avatarTx = await setAvatar(avatarSetting);
+        await avatarTx.wait();
+        console.log("Avatar set successfully");
+      }
+
+      if (!mainDomain) {
+        console.log("Registering domain...");
+        const domainTx = await registerMainDomain(text);
+        await domainTx.wait();
+        console.log("Domain registered successfully");
+      }
+
+      console.log("Identity saved successfully");
+
+      setTimeout(() => {
+        setNotifyReset();
+        router.reload();
+      }, 2000);
+
+    } catch (err: any) {
+      console.error("Failed to save identity:", err);
+      setNotifyFail();
+
+      if (err.code === -32603) {
+        alert("Insufficient gas. Please try again with more gas.");
+      } else if (err.code === 4001) {
+        alert("Transaction rejected by user.");
+      } else if (err.message?.includes("execution reverted")) {
+        alert("Transaction failed. The domain name might already be taken.");
+      } else {
+        alert(`Failed to save identity: ${err.message || "Unknown error"}`);
+      }
+
+      setTimeout(() => {
+        setNotifyReset();
+      }, 3000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -86,7 +146,8 @@ export const IdentityModal = () => {
           <h3 className="font-bold text-lg">Register Profile</h3>
           <div className="flex min-w-[300px] mt-5 items-center gap-5">
             <label htmlFor="avatar-input" className="inline-block">
-              <div className="flex border-2 border-base-300 w-20 h-20 rounded-full overflow-hidden bg-opacity-20 bg-black hover:bg-opacity-25">
+              <div
+                className="flex border-2 border-base-300 w-20 h-20 rounded-full overflow-hidden bg-opacity-20 bg-black hover:bg-opacity-25">
                 <Avatar
                   seed={address}
                   image={avatarSetting || avatarUrl}
@@ -99,7 +160,7 @@ export const IdentityModal = () => {
                   viewBox="0 0 24 24"
                   strokeWidth={1.5}
                   stroke="currentColor"
-                  className="w-8 h-8 m-auto rounded-full  text-zinc-300 bg-black bg-opacity-50 p-1"
+                  className="w-8 h-8 m-auto rounded-full text-zinc-300 bg-black bg-opacity-50 p-1"
                 >
                   <path
                     strokeLinecap="round"
@@ -119,7 +180,7 @@ export const IdentityModal = () => {
               type="text"
               placeholder="Name"
               value={text}
-              disabled={!!mainDomain}
+              disabled={!!mainDomain || loading}
               onChange={(e) => setText(e.target.value)}
               className="input input-bordered w-1/2"
             />
@@ -127,9 +188,13 @@ export const IdentityModal = () => {
           </div>
           <div className="divider" />
           <div className="modal-action">
-            <div className={`btn btn-primary ${loading ? "loading" : ""}`} onClick={saveIdentity}>
-              Save
-            </div>
+            <button
+              className={`btn btn-primary ${loading ? "loading" : ""}`}
+              onClick={saveIdentity}
+              disabled={loading || !address}
+            >
+              {loading ? "Saving..." : "Save"}
+            </button>
           </div>
         </label>
       </label>
