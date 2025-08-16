@@ -15,6 +15,7 @@
     "jsx": "preserve",
     "incremental": true,
     "baseUrl": ".",
+    "types": ["node"],
     "paths": {
       "@hooks": ["src/hooks/"],
       "@components": ["src/components/"],
