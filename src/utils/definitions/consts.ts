@@ -28,23 +28,24 @@ export const DEFAULT_THEME = "pastel";
 //         blockExplorerUrls: ["https://hyperspace.filfox.info/en"],
 //       };
 export const NETWORK_PARAM =
-  process.env.NODE_ENV === "production"
-    ? {
-      chainId: "0x3e7",
-      chainName: "Hyperliquid Mainnet",
-      nativeCurrency: {
-        name: "HYPE",
-        symbol: "HYPE",
-        decimals: 18,
-      },
-      rpcUrls: ["https://rpc.hyperliquid.xyz/evm"],
-      blockExplorerUrls: [
-        "https://hyperevmscan.io/",
-        "https://purrsec.com/",
-        "https://www.hyperscan.com/",
-      ],
-    }
-    : {
+  // process.env.NODE_ENV === "production"
+  //   ? {
+  //     chainId: "0x3e7",
+  //     chainName: "Hyperliquid Mainnet",
+  //     nativeCurrency: {
+  //       name: "HYPE",
+  //       symbol: "HYPE",
+  //       decimals: 18,
+  //     },
+  //     rpcUrls: ["https://rpc.hyperliquid.xyz/evm"],
+  //     blockExplorerUrls: [
+  //       "https://hyperevmscan.io/",
+  //       "https://purrsec.com/",
+  //       "https://www.hyperscan.com/",
+  //     ],
+  //   }
+    // : {
+    {
       //testnet conf
       chainId: "0x3e6",
       chainName: "Hyperliquid Testnet",
