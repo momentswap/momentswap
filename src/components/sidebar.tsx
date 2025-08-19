@@ -71,7 +71,7 @@ export const Sidebar = () => {
               >
                 <Avatar seed={address} image={userImg} diameter={38} className="items-center" />
                 <div className="leading-5 hidden xl:inline xl:ml-2 xl:w-[120px]">
-                  <h4 className="font-bold text-sm truncate">{mainDomain || "---"}.fil</h4>
+                  <h4 className="font-bold text-sm truncate">{mainDomain || "---"}.hl</h4>
                   <p className="font-light text-sm">{sortAddress(address)}</p>
                 </div>
                 <svg

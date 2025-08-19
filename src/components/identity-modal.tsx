@@ -184,7 +184,7 @@ export const IdentityModal = () => {
               onChange={(e) => setText(e.target.value)}
               className="input input-bordered w-1/2"
             />
-            <span className="font-semibold">.fil</span>
+            <span className="font-semibold">.hl</span>
           </div>
           <div className="divider" />
           <div className="modal-action">

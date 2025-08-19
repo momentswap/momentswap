@@ -89,7 +89,7 @@ export default function UserPage() {
 
           _creatorSlots.push({
             id: _subDomainIDs[i].toString(),
-            fullDomain: `${_subDomainNames[i]}.${_mainDomain}.fil`,
+            fullDomain: `${_subDomainNames[i]}.${_mainDomain}.hl`,
             mainDomain: _mainDomain,
             subDomain: _subDomainNames[i],
             used: _used,
@@ -115,7 +115,7 @@ export default function UserPage() {
         const [, , _subDomainName] = await getSubDomainDetailsByDomainID(_domainIDs[i].toString());
         _userSlots.push({
           id: _domainIDs[i].toString(),
-          fullDomain: `${_fullDomainNames[i]}.fil`,
+          fullDomain: `${_fullDomainNames[i]}.hl`,
           mainDomain: _mainDomainName,
           subDomain: _subDomainName,
           used: true,
@@ -463,7 +463,7 @@ export default function UserPage() {
                   className="input input-bordered"
                   onChange={leaseNameOnChange}
                 />
-                <span>.{selectedSlot?.mainDomain || "---"}.fil</span>
+                <span>.{selectedSlot?.mainDomain || "---"}.hl</span>
               </div>
             </div>
             <div className="divider" />
@@ -797,7 +797,7 @@ export default function UserPage() {
           </label>
 
           <div className="px-4 py-2">
-            <p className="text-2xl font-semibold">{mainDomain || "---"}.fil</p>
+            <p className="text-2xl font-semibold">{mainDomain || "---"}.hl</p>
             <p className="text-sm">{queryAddress}</p>
           </div>
 
