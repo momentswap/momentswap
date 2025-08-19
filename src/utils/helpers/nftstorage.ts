@@ -25,7 +25,7 @@ export const storeMediaToIPFS = async (mediaFile: File) => {
 // Create NFT Metadata
 export const createMomentSwapMetadata = (owner: string, contentText: string, media?: Media) => {
   return {
-    name: "MomentSwap Hyperspace NFTs 2023",
+    name: "HyperShow Hyperspace NFTs 2023",
     description: contentText,
     image: new Blob(),
     properties: {

@@ -28,7 +28,7 @@ export const Sidebar = () => {
 
         <button className="flex p-1.5 mx-auto xl:mx-0" onClick={() => router.push("/")}>
           <img className="w-[30px] h-[30px]" src="/logo.png" alt="Logo" />
-          <p className="hidden xl:flex text-2xl font-bold font-mono mx-3">MomentSwap</p>
+          <p className="hidden xl:flex text-2xl font-bold font-mono mx-3">HyperShow</p>
         </button>
 
         {/* Menu */}

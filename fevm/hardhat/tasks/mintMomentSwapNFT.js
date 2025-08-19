@@ -12,7 +12,7 @@ task(
     //create a new wallet instance
     const wallet = new ethers.Wallet(network.config.accounts[0], ethers.provider)
 
-    //create a MomentSwap contract factory
+    //create a HyperShow contract factory
     const momentSwap  = await ethers.getContractFactory("MomentSwapFRC721", wallet)
     //create a MomentSwapFRC721 contract instance
     //this is what you will call to interact with the deployed contract
